@@ -39,7 +39,7 @@ if uploaded_file:
     stats = df['Utente'].value_counts().reset_index()
     stats.columns = ['Commerciale', 'Numero Attività']
     
-    st.bar_chart(data=stats, x='Commerciale', y='Numero Attività')
+    st.bar_chart(data=stats, x='Numero Attività', y='Commerciale')
     
     # Tabella dettagliata
     st.write("Dettaglio eventi caricati:")

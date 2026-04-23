@@ -66,30 +66,28 @@ if uploaded_file:
         st.divider()
         st.subheader("Resoconto Tipologia Attività")
         
-        col1, col2 = st.columns([1, 1])
-        
-        with col1:
-            # Preparazione dati per la torta
-            stats_tipo = df_filtrato['Tipo Evento'].value_counts().reset_index()
-            stats_tipo.columns = ['Tipo Evento', 'Conteggio']
+
+         # Preparazione dati per la torta
+        stats_tipo = df_filtrato['Tipo Evento'].value_counts().reset_index()
+        stats_tipo.columns = ['Tipo Evento', 'Conteggio']
             
-            fig_pie = px.pie(
+        fig_pie = px.pie(
                 stats_tipo, 
                 values='Conteggio', 
                 names='Tipo Evento', 
                 hole=0.4, # Trasforma in grafico a ciambella, più leggibile
                 color_discrete_sequence=px.colors.qualitative.Pastel
-            )
-            fig_pie.update_traces(textinfo='percent+label')
-            st.plotly_chart(fig_pie, use_container_width=True)
+        )
+        fig_pie.update_traces(textinfo='percent+label')
+        st.plotly_chart(fig_pie, use_container_width=True)
             
-        with col2:
-            st.write("#### Volumi Totali")
-            totale_attivita = len(df_filtrato)
-            st.metric("Totale Eventi", totale_attivita)
+
+        st.write("#### Volumi Totali")
+        totale_attivita = len(df_filtrato)
+        st.metric("Totale Eventi", totale_attivita)
             
-            # Mostriamo la lista pesata delle attività
-            st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
+        # Mostriamo la lista pesata delle attività
+        st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
 
         
         

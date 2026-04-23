@@ -61,23 +61,36 @@ if uploaded_file:
 
         #*************************
 
-        # Preparazione dati
+        
+        # 1. Preparazione dei dati
         stats = df_filtrato['Utente'].value_counts().reset_index()
         stats.columns = ['Utente', 'Numero Attività']
+        
+        # Ordiniamo per far apparire il più alto in alto
         stats = stats.sort_values(by='Numero Attività', ascending=True)
 
-        # GRAFICO PLOTLY (PIÙ PROFESSIONALE E SICURO)
-        # Se vuoi un controllo totale e barre che crescono sicuramente verso destra:
+        # 2. Calcolo della Mediana
+        valore_mediana = stats['Numero Attività'].median()
+
+        # 3. Creazione Grafico con Plotly (BARRE ORIZZONTALI)
         fig = px.bar(
             stats, 
-            x='Numero Attività', 
-            y='Utente', 
-            orientation='h', 
-            text='Numero Attività',
-            labels={'Utente': 'Commerciale'}
+            x='Numero Attività',      # Crescita verso DESTRA
+            y='Utente',              # Commerciali in verticale
+            orientation='h',         # Forza l'orientamento orizzontale
+            text='Numero Attività',   # Mostra il numero sulla barra
+            color='Numero Attività', # Opzionale: colore variabile
+            color_continuous_scale='Blues'
         )
-        fig.update_traces(textposition='outside')
-        st.plotly_chart(fig, use_container_width=True)
+
+        # 4. AGGIUNTA RETTA PER LA MEDIANA
+        fig.add_vline(
+            x=valore_mediana, 
+            line_dash="dash", 
+            line_color="red",
+            annotation_text=f"Mediana: {valore_mediana}", 
+            annotation_position="top right"
+        )
 
 
         

@@ -60,7 +60,11 @@ if uploaded_file:
             df_filtrato = df 
 
         #*************************
-        
+
+        # Preparazione dati
+        stats = df_filtrato['Utente'].value_counts().reset_index()
+        stats.columns = ['Utente', 'Numero Attività']
+        stats = stats.sort_values(by='Numero Attività', ascending=True)
 
         # GRAFICO PLOTLY (PIÙ PROFESSIONALE E SICURO)
         # Se vuoi un controllo totale e barre che crescono sicuramente verso destra:

@@ -77,13 +77,22 @@ if uploaded_file:
         )
 
     
-    # Mostriamo le statistiche base per "Utente"
     st.subheader("Conteggio attività per Commerciale")
-    stats = df['Utente'].value_counts().reset_index()
-    stats.columns = ['Commerciale', 'Numero Attività']
-    
-    st.bar_chart(data=stats, x='Numero Attività', y='Commerciale')
-    
-    # Tabella dettagliata
-    st.write("Dettaglio eventi caricati:")
-    st.dataframe(df[['Utente', 'Data Evento', 'Tipo Evento', 'Ragione Sociale']])
+        
+        # Prepariamo i dati per il grafico
+        stats = df['Utente'].value_counts().reset_index()
+        stats.columns = ['Commerciale', 'Numero Attività']
+        
+        # Grafico ORIZZONTALE: 
+        # In Streamlit bar_chart, se mettiamo 'Commerciale' su y e 'Numero Attività' su x,
+        # otteniamo barre che partono da sinistra verso destra.
+        st.bar_chart(data=stats, x='Numero Attività', y='Commerciale')
+        
+        # Tabella dettagliata con l'orario
+        st.write("Dettaglio eventi caricati:")
+        
+        # Verifichiamo che le colonne esistano prima di mostrarle per evitare errori
+        colonne_da_mostrare = ['Utente', 'Data Evento', 'Ora Evento', 'Tipo Evento', 'Ragione Sociale']
+        colonne_presenti = [col for col in colonne_da_mostrare if col in df.columns]
+        
+        st.dataframe(df[colonne_presenti])

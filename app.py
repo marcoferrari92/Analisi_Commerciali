@@ -26,6 +26,35 @@ def carica_dati_commerciali(file):
     
     return df
 
+
+
+
+def mostra_periodo_analisi(df):
+    """Calcola e visualizza l'intervallo temporale dei dati."""
+    if 'Data Evento' in df.columns:
+        # Rimuoviamo eventuali valori nulli per il calcolo del periodo
+        date_valide = df['Data Evento'].dropna()
+        
+        if not date_valide.empty:
+            data_inizio = date_valide.min()
+            data_fine = date_valide.max()
+            
+            # Formattiamo le date per la visualizzazione (GG/MM/AAAA)
+            inizio_str = data_inizio.strftime('%d/%m/%Y')
+            fine_str = data_fine.strftime('%d/%m/%Y')
+            
+            # Calcolo dei giorni totali
+            giorni = (data_fine - data_inizio).days + 1
+            
+            # Visualizzazione in Streamlit
+            st.info(f"📅 **Periodo Analizzato:** dal {inizio_str} al {fine_str} ({giorni} giorni)")
+            
+            return data_inizio, data_fine
+    return None, None
+
+
+
+
 # --- Esempio di utilizzo nella App ---
 st.title("Analisi Attività Commerciali")
 
@@ -33,6 +62,19 @@ uploaded_file = st.file_uploader("Carica il file export_eventi", type="csv")
 
 if uploaded_file:
     df = carica_dati_commerciali(uploaded_file)
+    
+    if df is not None:
+        # Richiamo della funzione subito dopo il caricamento
+        data_min, data_max = mostra_periodo_analisi(df)
+        
+        # Facoltativo: Aggiungi uno slider nella sidebar per filtrare ulteriormente il periodo
+        st.sidebar.header("Filtro Temporale")
+        periodo_selezionato = st.sidebar.date_input(
+            "Seleziona intervallo",
+            value=(data_min, data_max),
+            min_value=data_min,
+            max_value=data_max
+        )
     
     # Mostriamo le statistiche base per "Utente"
     st.subheader("Conteggio attività per Commerciale")

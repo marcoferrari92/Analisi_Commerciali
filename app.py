@@ -61,6 +61,12 @@ if uploaded_file:
 
         #*************************
         
+        # Preparazione dati
+        stats = df_filtrato['Utente'].value_counts().reset_index()
+        stats.columns = ['Utente', 'Numero Attività']
+        
+        # Ordiniamo in modo che il più alto sia in cima
+        stats = stats.sort_values(by='Numero Attività', ascending=True)
         
         # GRAFICO STREAMLIT (X=NUMERO -> CRESCITA VERSO DESTRA)
         st.bar_chart(data=stats, x='Numero Attività', y='Utente')

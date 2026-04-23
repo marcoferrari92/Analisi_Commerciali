@@ -16,11 +16,19 @@ def carica_dati_commerciali(file):
         if 'Data Evento' in df.columns:
             # Convertiamo in datetime e poi estraiamo solo .date()
             df['Data Evento'] = pd.to_datetime(df['Data Evento'], dayfirst=True, errors='coerce').dt.date
+
+        # PULIZIA TIPO EVENTO (Rimuove trattini, spazi e mette in Maiuscolo)
+        if 'Tipo Evento' in df.columns:
+            df['Tipo Evento'] = df['Tipo Evento'].apply(lambda x: re.sub(r'[^a-zA-Z\s]', '', str(x)).strip().upper())
             
         return df
+        
     except Exception as e:
         st.error(f"Errore caricamento: {e}")
         return None
+
+
+
 
 def mostra_periodo_analisi(df):
     date_valide = df['Data Evento'].dropna()

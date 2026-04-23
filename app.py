@@ -61,17 +61,21 @@ if uploaded_file:
         #*************************
         
         
-        # --- GRAFICO ORIZZONTALE (Barre verso DESTRA) ---
-        st.subheader("Classifica Attività per Commerciale")
-        
-        # Raggruppiamo i dati
-        stats = df_filtrato['Utente'].value_counts().reset_index()
-        stats.columns = ['Utente', 'Numero Attività']
-        
-        # Per Streamlit: 
-        # x = Valore numerico (determina la lunghezza della barra verso DESTRA)
-        # y = Categoria/Nomi (determina la posizione sulla colonna VERTICALE)
+        # GRAFICO STREAMLIT (X=NUMERO -> CRESCITA VERSO DESTRA)
         st.bar_chart(data=stats, x='Numero Attività', y='Utente')
+
+        # 2. GRAFICO PLOTLY (PIÙ PROFESSIONALE E SICURO)
+        # Se vuoi un controllo totale e barre che crescono sicuramente verso destra:
+        fig = px.bar(
+            stats, 
+            x='Numero Attività', 
+            y='Utente', 
+            orientation='h', 
+            text='Numero Attività',
+            labels={'Utente': 'Commerciale'}
+        )
+        fig.update_traces(textposition='outside')
+        st.plotly_chart(fig, use_container_width=True)
 
 
         

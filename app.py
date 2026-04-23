@@ -4,17 +4,25 @@ import pandas as pd
 @st.cache_data
 def carica_dati_commerciali(file):
     try:
-        # Proviamo a leggere con il punto e virgola (standard Excel IT)
-        # Usiamo 'latin1' o 'utf-8-sig' per evitare errori sui caratteri accentati
+        # Caricamento con separatore punto e virgola e encoding per file IT
         df = pd.read_csv(file, sep=';', encoding='latin1')
-        
-        # Se pandas legge una sola colonna, significa che il separatore era sbagliato
         if df.shape[1] <= 1:
-            file.seek(0) # Reset del puntatore del file
+            file.seek(0)
             df = pd.read_csv(file, sep=',', encoding='utf-8')
             
+        # Pulizia nomi colonne
+        df.columns = df.columns.str.strip()
+        
+        # TRASFORMAZIONE DATA: manteniamo solo la parte data (senza ore)
+        if 'Data Evento' in df.columns:
+            # Prima convertiamo in datetime
+            df['Data Evento'] = pd.to_datetime(df['Data Evento'], dayfirst=True, errors='coerce')
+            # Poi estraiamo solo la data per la visualizzazione
+            df['Data Evento'] = df['Data Evento'].dt.date
+            
+        return df
     except Exception as e:
-        st.error(f"Errore tecnico nel parsing: {e}")
+        st.error(f"Errore: {e}")
         return None
 
     # Pulizia nomi colonne

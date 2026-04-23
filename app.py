@@ -64,10 +64,10 @@ if uploaded_file:
     df = carica_dati_commerciali(uploaded_file)
     
     if df is not None:
-        # Richiamo della funzione subito dopo il caricamento
+
+        # PERIODO 
         data_min, data_max = mostra_periodo_analisi(df)
         
-        # Facoltativo: Aggiungi uno slider nella sidebar per filtrare ulteriormente il periodo
         st.sidebar.header("Filtro Temporale")
         periodo_selezionato = st.sidebar.date_input(
             "Seleziona intervallo",
@@ -75,6 +75,7 @@ if uploaded_file:
             min_value=data_min,
             max_value=data_max
         )
+
     
     # Mostriamo le statistiche base per "Utente"
     st.subheader("Conteggio attività per Commerciale")

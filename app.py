@@ -60,24 +60,14 @@ st.title("Analisi Attività Commerciali")
 
 uploaded_file = st.file_uploader("Carica il file export_eventi", type="csv")
 
+# --- Sezione Statistiche e Visualizzazione ---
 if uploaded_file:
     df = carica_dati_commerciali(uploaded_file)
     
     if df is not None:
+        mostra_periodo_analisi(df)
 
-        # PERIODO 
-        data_min, data_max = mostra_periodo_analisi(df)
-        
-        st.sidebar.header("Filtro Temporale")
-        periodo_selezionato = st.sidebar.date_input(
-            "Seleziona intervallo",
-            value=(data_min, data_max),
-            min_value=data_min,
-            max_value=data_max
-        )
-
-    
-    st.subheader("Conteggio attività per Commerciale")
+        st.subheader("Conteggio attività per Commerciale")
         
         # Prepariamo i dati per il grafico
         stats = df['Utente'].value_counts().reset_index()

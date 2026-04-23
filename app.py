@@ -29,26 +29,16 @@ def carica_dati_commerciali(file):
 
 
 
+# Funzione per mostrare il periodo (come richiesto prima)
 def mostra_periodo_analisi(df):
-    """Calcola e visualizza l'intervallo temporale dei dati."""
     if 'Data Evento' in df.columns:
-        # Rimuoviamo eventuali valori nulli per il calcolo del periodo
         date_valide = df['Data Evento'].dropna()
-        
         if not date_valide.empty:
             data_inizio = date_valide.min()
             data_fine = date_valide.max()
-            
-            # Formattiamo le date per la visualizzazione (GG/MM/AAAA)
             inizio_str = data_inizio.strftime('%d/%m/%Y')
             fine_str = data_fine.strftime('%d/%m/%Y')
-            
-            # Calcolo dei giorni totali
-            giorni = (data_fine - data_inizio).days + 1
-            
-            # Visualizzazione in Streamlit
-            st.info(f"📅 **Periodo Analizzato:** dal {inizio_str} al {fine_str} ({giorni} giorni)")
-            
+            st.info(f"📅 **Periodo Analizzato:** dal {inizio_str} al {fine_str}")
             return data_inizio, data_fine
     return None, None
 

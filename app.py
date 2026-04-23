@@ -20,9 +20,16 @@ def carica_dati_commerciali(file):
 
         # PULIZIA TIPO EVENTO (Rimuove trattini, spazi e mette in Maiuscolo)
         if 'Tipo Evento' in df.columns:
-            df['Tipo Evento'] = df['Tipo Evento'].apply(lambda x: re.sub(r'[^a-zA-Z\s]', '', str(x)).strip().upper())
+            # Qui usiamo il modulo 're' importato sopra
+            df['Tipo Evento'] = df['Tipo Evento'].apply(
+                lambda x: re.sub(r'[^a-zA-Z\s]', '', str(x)).strip().upper()
+            )
             
         return df
+        
+    except Exception as e:
+        st.error(f"Errore caricamento: {e}")
+        return None
         
     except Exception as e:
         st.error(f"Errore caricamento: {e}")

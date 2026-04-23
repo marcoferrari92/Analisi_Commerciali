@@ -4,83 +4,72 @@ import pandas as pd
 @st.cache_data
 def carica_dati_commerciali(file):
     try:
-        # Caricamento con separatore punto e virgola e encoding per file IT
+        # Caricamento standard per export IT
         df = pd.read_csv(file, sep=';', encoding='latin1')
         if df.shape[1] <= 1:
             file.seek(0)
             df = pd.read_csv(file, sep=',', encoding='utf-8')
-            
-        # Pulizia nomi colonne
+        
         df.columns = df.columns.str.strip()
         
-        # TRASFORMAZIONE DATA: manteniamo solo la parte data (senza ore)
         if 'Data Evento' in df.columns:
-            # Prima convertiamo in datetime
-            df['Data Evento'] = pd.to_datetime(df['Data Evento'], dayfirst=True, errors='coerce')
-            # Poi estraiamo solo la data per la visualizzazione
-            df['Data Evento'] = df['Data Evento'].dt.date
+            # Convertiamo in datetime e poi estraiamo solo .date()
+            df['Data Evento'] = pd.to_datetime(df['Data Evento'], dayfirst=True, errors='coerce').dt.date
             
         return df
     except Exception as e:
-        st.error(f"Errore: {e}")
+        st.error(f"Errore caricamento: {e}")
         return None
 
-    # Pulizia nomi colonne
-    df.columns = df.columns.str.strip()
-    
-    # Trasformazione data specifica per il tuo file
-    if 'Data Evento' in df.columns:
-        df['Data Evento'] = pd.to_datetime(df['Data Evento'], dayfirst=True, errors='coerce')
-    
-    return df
-
-
-
-
-# Funzione per mostrare il periodo (come richiesto prima)
 def mostra_periodo_analisi(df):
-    if 'Data Evento' in df.columns:
-        date_valide = df['Data Evento'].dropna()
-        if not date_valide.empty:
-            data_inizio = date_valide.min()
-            data_fine = date_valide.max()
-            inizio_str = data_inizio.strftime('%d/%m/%Y')
-            fine_str = data_fine.strftime('%d/%m/%Y')
-            st.info(f"📅 **Periodo Analizzato:** dal {inizio_str} al {fine_str}")
-            return data_inizio, data_fine
+    date_valide = df['Data Evento'].dropna()
+    if not date_valide.empty:
+        d_min, d_max = min(date_valide), max(date_valide)
+        st.info(f"📅 **Dati disponibili:** dal {d_min.strftime('%d/%m/%Y')} al {d_max.strftime('%d/%m/%Y')}")
+        return d_min, d_max
     return None, None
 
+# --- MAIN APP ---
+uploaded_file = st.file_uploader("Carica CSV", type="csv")
 
-
-
-# --- Esempio di utilizzo nella App ---
-st.title("Analisi Attività Commerciali")
-
-uploaded_file = st.file_uploader("Carica il file export_eventi", type="csv")
-
-# --- Sezione Statistiche e Visualizzazione ---
 if uploaded_file:
     df = carica_dati_commerciali(uploaded_file)
     
     if df is not None:
-        mostra_periodo_analisi(df)
+        # 1. Recuperiamo i limiti temporali del file
+        data_min_file, data_max_file = mostra_periodo_analisi(df)
 
+        # 2. Sidebar con lo slider (FILTRO ATTIVO)
+        st.sidebar.header("Filtro Temporale")
+        periodo_selezionato = st.sidebar.date_input(
+            "Visualizza attività nel periodo:",
+            value=(data_min_file, data_max_file),
+            min_value=data_min_file,
+            max_value=data_max_file
+        )
+
+        # 3. APPLICAZIONE DEL FILTRO
+        # Gestiamo il caso in cui l'utente selezioni una data singola o un range
+        if isinstance(periodo_selezionato, tuple) and len(periodo_selezionato) == 2:
+            start_date, end_date = periodo_selezionato
+            df_filtrato = df[(df['Data Evento'] >= start_date) & (df['Data Evento'] <= end_date)]
+        else:
+            df_filtrato = df # Se la selezione non è completa, mostra tutto
+
+        # 4. GRAFICO (basato su df_filtrato)
         st.subheader("Conteggio attività per Commerciale")
-        
-        # Prepariamo i dati per il grafico
-        stats = df['Utente'].value_counts().reset_index()
+        stats = df_filtrato['Utente'].value_counts().reset_index()
         stats.columns = ['Commerciale', 'Numero Attività']
+        stats = stats.sort_values(by='Numero Attività', ascending=True)
         
-        # Grafico ORIZZONTALE: 
-        # In Streamlit bar_chart, se mettiamo 'Commerciale' su y e 'Numero Attività' su x,
-        # otteniamo barre che partono da sinistra verso destra.
         st.bar_chart(data=stats, x='Numero Attività', y='Commerciale')
         
-        # Tabella dettagliata con l'orario
-        st.write("Dettaglio eventi caricati:")
+        # 5. TABELLA (basata su df_filtrato)
+        st.write(f"### Dettaglio eventi ({len(df_filtrato)} record)")
+        col_view = ['Utente', 'Data Evento', 'Ora Evento', 'Tipo Evento', 'Ragione Sociale']
+        col_presenti = [c for c in col_view if c in df_filtrato.columns]
         
-        # Verifichiamo che le colonne esistano prima di mostrarle per evitare errori
-        colonne_da_mostrare = ['Utente', 'Data Evento', 'Ora Evento', 'Tipo Evento', 'Ragione Sociale']
-        colonne_presenti = [col for col in colonne_da_mostrare if col in df.columns]
-        
-        st.dataframe(df[colonne_presenti])
+        st.dataframe(
+            df_filtrato[col_presenti].sort_values(by=['Data Evento', 'Ora Evento'], ascending=False),
+            use_container_width=True
+        )

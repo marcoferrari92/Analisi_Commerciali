@@ -75,7 +75,7 @@ if uploaded_file:
                 stats_tipo, 
                 values='Conteggio', 
                 names='Tipo Evento', 
-                hole=0.4, # Trasforma in grafico a ciambella, più leggibile
+                hole=0.1, # Trasforma in grafico a ciambella, più leggibile
                 color_discrete_sequence=px.colors.qualitative.Pastel
         )
         fig_pie.update_traces(textinfo='percent+label')

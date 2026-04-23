@@ -56,20 +56,16 @@ if uploaded_file:
         else:
             df_filtrato = df # Se la selezione non è completa, mostra tutto
 
-        # 4. GRAFICO VERTICALE (Commerciali sotto, Barre in alto)
-        st.subheader("Conteggio attività per Commerciale")
-        
-        # Prepariamo i dati
+        # 3. GRAFICO ORIZZONTALE (Ruotato di 90°)
+        # Commerciali su Y, Numero Attività su X
+        st.subheader("Attività per Commerciale")
         stats = df_filtrato['Utente'].value_counts().reset_index()
         stats.columns = ['Commerciale', 'Numero Attività']
         
-        # Ordinamento: dal più attivo al meno attivo (da sinistra a destra)
-        stats = stats.sort_values(by='Numero Attività', ascending=False)
+        # Ordinamento: il più alto in alto
+        stats = stats.sort_values(by='Numero Attività', ascending=True)
         
-        # Per avere le barre verticali:
-        # x = Nomi dei commerciali
-        # y = Valore numerico
-        st.bar_chart(data=stats, x='Commerciale', y='Numero Attività')
+        st.bar_chart(data=stats, x='Numero Attività', y='Commerciale')
         
         # 5. TABELLA (basata su df_filtrato)
         st.write(f"### Dettaglio eventi ({len(df_filtrato)} record)")

@@ -81,13 +81,15 @@ if uploaded_file:
         fig_pie.update_traces(textinfo='percent+label')
         st.plotly_chart(fig_pie, use_container_width=True)
             
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            st.write("#### Volumi Totali")
+            totale_attivita = len(df_filtrato)
+            st.metric("Totale Eventi", totale_attivita)
 
-        st.write("#### Volumi Totali")
-        totale_attivita = len(df_filtrato)
-        st.metric("Totale Eventi", totale_attivita)
-            
-        # Mostriamo la lista pesata delle attività
-        st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
+        with col2:
+            # Mostriamo la lista pesata delle attività
+            st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
 
         
         

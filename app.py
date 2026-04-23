@@ -89,7 +89,7 @@ if uploaded_file:
             line_dash="dash", 
             line_color="red",
             annotation_text=f"Mediana: {valore_mediana}", 
-            annotation_position="top right"
+            annotation_position="center right"
         )
 
         # Miglioramento layout

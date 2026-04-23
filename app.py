@@ -36,6 +36,9 @@ if uploaded_file:
     df = carica_dati_commerciali(uploaded_file)
     
     if df is not None:
+
+        # PERIODO ****************
+        
         # 1. Recuperiamo i limiti temporali del file
         data_min_file, data_max_file = mostra_periodo_analisi(df)
 
@@ -49,13 +52,14 @@ if uploaded_file:
         )
 
         # 3. APPLICAZIONE DEL FILTRO
-        # Gestiamo il caso in cui l'utente selezioni una data singola o un range
         if isinstance(periodo_selezionato, tuple) and len(periodo_selezionato) == 2:
             start_date, end_date = periodo_selezionato
             df_filtrato = df[(df['Data Evento'] >= start_date) & (df['Data Evento'] <= end_date)]
         else:
-            df_filtrato = df # Se la selezione non è completa, mostra tutto
+            df_filtrato = df 
 
+        #*************************
+        
         # 3. GRAFICO ORIZZONTALE (Ruotato di 90°)
         # Commerciali su Y, Numero Attività su X
         st.subheader("Attività per Commerciale")

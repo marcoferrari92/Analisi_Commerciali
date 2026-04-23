@@ -92,6 +92,19 @@ if uploaded_file:
             annotation_position="top right"
         )
 
+        # Miglioramento layout
+        fig.update_layout(
+            xaxis_title="Numero di Attività Svolte",
+            yaxis_title="Commerciale",
+            showlegend=False,
+            height=500
+        )
+
+        # Visualizzazione
+        st.plotly_chart(fig, use_container_width=True)
+
+        # Visualizzazione metrica rapida
+        st.metric("Mediana del Team", f"{valore_mediana} attività")
 
         
         

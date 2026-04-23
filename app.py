@@ -60,16 +60,23 @@ if uploaded_file:
 
         #*************************
         
-        # 3. GRAFICO ORIZZONTALE (Ruotato di 90°)
-        # Commerciali su Y, Numero Attività su X
-        st.subheader("Attività per Commerciale")
+        
+        # 4. GRAFICO ORIZZONTALE (BARRE CHE CRESCONO VERSO DESTRA)
+        st.subheader("Classifica Attività per Commerciale")
+        
+        # Prepariamo i dati
         stats = df_filtrato['Utente'].value_counts().reset_index()
         stats.columns = ['Commerciale', 'Numero Attività']
         
-        # Ordinamento: il più alto in alto
+        # Per avere il più attivo in alto in un grafico orizzontale, 
+        # l'ordinamento deve essere crescente (ascending=True)
         stats = stats.sort_values(by='Numero Attività', ascending=True)
         
+        # SPECIFICHIAMO GLI ASSI: x (valore) cresce verso destra, y (nomi) verticale
         st.bar_chart(data=stats, x='Numero Attività', y='Commerciale')
+
+
+        
         
         # 5. TABELLA (basata su df_filtrato)
         st.write(f"### Dettaglio eventi ({len(df_filtrato)} record)")

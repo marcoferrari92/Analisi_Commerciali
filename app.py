@@ -3,18 +3,26 @@ import pandas as pd
 
 @st.cache_data
 def carica_dati_commerciali(file):
-    # Carichiamo il file con i nomi corretti delle colonne
-    df = pd.read_csv(file)
-    
-    # Pulizia nomi colonne per sicurezza
+    try:
+        # Proviamo a leggere con il punto e virgola (standard Excel IT)
+        # Usiamo 'latin1' o 'utf-8-sig' per evitare errori sui caratteri accentati
+        df = pd.read_csv(file, sep=';', encoding='latin1')
+        
+        # Se pandas legge una sola colonna, significa che il separatore era sbagliato
+        if df.shape[1] <= 1:
+            file.seek(0) # Reset del puntatore del file
+            df = pd.read_csv(file, sep=',', encoding='utf-8')
+            
+    except Exception as e:
+        st.error(f"Errore tecnico nel parsing: {e}")
+        return None
+
+    # Pulizia nomi colonne
     df.columns = df.columns.str.strip()
     
-    # Conversione della colonna 'Data Evento' in formato data
-    # Il formato sembra essere GG/MM/AAAA
-    df['Data Evento'] = pd.to_datetime(df['Data Evento'], dayfirst=True, errors='coerce')
-    
-    # Pulizia della colonna Utente (i tuoi commerciali)
-    df['Utente'] = df['Utente'].astype(str).str.strip()
+    # Trasformazione data specifica per il tuo file
+    if 'Data Evento' in df.columns:
+        df['Data Evento'] = pd.to_datetime(df['Data Evento'], dayfirst=True, errors='coerce')
     
     return df
 

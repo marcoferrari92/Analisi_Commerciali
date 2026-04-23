@@ -61,19 +61,17 @@ if uploaded_file:
         #*************************
         
         
-        # 4. GRAFICO ORIZZONTALE (BARRE CHE CRESCONO VERSO DESTRA)
+        # --- GRAFICO ORIZZONTALE (Barre verso DESTRA) ---
         st.subheader("Classifica Attività per Commerciale")
         
-        # Prepariamo i dati
+        # Raggruppiamo i dati
         stats = df_filtrato['Utente'].value_counts().reset_index()
-        stats.columns = ['Commerciale', 'Numero Attività']
+        stats.columns = ['Utente', 'Numero Attività']
         
-        # Per avere il più attivo in alto in un grafico orizzontale, 
-        # l'ordinamento deve essere crescente (ascending=True)
-        stats = stats.sort_values(by='Numero Attività', ascending=True)
-        
-        # SPECIFICHIAMO GLI ASSI: x (valore) cresce verso destra, y (nomi) verticale
-        st.bar_chart(data=stats, x='Numero Attività', y='Commerciale')
+        # Per Streamlit: 
+        # x = Valore numerico (determina la lunghezza della barra verso DESTRA)
+        # y = Categoria/Nomi (determina la posizione sulla colonna VERTICALE)
+        st.bar_chart(data=stats, x='Numero Attività', y='Utente')
 
 
         

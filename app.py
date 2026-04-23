@@ -61,17 +61,8 @@ if uploaded_file:
 
         #*************************
         
-        # Preparazione dati
-        stats = df_filtrato['Utente'].value_counts().reset_index()
-        stats.columns = ['Utente', 'Numero Attività']
-        
-        # Ordiniamo in modo che il più alto sia in cima
-        stats = stats.sort_values(by='Numero Attività', ascending=True)
-        
-        # GRAFICO STREAMLIT (X=NUMERO -> CRESCITA VERSO DESTRA)
-        st.bar_chart(data=stats, x='Numero Attività', y='Utente')
 
-        # 2. GRAFICO PLOTLY (PIÙ PROFESSIONALE E SICURO)
+        # GRAFICO PLOTLY (PIÙ PROFESSIONALE E SICURO)
         # Se vuoi un controllo totale e barre che crescono sicuramente verso destra:
         fig = px.bar(
             stats, 

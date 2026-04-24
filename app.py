@@ -111,7 +111,7 @@ if uploaded_file:
             stats_qualita.columns = ['Stato Nota', 'Conteggio']
             
             # --- PRIMA RIGA: GRAFICO A TORTA TIPOLOGIE ---
-            col1, col2 = st.columns([3, 1]) 
+            col1, col2, col3 = st.columns([2, 1, 1]) 
             with col1:
                 st.write("#### Tipologie Eventi")
                 fig_pie_tipo = px.pie(
@@ -125,7 +125,26 @@ if uploaded_file:
                 st.plotly_chart(fig_pie_tipo, use_container_width=True)
 
             with col2: 
-                st.write("#### Analisi Qualità Note")
+                st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
+
+            with col3:
+                totale_attivita = len(df_filtrato)
+                st.metric("Totale Attività", totale_attivita)
+            
+            # --- SECONDA RIGA: TABELLA E TOTALE ---
+            st.write("#### Riepilogo Volumi")
+            col_tab, col_tot = st.columns([3, 1]) 
+            
+            with col_tab:
+                st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
+            
+            with col_tot:
+                totale_attivita = len(df_filtrato)
+                st.metric("Totale Attività", totale_attivita)
+            
+            # --- TERZA RIGA: QUALITÀ NOTE E PERCENTUALE ---
+            st.divider()
+            st.write("#### Analisi Qualità Note")
                 with st.popover("💡 Analisi"):
                         st.info(""" 
                         Controlliamo la qualità degli eventi inseriti per il famoso teorema: 
@@ -149,21 +168,6 @@ if uploaded_file:
                 )
                 fig_pie_qual.update_traces(textinfo='percent+label')
                 st.plotly_chart(fig_pie_qual, use_container_width=True)
-            
-            # --- SECONDA RIGA: TABELLA E TOTALE ---
-            st.write("#### Riepilogo Volumi")
-            col_tab, col_tot = st.columns([3, 1]) 
-            
-            with col_tab:
-                st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
-            
-            with col_tot:
-                totale_attivita = len(df_filtrato)
-                st.metric("Totale Attività", totale_attivita)
-            
-            # --- TERZA RIGA: QUALITÀ NOTE E PERCENTUALE ---
-            st.divider()
-            
 
 
         # --- SEZIONE HEATMAP ORARIA ---

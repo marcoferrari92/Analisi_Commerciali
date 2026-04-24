@@ -93,7 +93,7 @@ if uploaded_file:
             # 2. Dati per Qualità Note
             df_qualita = df_filtrato.copy()
             df_qualita['Qualità'] = df_qualita['Note'].apply(
-                lambda x: "UTILE (Con Note)" if pd.notnull(x) and str(x).strip() != "" else "INUTILE (Senza Note)"
+                lambda x: "UTILE (Con Note)" if pd.notnull(x) and str(x).strip() != "" else "MUTO (Senza Note)"
             )
             stats_qualita = df_qualita['Qualità'].value_counts().reset_index()
             stats_qualita.columns = ['Stato Nota', 'Conteggio']
@@ -112,7 +112,7 @@ if uploaded_file:
             
             # --- SECONDA RIGA: TABELLA E TOTALE ---
             st.write("#### Riepilogo Volumi")
-            col_tab, col_tot = st.columns([3, 1]) # Tabella più larga rispetto al numero totale
+            col_tab, col_tot = st.columns([3, 1]) 
             
             with col_tab:
                 st.dataframe(stats_tipo, hide_index=True, use_container_width=True)

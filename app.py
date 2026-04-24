@@ -528,19 +528,7 @@ if uploaded_file:
             )
         )
         
-        # Se il numero massimo di attività è molto alto (es. > 20), 
-        # dtick=1 potrebbe affollare troppo l'asse. In quel caso usa:
-        if frequenza_aziende['Conteggio'].max() > 20:
-             fig_dist.update_layout(xaxis=dict(dtick=2)) # Salti di 2 in 2, ma sempre interi
-        
         st.plotly_chart(fig_dist, use_container_width=True)
-    
-        st.info("""
-            **Come leggere il Box Plot in alto:**
-            * **La linea centrale nel box:** È la mediana.
-            * **Il box blu:** Rappresenta dove cade il 50% centrale delle tue aziende.
-            * **I punti isolati (Outliers):** Sono le aziende "eccezionali" che ricevono molte più attività rispetto alla media del portafoglio.
-        """)
 
 
 

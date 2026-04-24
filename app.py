@@ -197,86 +197,123 @@ if uploaded_file:
                         * 💡*Tip:* strutturare il campo note con le classiche 5 W del giornalismo sarebbe utile.
                     """)
 
-            fig_pie_qual = px.pie(
-                stats_qualita, 
-                values='Conteggio', 
-                names='Stato Nota', 
-                hole=0.4,
-                color='Stato Nota',
-                color_discrete_map={
-                    "UTILI (Con Note)": "#2ecc71", 
-                    "MUTI (Senza Note)": "#e74c3c"
-                }
-            )
-            fig_pie_qual.update_traces(textinfo='percent+label')
-            st.plotly_chart(fig_pie_qual, use_container_width=True)
+            # Creazione delle due colonne
+            col_stats, col_grafico = st.columns([1, 1.5])
+        
+            with col_stats:
+                st.write("#### Valori Assoluti")
+                
+                # Mostriamo i dati in una tabella snella
+                st.dataframe(stats_qualita, hide_index=True, use_container_width=True)
+                
+                # Piccolo istogramma per il confronto rapido dei volumi
+                fig_bar_qual = px.bar(
+                    stats_qualita,
+                    x='Stato Nota',
+                    y='Conteggio',
+                    text='Conteggio',
+                    color='Stato Nota',
+                    color_discrete_map={
+                        "UTILI (Con Note)": "#2ecc71", 
+                        "MUTI (Senza Note)": "#e74c3c"
+                    }
+                )
+                fig_bar_qual.update_layout(
+                    showlegend=False,
+                    height=250,
+                    margin=dict(t=10, l=10, r=10, b=10),
+                    xaxis_title="",
+                    yaxis_title=""
+                )
+                st.plotly_chart(fig_bar_qual, use_container_width=True)
+        
+            with col_grafico:
+                st.write("#### Distribuzione Percentuale")
+                fig_pie_qual = px.pie(
+                    stats_qualita, 
+                    values='Conteggio', 
+                    names='Stato Nota', 
+                    hole=0.4,
+                    color='Stato Nota',
+                    color_discrete_map={
+                        "UTILI (Con Note)": "#2ecc71", 
+                        "MUTI (Senza Note)": "#e74c3c"
+                    }
+                )
+                fig_pie_qual.update_traces(textinfo='percent+label')
+                fig_pie_qual.update_layout(
+                    margin=dict(t=30, l=10, r=10, b=10),
+                    height=400,
+                    legend=dict(orientation="h", yanchor="bottom", y=-0.1, xanchor="center", x=0.5)
+                )
+                st.plotly_chart(fig_pie_qual, use_container_width=True)
 
-        # --- ANALISI ESAUSTIVITÀ (Conteggio Parole) ---
-        st.divider()
-        st.write("#### Analisi Esaustività: Quante parole scrivono?")
-        
-        # Prepariamo i dati calcolando il numero di parole
-        df_esaustivita = df_filtrato.copy()
-        # Gestiamo i valori nulli e contiamo le parole
-        df_esaustivita['Lunghezza Nota'] = df_esaustivita['Note'].apply(
-            lambda x: len(str(x).split()) if pd.notnull(x) and str(x).strip() != "" else 0
-        )
-        
-        # Filtriamo solo quelle che hanno almeno una parola per non schiacciare il grafico sugli zeri
-        df_note_vere = df_esaustivita[df_esaustivita['Lunghezza Nota'] > 0]
-        
-        if not df_note_vere.empty:
-            # Calcolo metriche medie di esaustività
-            parole_medie = df_note_vere['Lunghezza Nota'].mean()
-            parole_mediane = df_note_vere['Lunghezza Nota'].median()
+            # --- ANALISI ESAUSTIVITÀ (Conteggio Parole) ---
+            st.divider()
+            st.write("#### Analisi Esaustività: Quante parole scrivono?")
             
-            col_e1, col_e2 = st.columns(2)
-            with col_e1:
-                st.metric("Media parole per nota", f"{parole_medie:.1f}")
-            with col_e2:
-                st.metric("Mediana parole per nota", f"{parole_mediane:.0f}")
-        
-            # Istogramma con Box Plot marginale per vedere la distribuzione
-            fig_parole = px.histogram(
-                df_note_vere, 
-                x="Lunghezza Nota",
-                marginal="box", # Aggiunge il box plot sopra l'istogramma
-                nbins=30,
-                title="Distribuzione lunghezza note (numero parole)",
-                color_discrete_sequence=['#2ecc71'],
-                labels={'Lunghezza Nota': 'Numero di Parole'},
-                text_auto=True
-            )
-        
-            fig_parole.update_layout(
-                bargap=0.1,
-                xaxis_title="Conteggio Parole",
-                yaxis_title="Frequenza (N. Eventi)",
-                margin=dict(t=50, l=10, r=10, b=10),
-                height=500
+            # Prepariamo i dati calcolando il numero di parole
+            df_esaustivita = df_filtrato.copy()
+            # Gestiamo i valori nulli e contiamo le parole
+            df_esaustivita['Lunghezza Nota'] = df_esaustivita['Note'].apply(
+                lambda x: len(str(x).split()) if pd.notnull(x) and str(x).strip() != "" else 0
             )
             
-            st.plotly_chart(fig_parole, use_container_width=True)
+            # Filtriamo solo quelle che hanno almeno una parola per non schiacciare il grafico sugli zeri
+            df_note_vere = df_esaustivita[df_esaustivita['Lunghezza Nota'] > 0]
             
-            # --- DETTAGLIO PER COMMERCIALE ---
-            st.write("#### Esaustività media per Commerciale")
-            stats_comm_parole = df_note_vere.groupby('Utente')['Lunghezza Nota'].mean().reset_index()
-            stats_comm_parole = stats_comm_parole.sort_values('Lunghezza Nota', ascending=False)
+            if not df_note_vere.empty:
+                # Calcolo metriche medie di esaustività
+                parole_medie = df_note_vere['Lunghezza Nota'].mean()
+                parole_mediane = df_note_vere['Lunghezza Nota'].median()
+                
+                col_e1, col_e2 = st.columns(2)
+                with col_e1:
+                    st.metric("Media parole per nota", f"{parole_medie:.1f}")
+                with col_e2:
+                    st.metric("Mediana parole per nota", f"{parole_mediane:.0f}")
             
-            fig_comm_parole = px.bar(
-                stats_comm_parole,
-                x='Lunghezza Nota',
-                y='Utente',
-                orientation='h',
-                text_auto='.1f',
-                color='Lunghezza Nota',
-                color_continuous_scale='Greens',
-                labels={'Lunghezza Nota': 'Media Parole'}
-            )
-            fig_comm_parole.update_layout(height=400, showlegend=False)
-            st.plotly_chart(fig_comm_parole, use_container_width=True)
-        else:
-            st.warning("Non ci sono abbastanza note compilate per analizzare l'esaustività.")
+                # Istogramma con Box Plot marginale per vedere la distribuzione
+                fig_parole = px.histogram(
+                    df_note_vere, 
+                    x="Lunghezza Nota",
+                    marginal="box", # Aggiunge il box plot sopra l'istogramma
+                    nbins=30,
+                    title="Distribuzione lunghezza note (numero parole)",
+                    color_discrete_sequence=['#2ecc71'],
+                    labels={'Lunghezza Nota': 'Numero di Parole'},
+                    text_auto=True
+                )
+            
+                fig_parole.update_layout(
+                    bargap=0.1,
+                    xaxis_title="Conteggio Parole",
+                    yaxis_title="Frequenza (N. Eventi)",
+                    margin=dict(t=50, l=10, r=10, b=10),
+                    height=500
+                )
+                
+                st.plotly_chart(fig_parole, use_container_width=True)
+                
+                # --- DETTAGLIO PER COMMERCIALE ---
+                st.write("#### Esaustività media per Commerciale")
+                stats_comm_parole = df_note_vere.groupby('Utente')['Lunghezza Nota'].mean().reset_index()
+                stats_comm_parole = stats_comm_parole.sort_values('Lunghezza Nota', ascending=False)
+                
+                fig_comm_parole = px.bar(
+                    stats_comm_parole,
+                    x='Lunghezza Nota',
+                    y='Utente',
+                    orientation='h',
+                    text_auto='.1f',
+                    color='Lunghezza Nota',
+                    color_continuous_scale='Greens',
+                    labels={'Lunghezza Nota': 'Media Parole'}
+                )
+                fig_comm_parole.update_layout(height=400, showlegend=False)
+                st.plotly_chart(fig_comm_parole, use_container_width=True)
+            else:
+                st.warning("Non ci sono abbastanza note compilate per analizzare l'esaustività.")
 
 
         # --- SEZIONE HEATMAP ORARIA ---

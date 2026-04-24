@@ -148,6 +148,37 @@ if uploaded_file:
 
             with col3:
                 st.write("")
+
+            # --- SECONDA RIGA (DENTRO L'EXPANDER): COUNTPLOT ---
+            st.divider()
+            st.write("#### Confronto Volumi per Tipologia")
+            
+            # Ordiniamo i dati per una visualizzazione migliore (dal più frequente al meno)
+            stats_tipo_sorted = stats_tipo.sort_values(by='Conteggio', ascending=False)
+            
+            fig_count = px.bar(
+                stats_tipo_sorted,
+                x='Tipo Evento',
+                y='Conteggio',
+                text='Conteggio',
+                color='Tipo Evento',
+                color_discrete_sequence=px.colors.qualitative.Pastel,
+                labels={'Conteggio': 'Numero di Attività', 'Tipo Evento': ''}
+            )
+            
+            fig_count.update_traces(
+                textposition='outside',
+                cliponaxis=False # Evita che il testo sopra le barre venga tagliato
+            )
+            
+            fig_count.update_layout(
+                showlegend=False, # Inutile avendo già le etichette sull'asse X
+                margin=dict(t=30, l=10, r=10, b=10),
+                height=400,
+                xaxis={'categoryorder':'total descending'}
+            )
+            
+            st.plotly_chart(fig_count, use_container_width=True)
             
 
         # --- QUALITÀ NOTE E PERCENTUALE ---

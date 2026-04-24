@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.express as px
 import re
 
+st.set_page_config(layout="wide")
+
 @st.cache_data
 def carica_dati_commerciali(file):
     try:

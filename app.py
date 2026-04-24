@@ -225,39 +225,39 @@ if uploaded_file:
                 st.warning("Nessun dato disponibile per generare le heatmap nel periodo selezionato.")
 
             
-            # --- SEZIONE AZIENDE PIÙ COINVOLTE ---
-            with st.expander("🏢 Analisi Coinvolgimento Aziende"):
-                st.write("#### Top Aziende per Numero di Attività")
-                
-                # 1. Preparazione dati
-                # Contiamo quante volte appare ogni Ragione Sociale
-                stats_aziende = df_filtrato['Ragione Sociale'].value_counts().reset_index()
-                stats_aziende.columns = ['Azienda', 'Numero Attività']
-                
-                # Prendiamo ad esempio le prime 30 per non affollare troppo il grafico
-                top_aziende = stats_aziende.head(30)
-                
-                if not top_aziende.empty:
-                    # 2. Creazione Treemap con Plotly
-                    fig_tree = px.treemap(
-                        top_aziende, 
-                        path=['Azienda'], 
-                        values='Numero Attività',
-                        color='Numero Attività',
-                        color_continuous_scale='Blues',
-                        title="Focus sulle prime 30 Aziende"
-                    )
-                    
-                    fig_tree.update_traces(textinfo="label+value")
-                    fig_tree.update_layout(margin=dict(t=30, l=10, r=10, b=10))
-                    
-                    st.plotly_chart(fig_tree, use_container_width=True)
-                    
-                    # 3. Tabella di supporto per i numeri esatti
-                    st.write("#### Dettaglio Volumi per Azienda")
-                    st.dataframe(stats_aziende, hide_index=True, use_container_width=True)
-                else:
-                    st.warning("Dati insufficienti per generare il grafico delle aziende.")
+    # --- SEZIONE AZIENDE PIÙ COINVOLTE ---
+    with st.expander("🏢 Analisi Coinvolgimento Aziende"):
+        st.write("#### Top Aziende per Numero di Attività")
+        
+        # 1. Preparazione dati
+        # Contiamo quante volte appare ogni Ragione Sociale
+        stats_aziende = df_filtrato['Ragione Sociale'].value_counts().reset_index()
+        stats_aziende.columns = ['Azienda', 'Numero Attività']
+        
+        # Prendiamo ad esempio le prime 30 per non affollare troppo il grafico
+        top_aziende = stats_aziende.head(30)
+        
+        if not top_aziende.empty:
+            # 2. Creazione Treemap con Plotly
+            fig_tree = px.treemap(
+                top_aziende, 
+                path=['Azienda'], 
+                values='Numero Attività',
+                color='Numero Attività',
+                color_continuous_scale='Blues',
+                title="Focus sulle prime 30 Aziende"
+            )
+            
+            fig_tree.update_traces(textinfo="label+value")
+            fig_tree.update_layout(margin=dict(t=30, l=10, r=10, b=10))
+            
+            st.plotly_chart(fig_tree, use_container_width=True)
+            
+            # 3. Tabella di supporto per i numeri esatti
+            st.write("#### Dettaglio Volumi per Azienda")
+            st.dataframe(stats_aziende, hide_index=True, use_container_width=True)
+        else:
+            st.warning("Dati insufficienti per generare il grafico delle aziende.")
 
 
         

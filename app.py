@@ -249,9 +249,7 @@ if uploaded_file:
 
 
             # --- ANALISI EVENTI MUTI (Senza Note) ---
-            st.divider()
-            st.write("#### 🤐 Classifica Eventi MUTI per Commerciale")
-            
+
             # 1. Filtriamo il dataset per isolare gli eventi senza note
             df_muti = df_filtrato[
                 df_filtrato['Note'].isnull() | (df_filtrato['Note'].str.strip() == "")

@@ -140,6 +140,7 @@ if uploaded_file:
                 st.plotly_chart(fig_pie_tipo, use_container_width=True)
 
             with col2: 
+                st.write("#### Vulume Eventi")
                 totale_attivita = len(df_filtrato)
                 st.write("")
                 st.write("")

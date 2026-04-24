@@ -257,6 +257,10 @@ if uploaded_file:
         )
         
         fig_tree.update_traces(textinfo="label+value")
+        fig_tree.update_layout(
+            height=800, 
+            margin=dict(t=50, l=10, r=10, b=10) # Un po' di margine sopra per il titolo
+        )
         st.plotly_chart(fig_tree, use_container_width=True)
     
         # --- TABELLA DETTAGLIATA (Quella di prima, con l'aggiunta della pivot) ---

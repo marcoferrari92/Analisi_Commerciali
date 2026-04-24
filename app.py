@@ -194,6 +194,7 @@ if uploaded_file:
                     * 💡*Tip 1:* tenere traccia della mole di questi eventi e individuarne le cause.
                     * 💡*Tip 2:* mettere un vincolo nel CRM per cui eventi senza note non possono essere caricati.
                     """)
+            st.write("")
 
             # Creazione delle due colonne
             col_stats, col_grafico = st.columns([1, 1.5])

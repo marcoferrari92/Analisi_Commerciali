@@ -123,7 +123,7 @@ if uploaded_file:
                 )
                 fig_pie_tipo.update_traces(textinfo='percent+label')
              
-                fig_tree.update_layout(
+                fig_pie_tipo.update_layout(
                     # Riduciamo il margine superiore da 80 a 40 o 50
                     margin=dict(t=50, l=10, r=10, b=10), 
                     coloraxis_colorbar=dict(

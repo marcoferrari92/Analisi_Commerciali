@@ -230,7 +230,18 @@ if uploaded_file:
     # --- SEZIONE AZIENDE PIÙ COINVOLTE ---
     with st.expander("🏢 Analisi Coinvolgimento Aziende"):
         st.write("#### Top Aziende per Commerciale")
-        
+
+        with st.popover("ℹ️ Cos'è questo grafico?"):
+            st.markdown("""
+                ### Come leggere il Treemap:
+                * **Dimensione dei rettangoli**: Rappresenta il **volume di attività** (più è grande il rettangolo, più l'azienda è stata coinvolta).
+                * **Colori**: Ogni colore identifica un **Commerciale Prevalente** (chi ha fatto più attività su quel cliente).
+                * **Raggruppamento**: Le aziende sono raggruppate per commerciale; questo permette di vedere a colpo d'occhio il "portafoglio clienti" attivo di ogni persona nel periodo scelto.
+                * **Interattività**: Passa il mouse sopra un rettangolo per vedere il numero esatto di eventi.
+                
+                **Garbage In, Garbage Out:** Se vedi aziende con nomi simili o errati, i dati nel CRM vanno puliti!
+            """)
+            
         # 1. Preparazione dati per il Treemap
         # Troviamo per ogni azienda chi è il commerciale che ha fatto più attività
         df_top_comm = df_filtrato.groupby(['Ragione Sociale', 'Utente']).size().reset_index(name='Conteggio')

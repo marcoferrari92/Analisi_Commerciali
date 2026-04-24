@@ -255,19 +255,29 @@ if uploaded_file:
     
         # 3. Creazione Treemap con Colore per Commerciale
         fig_tree = px.treemap(
-            df_tree, 
-            path=['Commerciale Prevalente', 'Azienda'], # Gerarchia: Commerciale -> Azienda
-            values='Numero Attività',
-            color='Commerciale Prevalente', # Il colore ora dipende dal nome del commerciale
-            color_discrete_sequence=px.colors.qualitative.Safe, # Palette di colori distinti
-            title="Distribuzione Aziende per Commerciale Riferimento"
+        df_tree, 
+        path=['Commerciale Prevalente', 'Azienda'], 
+        values='Numero Attività',
+        color='Commerciale Prevalente',
+        color_discrete_sequence=px.colors.qualitative.Safe,
+        height=800
+        )
+    
+        # FORZIAMO IL TESTO AD ANDARE A CAPO E AD ESSERE LEGGIBILE
+        fig_tree.update_traces(
+            textinfo="label+value",
+            texttemplate="<b>%{label}</b><br>Attività: %{value}", # <br> forza l'invio a capo
+            hovertemplate="<b>%{label}</b><br>Totale: %{value}",
+            insidetextfont=dict(size=15), # Imposta una dimensione minima leggibile
+            textposition="middle center"  # Centra il testo nel rettangolo
         )
         
-        fig_tree.update_traces(textinfo="label+value")
+        # Evitiamo che Plotly rimpicciolisca troppo il testo per farlo stare in una riga
         fig_tree.update_layout(
-            height=800, 
-            margin=dict(t=50, l=10, r=10, b=10) # Un po' di margine sopra per il titolo
+            margin=dict(t=30, l=10, r=10, b=10),
+            uniformtext=dict(minsize=10, mode='hide') # Nasconde il testo solo se proprio non ci sta, altrimenti mantiene minsize
         )
+        
         st.plotly_chart(fig_tree, use_container_width=True)
     
         # --- TABELLA DETTAGLIATA (Quella di prima, con l'aggiunta della pivot) ---

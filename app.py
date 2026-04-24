@@ -194,7 +194,7 @@ if uploaded_file:
                     *Garbage In, Garbage Out* (**GIGO**).
                     * ⚠️ **Issue 1:** Alcuni eventi sono privi di note e non apportano contenuto informativo (Eventi MUTI).
                         * 💡*Tip:* mettere un vincolo nel CRM per cui eventi senza note non possono essere caricati.
-                    * ⚠️ **Issue 2:** molti eventi hanno note poco comprensibili.
+                    * ⚠️ **Issue 2:** molti eventi hanno note poco comprensibili o troppo sintetiche.
                         * 💡*Tip:* strutturare il campo note con le classiche 5 W del giornalismo sarebbe utile.
                     """)
 
@@ -248,9 +248,11 @@ if uploaded_file:
                 )
                 st.plotly_chart(fig_pie_qual, use_container_width=True)
 
+            
             # --- ANALISI ESAUSTIVITÀ (Conteggio Parole) ---
             st.divider()
             st.write("#### Analisi Esaustività")
+            st.write("Analisi degli eventi con almeno una parola nelle note")
             
             # Prepariamo i dati calcolando il numero di parole
             df_esaustivita = df_filtrato.copy()
@@ -294,6 +296,7 @@ if uploaded_file:
                 )
                 
                 st.plotly_chart(fig_parole, use_container_width=True)
+
                 
                 # --- DETTAGLIO PER COMMERCIALE ---
                 st.write("#### Esaustività media per Commerciale")

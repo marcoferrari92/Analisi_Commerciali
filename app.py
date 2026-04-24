@@ -262,32 +262,32 @@ if uploaded_file:
                 
                 # Ordiniamo per avere chi ne ha di più in alto (i "peggiori" in questo caso)
                 stats_muti = stats_muti.sort_values('N. Eventi Muti', ascending=True)
-            
-                # 3. Grafico a barre orizzontali
-                fig_muti = px.bar(
-                    stats_muti,
-                    x='N. Eventi Muti',
-                    y='Utente',
-                    orientation='h',
-                    text_auto=True,
-                    title="Chi sta inserendo attività senza descrizione?",
-                    color='N. Eventi Muti',
-                    color_continuous_scale='Reds', # Usiamo il rosso per indicare un'anomalia/errore
-                    labels={'N. Eventi Muti': 'Conteggio Eventi Senza Note'}
-                )
-            
-                fig_muti.update_layout(
-                    height=400,
-                    showlegend=False,
-                    margin=dict(t=50, l=10, r=10, b=10),
-                    coloraxis_showscale=False # Nascondiamo la barra colore per pulizia
-                )
-            
-                st.plotly_chart(fig_muti, use_container_width=True)
+
+                col_grafico = st.columns([2])
+
+                with col_grafico: 
+                    
+                    fig_muti = px.bar(
+                        stats_muti,
+                        x='N. Eventi Muti',
+                        y='Utente',
+                        orientation='h',
+                        text_auto=True,
+                        title="Chi sta inserendo attività senza descrizione?",
+                        color='N. Eventi Muti',
+                        color_continuous_scale='Reds', # Usiamo il rosso per indicare un'anomalia/errore
+                        labels={'N. Eventi Muti': 'Conteggio Eventi Senza Note'}
+                    )
                 
-                st.warning(f"In totale sono stati trovati **{len(df_muti)}** eventi senza alcuna nota nel periodo selezionato.")
-            else:
-                st.success("Ottimo lavoro! Non ci sono eventi senza note in questo periodo. 🎉")
+                    fig_muti.update_layout(
+                        height=400,
+                        showlegend=False,
+                        margin=dict(t=50, l=10, r=10, b=10),
+                        coloraxis_showscale=False # Nascondiamo la barra colore per pulizia
+                    )
+                
+                    st.plotly_chart(fig_muti, use_container_width=True)
+           
 
             
             # --- ANALISI ESAUSTIVITÀ (Conteggio Parole) ---

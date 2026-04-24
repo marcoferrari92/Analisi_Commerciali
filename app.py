@@ -207,7 +207,8 @@ if uploaded_file:
                     return fig
             
                 # 3. VISUALIZZAZIONE
-                st.write(f"#### 🌍 Totale Generale (Range: {ora_min}:00 - {ora_max}:00)")
+                st.write(f"#### 🌍 Totale Generale")
+                st.write(f"(Range orario trovato: {ora_min}:00 - {ora_max}:00)")
                 st.plotly_chart(genera_heatmap_crop(df_heat_base), use_container_width=True)
             
                 st.write("---")

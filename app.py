@@ -201,6 +201,10 @@ if uploaded_file:
         
             with col_stats:
 
+                st.write("")
+                st.write("")
+                st.write("")
+                st.write("")
                 # Piccolo istogramma per il confronto rapido dei volumi
                 fig_bar_qual = px.bar(
                     stats_qualita,

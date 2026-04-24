@@ -190,8 +190,9 @@ if uploaded_file:
             st.write("")
             st.write("#### Analisi *Mutismo*")
             st.info("""
-                    ⚠️ Alcuni eventi sono privi di note e non apportano contenuto informativo (Eventi MUTI).
-                    * 💡*Tip:* mettere un vincolo nel CRM per cui eventi senza note non possono essere caricati.
+                    ⚠️ Se gli eventi sono privi della nota descrittiva, non apportano contenuto informativo ma aggiungo confusione (Eventi MUTI).
+                    * 💡*Tip 1:* tenere traccia della mole di questi eventi e individuarne le cause.
+                    * 💡*Tip 2:* mettere un vincolo nel CRM per cui eventi senza note non possono essere caricati.
                     """)
 
             # Creazione delle due colonne

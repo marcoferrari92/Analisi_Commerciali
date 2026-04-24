@@ -272,9 +272,17 @@ if uploaded_file:
             textposition="middle center"
         )
         
+        # SPOSTAMENTO DELLA BARRA COLORI IN ALTO (Orizzontale)
         fig_tree.update_layout(
-            margin=dict(t=30, l=10, r=10, b=10),
-            coloraxis_showscale=True # Mostra la legenda cromatica a destra
+            margin=dict(t=80, l=10, r=10, b=10), # Aumentiamo il margine superiore (t=80)
+            coloraxis_colorbar=dict(
+                title="Intensità Attività",
+                thicknessmode="pixels", thickness=15, # Spessore della barra
+                lenmode="fraction", len=0.5,           # Lunghezza (50% della larghezza grafico)
+                yanchor="top", y=1.1,                  # Posizione verticale (sopra il grafico)
+                xanchor="center", x=0.5,               # Centrata orizzontalmente
+                orientation="h"                        # ORIENTAMENTO ORIZZONTALE
+            )
         )
         
         st.plotly_chart(fig_tree, use_container_width=True)

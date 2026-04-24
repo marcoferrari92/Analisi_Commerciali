@@ -186,7 +186,7 @@ if uploaded_file:
         # --- QUALITÀ NOTE E PERCENTUALE ---
         st.write("")
         with st.expander("💎 Qualità Eventi"):
-            st.write("Controlliamo la qualità degli eventi inseriti per il famoso teorema: *Garbage In, Garbage Out* (**GIGO**)")
+            st.write("Controlliamo la qualità degli eventi inseriti per evitare la problematica: *Garbage In, Garbage Out* (**GIGO**)")
             st.write("")
             st.write("#### Analisi *Mutismo*")
             st.write("""

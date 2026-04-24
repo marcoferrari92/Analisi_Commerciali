@@ -147,10 +147,56 @@ if uploaded_file:
             )
             fig_pie_qual.update_traces(textinfo='percent+label')
             st.plotly_chart(fig_pie_qual, use_container_width=True)
+
+
+        # --- SEZIONE HEATMAP ORARIA ---
+        with st.expander("📅 Heatmap Oraria"):        
+            st.subheader("🕒 Distribuzione Oraria delle Attività")
+               
+            # 1. Estraiamo l'ora (come intero) e il nome del giorno
+            df_heatmap = df_filtrato.copy()
+            df_heatmap['Ora'] = pd.to_datetime(df_heatmap['Ora Evento'], format='%H:%M').dt.hour
+            df_heatmap['Giorno_Num'] = pd.to_datetime(df_heatmap['Data Evento']).dt.dayofweek
+            df_heatmap['Giorno'] = pd.to_datetime(df_heatmap['Data Evento']).dt.day_name()
             
-                
-        
-        
+            # Ordine dei giorni in italiano
+            giorni_ordine = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+            traduzione_giorni = {
+                'Monday': 'Lunedì', 'Tuesday': 'Martedì', 'Wednesday': 'Mercoledì', 
+                'Thursday': 'Giovedì', 'Friday': 'Venerdì', 'Saturday': 'Sabato', 'Sunday': 'Domenica'
+            }
+            
+            # Raggruppiamo per Giorno e Ora
+            heatmap_data = df_heatmap.groupby(['Giorno', 'Ora']).size().reset_index(name='Conteggio')
+            
+            # Creiamo una pivot per la heatmap
+            pivot_heatmap = heatmap_data.pivot(index='Giorno', columns='Ora', values='Conteggio').fillna(0)
+            
+            # Ordiniamo i giorni correttamente (da Lunedì a Domenica)
+            pivot_heatmap = pivot_heatmap.reindex([g for g in giorni_ordine if g in pivot_heatmap.index])
+            # Rinominiamo i giorni in italiano per la visualizzazione
+            pivot_heatmap.index = [traduzione_giorni[g] for g in pivot_heatmap.index]
+            
+            # Creazione del grafico con Plotly
+            fig_heat = px.imshow(
+                pivot_heatmap,
+                labels=dict(x="Ora del Giorno", y="Giorno della Settimana", color="Numero Attività"),
+                x=pivot_heatmap.columns,
+                y=pivot_heatmap.index,
+                color_continuous_scale='Viridis', # Scala cromatica leggibile
+                text_auto=True, # Mostra i numeri dentro i quadratini
+                aspect="auto"
+            )
+            
+            fig_heat.update_layout(
+                xaxis=dict(tickmode='linear'), # Mostra ogni singola ora sull'asse X
+                height=450
+            )
+            
+            st.plotly_chart(fig_heat, use_container_width=True)
+            
+            st.info("💡 **Consiglio:** Le zone più chiare indicano le fasce orarie con la massima densità di eventi. Utile per capire se il team concentra le chiamate al mattino o al pomeriggio.")
+                    
         # 1. Preparazione dei dati
         stats = df_filtrato['Utente'].value_counts().reset_index()
         stats.columns = ['Utente', 'Numero Attività']

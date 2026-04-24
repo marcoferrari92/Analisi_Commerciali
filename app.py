@@ -83,80 +83,74 @@ if uploaded_file:
 
         # --- SEZIONE 2: RESOCONTO ---
         st.divider()
-        st.subheader("📊 Analisi e Qualità delle Attività")
+        st.exapnder("📊 Volume e Qualità delle Attività")
         
-        # --- PREPARAZIONE DATI ---
-        # 1. Dati per Tipologia
-        stats_tipo = df_filtrato['Tipo Evento'].value_counts().reset_index()
-        stats_tipo.columns = ['Tipo Evento', 'Conteggio']
         
-        # 2. Dati per Qualità Note
-        df_qualita = df_filtrato.copy()
-        df_qualita['Qualità'] = df_qualita['Note'].apply(
-            lambda x: "UTILE (Con Note)" if pd.notnull(x) and str(x).strip() != "" else "INUTILE (Senza Note)"
-        )
-        stats_qualita = df_qualita['Qualità'].value_counts().reset_index()
-        stats_qualita.columns = ['Stato Nota', 'Conteggio']
-        
-        # --- PRIMA RIGA: GRAFICO A TORTA TIPOLOGIE ---
-        st.write("#### Mix Tipologie di Eventi")
-        fig_pie_tipo = px.pie(
-            stats_tipo, 
-            values='Conteggio', 
-            names='Tipo Evento', 
-            hole=0.4,
-            color_discrete_sequence=px.colors.qualitative.Pastel
-        )
-        fig_pie_tipo.update_traces(textinfo='percent+label')
-        st.plotly_chart(fig_pie_tipo, use_container_width=True)
-        
-        # --- SECONDA RIGA: TABELLA E TOTALE ---
-        st.write("#### Riepilogo Volumi")
-        col_tab, col_tot = st.columns([3, 1]) # Tabella più larga rispetto al numero totale
-        
-        with col_tab:
-            st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
-        
-        with col_tot:
-            totale_attivita = len(df_filtrato)
-            st.metric("Totale Attività", totale_attivita)
-        
-        # --- TERZA RIGA: QUALITÀ NOTE E PERCENTUALE ---
-        st.divider()
-        st.write("#### Analisi Qualità Note")
-        col_qual_graf, col_qual_perc = st.columns([2, 1])
-        
-        with col_qual_graf:
-            fig_pie_qual = px.pie(
-                stats_qualita, 
-                values='Conteggio', 
-                names='Stato Nota', 
-                hole=0.4,
-                color='Stato Nota',
-                color_discrete_map={
-                    "UTILE (Con Note)": "#2ecc71", 
-                    "INUTILE (Senza Note)": "#e74c3c"
-                }
+            # --- PREPARAZIONE DATI ---
+            # 1. Dati per Tipologia
+            stats_tipo = df_filtrato['Tipo Evento'].value_counts().reset_index()
+            stats_tipo.columns = ['Tipo Evento', 'Conteggio']
+            
+            # 2. Dati per Qualità Note
+            df_qualita = df_filtrato.copy()
+            df_qualita['Qualità'] = df_qualita['Note'].apply(
+                lambda x: "UTILE (Con Note)" if pd.notnull(x) and str(x).strip() != "" else "INUTILE (Senza Note)"
             )
-            fig_pie_qual.update_traces(textinfo='percent+label')
-            st.plotly_chart(fig_pie_qual, use_container_width=True)
-        
-        with col_qual_perc:
-            # Calcolo percentuale utilità
-            utili = len(df_qualita[df_qualita['Qualità'] == "UTILE (Con Note)"])
-            perc_utili = (utili / len(df_filtrato)) * 100 if len(df_filtrato) > 0 else 0
+            stats_qualita = df_qualita['Qualità'].value_counts().reset_index()
+            stats_qualita.columns = ['Stato Nota', 'Conteggio']
             
-            st.write("") # Spaziatore per allineare meglio
-            st.write("")
-            st.metric("Tasso Compilazione Note", f"{perc_utili:.1f}%")
+            # --- PRIMA RIGA: GRAFICO A TORTA TIPOLOGIE ---
+            st.write("#### Mix Tipologie di Eventi")
+            fig_pie_tipo = px.pie(
+                stats_tipo, 
+                values='Conteggio', 
+                names='Tipo Evento', 
+                hole=0.4,
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            fig_pie_tipo.update_traces(textinfo='percent+label')
+            st.plotly_chart(fig_pie_tipo, use_container_width=True)
             
-            # Messaggio di aiuto contestuale
-            if perc_utili < 50:
-                st.error("Attenzione: Più della metà delle attività non ha note descrittive.")
-            elif perc_utili < 80:
-                st.warning("Buono, ma cerca di incentivare l'inserimento delle note.")
-            else:
-                st.success("Ottima qualità di inserimento dati!")
+            # --- SECONDA RIGA: TABELLA E TOTALE ---
+            st.write("#### Riepilogo Volumi")
+            col_tab, col_tot = st.columns([3, 1]) # Tabella più larga rispetto al numero totale
+            
+            with col_tab:
+                st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
+            
+            with col_tot:
+                totale_attivita = len(df_filtrato)
+                st.metric("Totale Attività", totale_attivita)
+            
+            # --- TERZA RIGA: QUALITÀ NOTE E PERCENTUALE ---
+            st.divider()
+            st.write("#### Analisi Qualità Note")
+            col_qual_graf, col_qual_perc = st.columns([2, 1])
+            
+            with col_qual_graf:
+                fig_pie_qual = px.pie(
+                    stats_qualita, 
+                    values='Conteggio', 
+                    names='Stato Nota', 
+                    hole=0.4,
+                    color='Stato Nota',
+                    color_discrete_map={
+                        "UTILE (Con Note)": "#2ecc71", 
+                        "INUTILE (Senza Note)": "#e74c3c"
+                    }
+                )
+                fig_pie_qual.update_traces(textinfo='percent+label')
+                st.plotly_chart(fig_pie_qual, use_container_width=True)
+            
+            with col_qual_perc:
+                # Calcolo percentuale utilità
+                utili = len(df_qualita[df_qualita['Qualità'] == "UTILE (Con Note)"])
+                perc_utili = (utili / len(df_filtrato)) * 100 if len(df_filtrato) > 0 else 0
+                
+                st.write("") # Spaziatore per allineare meglio
+                st.write("")
+                st.metric("Tasso Compilazione Note", f"{perc_utili:.1f}%")
+                
         
         
         # 1. Preparazione dei dati

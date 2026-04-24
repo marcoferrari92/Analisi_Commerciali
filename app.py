@@ -230,13 +230,6 @@ if uploaded_file:
     # --- SEZIONE AZIENDE PIÙ COINVOLTE ---
     with st.expander("🏢 Analisi Coinvolgimento Aziende"):
         st.write("#### Top Aziende per Commerciale")
-
-        with st.popover("💡 Analisi"):
-            st.markdown("""
-                ### Come leggere il Treemap:
-                * **Dimensione dei rettangoli**: Rappresenta il **volume di attività** (più è grande, più l'azienda è stata coinvolta).
-                * **Colori**: Ogni colore identifica il **Commerciale Prevalente** per quel cliente.
-            """)
             
         # 1. Preparazione dati per il Treemap
         # Troviamo per ogni azienda chi è il commerciale che ha fatto più attività

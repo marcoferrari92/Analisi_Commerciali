@@ -498,7 +498,7 @@ if uploaded_file:
         fig_dist = px.histogram(
             frequenza_aziende, 
             x="Conteggio",
-            marginal="box", # <--- QUESTO aggiunge il Box Plot sopra!
+            marginal="box",
             nbins=20,
             title="Distribuzione Coinvolgimento (Istogramma + Box Plot)",
             labels={'Conteggio': 'N. Attività Ricevute', 'count': 'N. Aziende'},
@@ -506,13 +506,25 @@ if uploaded_file:
             text_auto=True
         )
         
+        # --- MODIFICHE PER NUMERI INTERI ---
         fig_dist.update_layout(
             bargap=0.05,
             xaxis_title="Numero di Attività per singola Azienda",
             yaxis_title="Quantità di Aziende",
             margin=dict(t=50, l=10, r=10, b=10),
-            height=550 # Aumentato un po' per far stare entrambi comodamente
+            height=550,
+            # Forza l'asse X a scatti di 1 unità e solo numeri interi
+            xaxis = dict(
+                tickmode = 'linear',
+                tick0 = 0,
+                dtick = 1
+            )
         )
+        
+        # Se il numero massimo di attività è molto alto (es. > 20), 
+        # dtick=1 potrebbe affollare troppo l'asse. In quel caso usa:
+        if frequenza_aziende['Conteggio'].max() > 20:
+             fig_dist.update_layout(xaxis=dict(dtick=2)) # Salti di 2 in 2, ma sempre interi
         
         st.plotly_chart(fig_dist, use_container_width=True)
     

@@ -124,17 +124,18 @@ if uploaded_file:
                 fig_pie_tipo.update_traces(textinfo='percent+label')
              
                 fig_pie_tipo.update_layout(
-                    # Riduciamo il margine superiore da 80 a 40 o 50
-                    margin=dict(t=50, l=10, r=10, b=10), 
-                    coloraxis_colorbar=dict(
-                        title="Intensità Attività",
-                        thicknessmode="pixels", thickness=5, # Barra un po' più sottile
-                        lenmode="fraction", len=0.4,           # Barra un po' più corta per eleganza
-                        yanchor="bottom",                     # Ancoraggio al fondo della barra
-                        y=0.5,                               # Posizionata appena sopra il grafico (1.0 è il bordo)
-                        xanchor="center", x=0.5,
-                        orientation="h"
-                    )
+                    # Riduciamo i margini esterni del grafico per eliminare il bianco
+                    margin=dict(t=30, l=10, r=10, b=10), 
+                    
+                    # GESTIONE LEGENDA (Non coloraxis)
+                    legend=dict(
+                        orientation="h",      # Legenda orizzontale
+                        yanchor="bottom",     # Ancorata al fondo della legenda
+                        y=1.02,               # Posizionata appena sopra il grafico (1.0 è il limite)
+                        xanchor="center",     # Centrata orizzontalmente
+                        x=0.5
+                    ),
+                    height=450 # Altezza fissa per evitare che si allunghi troppo
                 )
                 st.plotly_chart(fig_pie_tipo, use_container_width=True)
 

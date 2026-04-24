@@ -309,6 +309,12 @@ if uploaded_file:
             st.divider()
             st.write("#### Analisi Esaustività")
             st.write("Analisi degli eventi con almeno una parola nelle note")
+            st.write("")
+            st.info("""
+                ⚠️ Note troppo sintentiche sono poco comprensibili
+                * *💡 Tip 1:* tenere traccia della lunghezza delle note.
+                * *💡 Tip 2:* impostare una formattazione nelle note nel CRM con le 5 W del giornalismo, sarebbe molto utile
+                """)
             
             # Prepariamo i dati calcolando il numero di parole
             df_esaustivita = df_filtrato.copy()

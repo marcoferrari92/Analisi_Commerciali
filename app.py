@@ -197,11 +197,11 @@ if uploaded_file:
                         * 💡*Tip:* strutturare il campo note con le classiche 5 W del giornalismo sarebbe utile.
                     """)
 
+            st.write("#### Analisi "mutismo"")
             # Creazione delle due colonne
             col_stats, col_grafico = st.columns([1, 1.5])
         
             with col_stats:
-                st.write("#### Valori Assoluti")
                 
                 # Mostriamo i dati in una tabella snella
                 st.dataframe(stats_qualita, hide_index=True, use_container_width=True)
@@ -228,7 +228,7 @@ if uploaded_file:
                 st.plotly_chart(fig_bar_qual, use_container_width=True)
         
             with col_grafico:
-                st.write("#### Distribuzione Percentuale")
+
                 fig_pie_qual = px.pie(
                     stats_qualita, 
                     values='Conteggio', 
@@ -250,7 +250,7 @@ if uploaded_file:
 
             # --- ANALISI ESAUSTIVITÀ (Conteggio Parole) ---
             st.divider()
-            st.write("#### Analisi Esaustività: Quante parole scrivono?")
+            st.write("#### Analisi Esaustività")
             
             # Prepariamo i dati calcolando il numero di parole
             df_esaustivita = df_filtrato.copy()

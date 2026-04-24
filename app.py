@@ -185,16 +185,15 @@ if uploaded_file:
 
         # --- QUALITÀ NOTE E PERCENTUALE ---
         st.write("")
+        st.write("Controlliamo la qualità degli eventi inseriti per il famoso teorema: *Garbage In, Garbage Out* (**GIGO**)")
+        st.write("")
         with st.expander("💎 Qualità Eventi"):
             
             st.write("#### Analisi *Mutismo*")
             st.write("""
-                    **💡 Analisi**"
-                    Controlliamo la qualità degli eventi inseriti per il famoso teorema: 
-                    *Garbage In, Garbage Out* (**GIGO**).
-                    * ⚠️ Alcuni eventi sono privi di note e non apportano contenuto informativo (Eventi MUTI).
-                        * 💡*Tip:* mettere un vincolo nel CRM per cui eventi senza note non possono essere caricati.
-            """)
+                    ⚠️ Alcuni eventi sono privi di note e non apportano contenuto informativo (Eventi MUTI).
+                    * 💡*Tip:* mettere un vincolo nel CRM per cui eventi senza note non possono essere caricati.
+                    """)
 
             # Creazione delle due colonne
             col_stats, col_grafico = st.columns([1, 1.5])

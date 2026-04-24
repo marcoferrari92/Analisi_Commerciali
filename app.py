@@ -499,24 +499,31 @@ if uploaded_file:
             frequenza_aziende, 
             x="Conteggio",
             marginal="box",
-            nbins=20,
+            # Rimuoviamo nbins e usiamo xbins per definire il "passo" unitario
             title="Distribuzione Coinvolgimento (Istogramma + Box Plot)",
             labels={'Conteggio': 'N. Attività Ricevute', 'count': 'N. Aziende'},
             color_discrete_sequence=['#3498db'],
             text_auto=True
         )
         
-        # --- MODIFICHE PER NUMERI INTERI ---
+        # Impostiamo la larghezza di ogni barra a 1 e la posizione
+        fig_dist.update_traces(
+            xbins=dict(
+                start=0.5, # Inizia a metà tra 0 e 1 per centrare la barra sul numero
+                end=frequenza_aziende['Conteggio'].max() + 0.5,
+                size=1 # Ogni barra copre esattamente un'unità intera
+            )
+        )
+        
         fig_dist.update_layout(
-            bargap=0.05,
+            bargap=0, # <--- FONDAMENTALE: elimina lo spazio tra le barre
             xaxis_title="Numero di Attività per singola Azienda",
             yaxis_title="Quantità di Aziende",
             margin=dict(t=50, l=10, r=10, b=10),
             height=550,
-            # Forza l'asse X a scatti di 1 unità e solo numeri interi
             xaxis = dict(
                 tickmode = 'linear',
-                tick0 = 0,
+                tick0 = 1,
                 dtick = 1
             )
         )

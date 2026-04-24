@@ -83,7 +83,7 @@ if uploaded_file:
 
         # --- SEZIONE 2: RESOCONTO ---
         st.divider()
-        st.expander("📊 Volume e Qualità delle Attività"):
+        st.expander("📊 Volume e Qualità delle Attività")
         
             # --- PREPARAZIONE DATI ---
             # 1. Dati per Tipologia
@@ -158,10 +158,10 @@ if uploaded_file:
         
         # Ordiniamo per far apparire il più alto in alto
         stats = stats.sort_values(by='Numero Attività', ascending=True)
-
+    
         # 2. Calcolo della Mediana
         valore_mediana = stats['Numero Attività'].median()
-
+    
         # 3. Creazione Grafico con Plotly (BARRE ORIZZONTALI)
         fig = px.bar(
             stats, 
@@ -172,7 +172,7 @@ if uploaded_file:
             color='Numero Attività', # Opzionale: colore variabile
             color_continuous_scale='Blues'
         )
-
+    
         # 4. AGGIUNTA RETTA PER LA MEDIANA
         fig.add_vline(
             x=valore_mediana, 
@@ -181,7 +181,7 @@ if uploaded_file:
            annotation_text=f"Mediana: {valore_mediana}", 
             annotation_position="top right"
         )
-
+    
         # Miglioramento layout
         fig.update_layout(
             xaxis_title="Numero di Attività Svolte",
@@ -189,13 +189,13 @@ if uploaded_file:
             showlegend=False,
             height=500
         )
-
+    
         # Visualizzazione
         st.plotly_chart(fig, use_container_width=True)
-
+    
         # Visualizzazione metrica rapida
         st.metric("Mediana del Team", f"{valore_mediana} attività")
-
+    
         
         
         # 5. TABELLA (basata su df_filtrato)

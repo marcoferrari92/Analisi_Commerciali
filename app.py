@@ -78,35 +78,68 @@ if uploaded_file:
         #*************************
 
 
-        # --- SEZIONE 2: RESOCONTO (GRAFICO A TORTA) ---
-        st.divider()
-        st.subheader("Resoconto Tipologia Attività")
-        
+        # --- SEZIONE 2: RESOCONTO (GRAFICI A TORTA) ---
+st.divider()
+st.subheader("Resoconto Tipologia e Qualità Attività")
 
-         # Preparazione dati per la torta
-        stats_tipo = df_filtrato['Tipo Evento'].value_counts().reset_index()
-        stats_tipo.columns = ['Tipo Evento', 'Conteggio']
-            
-        fig_pie = px.pie(
-                stats_tipo, 
-                values='Conteggio', 
-                names='Tipo Evento', 
-                hole=0.4, # Trasforma in grafico a ciambella, più leggibile
-                color_discrete_sequence=px.colors.qualitative.Pastel
-        )
-        fig_pie.update_traces(textinfo='percent+label')
-        st.plotly_chart(fig_pie, use_container_width=True)
-            
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            st.write("#### Volumi Totali")
-            totale_attivita = len(df_filtrato)
-            st.metric("Totale Eventi", totale_attivita)
+# 1. Preparazione dati per "Tipologia" (il tuo grafico attuale)
+stats_tipo = df_filtrato['Tipo Evento'].value_counts().reset_index()
+stats_tipo.columns = ['Tipo Evento', 'Conteggio']
 
-        with col2:
-            # Mostriamo la lista pesata delle attività
-            st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
+# 2. Preparazione dati per "Qualità Note" (Nuovo grafico)
+# Creiamo una copia per non sporcare il dataframe originale durante il calcolo
+df_qualita = df_filtrato.copy()
 
+# Definiamo "Utile" se la nota esiste ed è lunga almeno 2 caratteri (evita spazi singoli)
+df_qualita['Qualità'] = df_qualita['Note'].apply(
+    lambda x: "UTILE (Con Note)" if pd.notnull(x) and str(x).strip() != "" else "INUTILE (Senza Note)"
+)
+stats_qualita = df_qualita['Qualità'].value_counts().reset_index()
+stats_qualita.columns = ['Stato Nota', 'Conteggio']
+
+# --- VISUALIZZAZIONE IN COLONNE ---
+torta_1, torta_2 = st.columns(2)
+
+with torta_1:
+    st.write("#### Mix Attività")
+    fig_pie_tipo = px.pie(
+        stats_tipo, 
+        values='Conteggio', 
+        names='Tipo Evento', 
+        hole=0.4,
+        color_discrete_sequence=px.colors.qualitative.Pastel
+    )
+    fig_pie_tipo.update_traces(textinfo='percent+label')
+    st.plotly_chart(fig_pie_tipo, use_container_width=True)
+
+with torta_2:
+    st.write("#### Qualità Inserimento (Note)")
+    fig_pie_qual = px.pie(
+        stats_qualita, 
+        values='Conteggio', 
+        names='Stato Nota', 
+        hole=0.4,
+        # Rosso per inutile, Verde/Blu per utile
+        color='Stato Nota',
+        color_discrete_map={
+            "UTILE (Con Note)": "#2ecc71", 
+            "INUTILE (Senza Note)": "#e74c3c"
+        }
+    )
+    fig_pie_qual.update_traces(textinfo='percent+label')
+    st.plotly_chart(fig_pie_qual, use_container_width=True)
+
+# --- METRICHE E TABELLA RIASSUNTIVA ---
+col_m1, col_m2 = st.columns(2)
+with col_m1:
+    st.metric("Totale Eventi", len(df_filtrato))
+with col_m2:
+    # Calcolo percentuale utilità
+    utili = len(df_qualita[df_qualita['Qualità'] == "UTILE (Con Note)"])
+    perc_utili = (utili / len(df_filtrato)) * 100 if len(df_filtrato) > 0 else 0
+    st.metric("Tasso di Compilazione Note", f"{perc_utili:.1f}%")
+
+st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
         
         
         # 1. Preparazione dei dati

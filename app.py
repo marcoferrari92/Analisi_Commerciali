@@ -150,8 +150,8 @@ if uploaded_file:
 
 
         # --- SEZIONE HEATMAP ORARIA ---
-        with st.expander("📅 Heatmap Oraria"):        
-            st.subheader("🕒 Distribuzione Oraria delle Attività")
+        with st.expander("🕒 Heatmap Oraria"):        
+            st.write("### Distribuzione Oraria delle Attività")
                
             # 1. Estraiamo l'ora (come intero) e il nome del giorno
             df_heatmap = df_filtrato.copy()

@@ -185,10 +185,9 @@ if uploaded_file:
 
         # --- QUALITÀ NOTE E PERCENTUALE ---
         st.write("")
-        st.write("Controlliamo la qualità degli eventi inseriti per il famoso teorema: *Garbage In, Garbage Out* (**GIGO**)")
-        st.write("")
         with st.expander("💎 Qualità Eventi"):
-            
+            st.write("Controlliamo la qualità degli eventi inseriti per il famoso teorema: *Garbage In, Garbage Out* (**GIGO**)")
+            st.write("")
             st.write("#### Analisi *Mutismo*")
             st.write("""
                     ⚠️ Alcuni eventi sono privi di note e non apportano contenuto informativo (Eventi MUTI).

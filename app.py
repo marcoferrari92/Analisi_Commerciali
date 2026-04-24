@@ -254,7 +254,58 @@ if uploaded_file:
             else:
                 st.warning("Nessun dato disponibile per generare le heatmap nel periodo selezionato.")
 
-            
+
+    # --- SEZIONE COINVOLGIMENTO MEDIO ---
+    with st.expander("📊 Distribuzione Coinvolgimento"):
+        st.write("#### Analisi della Densità di Attività per Azienda")
+        
+        # 1. Calcolo frequenze
+        frequenza_aziende = df_filtrato['Ragione Sociale'].value_counts().reset_index()
+        frequenza_aziende.columns = ['Azienda', 'Conteggio']
+        
+        # 2. Metriche
+        media_attivita = frequenza_aziende['Conteggio'].mean()
+        mediana_attivita = frequenza_aziende['Conteggio'].median()
+        
+        col_stat1, col_stat2, col_stat3 = st.columns(3)
+        with col_stat1:
+            st.metric("Media Attività/Azienda", f"{media_attivita:.1f}")
+        with col_stat2:
+            st.metric("Mediana (Punto Centrale)", f"{mediana_attivita:.0f}")
+        with col_stat3:
+            st.metric("Max Attività su 1 Azienda", frequenza_aziende['Conteggio'].max())
+    
+        # 3. Grafico combinato: Istogramma + Box Plot marginale
+        fig_dist = px.histogram(
+            frequenza_aziende, 
+            x="Conteggio",
+            marginal="box", # <--- QUESTO aggiunge il Box Plot sopra!
+            nbins=20,
+            title="Distribuzione Coinvolgimento (Istogramma + Box Plot)",
+            labels={'Conteggio': 'N. Attività Ricevute', 'count': 'N. Aziende'},
+            color_discrete_sequence=['#3498db'],
+            text_auto=True
+        )
+        
+        fig_dist.update_layout(
+            bargap=0.05,
+            xaxis_title="Numero di Attività per singola Azienda",
+            yaxis_title="Quantità di Aziende",
+            margin=dict(t=50, l=10, r=10, b=10),
+            height=550 # Aumentato un po' per far stare entrambi comodamente
+        )
+        
+        st.plotly_chart(fig_dist, use_container_width=True)
+    
+        st.info("""
+            **Come leggere il Box Plot in alto:**
+            * **La linea centrale nel box:** È la mediana.
+            * **Il box blu:** Rappresenta dove cade il 50% centrale delle tue aziende.
+            * **I punti isolati (Outliers):** Sono le aziende "eccezionali" che ricevono molte più attività rispetto alla media del portafoglio.
+        """)
+
+
+
     # --- SEZIONE AZIENDE PIÙ COINVOLTE ---
     st.write("")
     with st.expander("🏢 Analisi Coinvolgimento Aziende"):

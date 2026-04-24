@@ -474,6 +474,7 @@ if uploaded_file:
 
 
     # --- SEZIONE COINVOLGIMENTO MEDIO ---
+    st.write("")
     with st.expander("📊 Distribuzione Coinvolgimento"):
         st.write("#### Analisi della Densità di Attività per Azienda")
         

@@ -186,7 +186,8 @@ if uploaded_file:
         # --- QUALITÀ NOTE E PERCENTUALE ---
         st.write("")
         with st.expander("💎 Qualità Eventi"):
-            #st.write("#### Analisi Qualità Note")
+            
+            #st.write("#### Analisi *Mutismo*")
             with st.popover("💡 Analisi"):
                     st.info(""" 
                     Controlliamo la qualità degli eventi inseriti per il famoso teorema: 
@@ -197,7 +198,6 @@ if uploaded_file:
                         * 💡*Tip:* strutturare il campo note con le classiche 5 W del giornalismo sarebbe utile.
                     """)
 
-            st.write("#### Analisi "mutismo"")
             # Creazione delle due colonne
             col_stats, col_grafico = st.columns([1, 1.5])
         

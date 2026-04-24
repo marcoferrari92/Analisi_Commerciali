@@ -111,7 +111,7 @@ if uploaded_file:
             stats_qualita.columns = ['Stato Nota', 'Conteggio']
             
             # --- PRIMA RIGA: GRAFICO A TORTA TIPOLOGIE ---
-            col1, col2 = st.columns([2.5, 1.5]) 
+            col1, col2, col3 = st.columns([2.5, 1.5 0.5]) 
             with col1:
                 st.write("#### Tipologie Eventi")
                 fig_pie_tipo = px.pie(
@@ -147,7 +147,9 @@ if uploaded_file:
                 st.write("")
                 st.metric("Totale Attività", totale_attivita)
                 st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
-                
+
+            with col3:
+                st.write("")
             
             # --- TERZA RIGA: QUALITÀ NOTE E PERCENTUALE ---
             st.divider()

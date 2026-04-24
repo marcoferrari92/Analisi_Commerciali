@@ -253,32 +253,46 @@ if uploaded_file:
         
         df_tree = pd.merge(stats_aziende.head(50), df_color, on='Azienda')
     
-        # 3. Creazione Treemap con Colore per Commerciale
+        # --- PREPARAZIONE DATI CON WRAPPING MANUALE ---
+        # Prendiamo i nomi delle aziende e, se superano i 15 caratteri, 
+        # inseriamo noi un <br> o li tagliamo per forzare la riga sotto.
+        
+        def wrap_text(text, width=15):
+            if len(text) > width:
+                # Inserisce un a capo dopo circa 'width' caratteri
+                return text[:width] + "<br>" + text[width:]
+            return text
+        
+        # Applichiamo il wrapping ai nomi delle aziende nel dataframe del treemap
+        df_tree['Azienda_Display'] = df_tree['Azienda'].apply(lambda x: wrap_text(str(x), 18))
+        
+        # --- CREAZIONE TREEMAP ---
         fig_tree = px.treemap(
-        df_tree, 
-        path=['Commerciale Prevalente', 'Azienda'], 
-        values='Numero Attività',
-        color='Commerciale Prevalente',
-        color_discrete_sequence=px.colors.qualitative.Safe,
-        height=800
-        )
-    
-        # FORZIAMO IL TESTO AD ANDARE A CAPO E AD ESSERE LEGGIBILE
-        fig_tree.update_traces(
-            textinfo="label+value",
-            texttemplate="<b>%{label}</b><br>Attività: %{value}", # <br> forza l'invio a capo
-            hovertemplate="<b>%{label}</b><br>Totale: %{value}",
-            insidetextfont=dict(size=15), # Imposta una dimensione minima leggibile
-            textposition="middle center"  # Centra il testo nel rettangolo
+            df_tree, 
+            path=['Commerciale Prevalente', 'Azienda_Display'], # Usiamo la colonna con <br>
+            values='Numero Attività',
+            color='Commerciale Prevalente',
+            color_discrete_sequence=px.colors.qualitative.Safe,
+            height=700
         )
         
-        # Evitiamo che Plotly rimpicciolisca troppo il testo per farlo stare in una riga
+        fig_tree.update_traces(
+            textinfo="label+value",
+            # Usiamo %{label} che ora contiene già i <br> inseriti dalla funzione Python
+            texttemplate="<b>%{label}</b><br>N. Attività: %{value}",
+            insidetextfont=dict(size=16), # Font più grande
+            textposition="middle center"
+        )
+        
         fig_tree.update_layout(
-            margin=dict(t=30, l=10, r=10, b=10)
-            #uniformtext=dict(minsize=10, mode='hide') # Nasconde il testo solo se proprio non ci sta, altrimenti mantiene minsize
+            margin=dict(t=30, l=10, r=10, b=10),
+            # Questo forza Plotly a non rimpicciolire troppo il testo
+            uniformtext=dict(minsize=12, mode='show') 
         )
         
         st.plotly_chart(fig_tree, use_container_width=True)
+
+
     
         # --- TABELLA DETTAGLIATA (Quella di prima, con l'aggiunta della pivot) ---
         st.write("#### Dettaglio Attività per Azienda")

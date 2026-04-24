@@ -126,7 +126,8 @@ if uploaded_file:
             st.write("#### Analisi Qualità Note")
             with st.popover("💡 Analisi"):
                     st.info(""" 
-                    Controlliamo la qualità degli eventi inseriti per il famoso teorema: *garbade input, garbage output*.
+                    Controlliamo la qualità degli eventi inseriti per il famoso teorema: 
+                    *Garbage In, Garbage Out* (**GIGO**).
                     * ⚠️**Issue 1:** Alcuni eventi sono privi di note e non apportano contenuto informativo (Eventi MUTI).
                         * 💡*Tip:* mettere un vincolo nel CRM per cui eventi senza note non possono essere caricati.
                     * ⚠️**Issue 2:** molti eventi hanno note poco comprensibili.

@@ -188,7 +188,7 @@ if uploaded_file:
         with st.expander("💎 Qualità Eventi"):
             st.write("Controlliamo la qualità degli eventi inseriti per evitare la problematica: *Garbage In, Garbage Out* (**GIGO**)")
             st.write("")
-            st.write("#### Analisi *Mutismo*")
+            st.write("### Analisi *Mutismo*")
             st.info("""
                     ⚠️ Se gli eventi sono privi della nota descrittiva, non apportano contenuto informativo ma aggiungo confusione (Eventi MUTI).
                     * 💡*Tip 1:* tenere traccia della mole di questi eventi e individuarne le cause.
@@ -203,6 +203,7 @@ if uploaded_file:
                 
                 # Mostriamo i dati in una tabella snella
                 st.dataframe(stats_qualita, hide_index=True, use_container_width=True)
+                st.write("")
                 
                 # Piccolo istogramma per il confronto rapido dei volumi
                 fig_bar_qual = px.bar(

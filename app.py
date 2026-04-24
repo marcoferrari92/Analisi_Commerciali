@@ -131,7 +131,7 @@ if uploaded_file:
                         thicknessmode="pixels", thickness=12, # Barra un po' più sottile
                         lenmode="fraction", len=0.4,           # Barra un po' più corta per eleganza
                         yanchor="bottom",                     # Ancoraggio al fondo della barra
-                        y=1.02,                               # Posizionata appena sopra il grafico (1.0 è il bordo)
+                        y=0.5,                               # Posizionata appena sopra il grafico (1.0 è il bordo)
                         xanchor="center", x=0.5,
                         orientation="h"
                     )

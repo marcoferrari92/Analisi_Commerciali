@@ -153,7 +153,7 @@ if uploaded_file:
         with st.expander("🕒 Heatmap Oraria"):        
             st.write("### Distribuzione Oraria delle Attività")
                
-            Prepariamo i dati generali
+            #Prepariamo i dati generali
             df_heat_base = df_filtrato.copy()
             df_heat_base['Ora'] = pd.to_datetime(df_heat_base['Ora Evento'], format='%H:%M').dt.hour
             df_heat_base['Giorno'] = pd.to_datetime(df_heat_base['Data Evento']).dt.day_name()

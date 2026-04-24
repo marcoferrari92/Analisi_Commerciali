@@ -8,7 +8,7 @@ st.set_page_config(layout="wide")
 @st.cache_data
 def carica_dati_commerciali(file):
     try:
-        # Caricamento standard per export IT
+        # Caricamento con gestione encoding e delimitatori
         df = pd.read_csv(file, sep=';', encoding='latin1')
         if df.shape[1] <= 1:
             file.seek(0)
@@ -16,23 +16,18 @@ def carica_dati_commerciali(file):
         
         df.columns = df.columns.str.strip()
         
+        # Conversione Date robusta
         if 'Data Evento' in df.columns:
-            # Convertiamo in datetime e poi estraiamo solo .date()
-            df['Data Evento'] = pd.to_datetime(df['Data Evento'], dayfirst=True, errors='coerce').dt.date
+            df['Data Evento'] = pd.to_datetime(df['Data Evento'], dayfirst=True, errors='coerce')
+            df = df.dropna(subset=['Data Evento'])
 
-        # PULIZIA TIPO EVENTO (Rimuove trattini, spazi e mette in Maiuscolo)
+        # Pulizia Tipo Evento
         if 'Tipo Evento' in df.columns:
-            # Qui usiamo il modulo 're' importato sopra
             df['Tipo Evento'] = df['Tipo Evento'].apply(
                 lambda x: re.sub(r'[^a-zA-Z\s]', '', str(x)).strip().upper()
             )
             
         return df
-        
-    except Exception as e:
-        st.error(f"Errore caricamento: {e}")
-        return None
-        
     except Exception as e:
         st.error(f"Errore caricamento: {e}")
         return None

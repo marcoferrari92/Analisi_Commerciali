@@ -125,7 +125,9 @@ if uploaded_file:
             st.divider()
             st.write("#### Analisi Qualità Note")
             with st.popover("💡 Analisi"):
-                    st.info(""" """)
+                    st.info(""" Alcuni eventi sono privi di note e non apportano contenuto informativo (Eventi MUTI).
+                    * Consiglio 1: mettere un vincolo nel CRM per cui eventi senza note non possono essere caricati
+                    * Consiglio 2: molti eventi hanno note poco comprensibili. Strutturare il campo note con le classiche 5 W del giornalismo sarebbe utile""")
 
             fig_pie_qual = px.pie(
                 stats_qualita, 
@@ -134,8 +136,8 @@ if uploaded_file:
                 hole=0.4,
                 color='Stato Nota',
                 color_discrete_map={
-                    "UTILE (Con Note)": "#2ecc71", 
-                    "INUTILE (Senza Note)": "#e74c3c"
+                    "UTILI (Con Note)": "#2ecc71", 
+                    "MUTI (Senza Note)": "#e74c3c"
                 }
             )
             fig_pie_qual.update_traces(textinfo='percent+label')

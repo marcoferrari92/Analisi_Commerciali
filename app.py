@@ -125,9 +125,11 @@ if uploaded_file:
             st.divider()
             st.write("#### Analisi Qualità Note")
             with st.popover("💡 Analisi"):
-                    st.info(""" Alcuni eventi sono privi di note e non apportano contenuto informativo (Eventi MUTI).
-                    * Consiglio 1: mettere un vincolo nel CRM per cui eventi senza note non possono essere caricati
-                    * Consiglio 2: molti eventi hanno note poco comprensibili. Strutturare il campo note con le classiche 5 W del giornalismo sarebbe utile""")
+                    st.info(""" 
+                    Alcuni eventi sono privi di note e non apportano contenuto informativo (Eventi MUTI).
+                    * **Tip 1:** mettere un vincolo nel CRM per cui eventi senza note non possono essere caricati.
+                    * **Tip 2:** molti eventi hanno note poco comprensibili. Strutturare il campo note con le classiche 5 W del giornalismo sarebbe utile.
+                    """)
 
             fig_pie_qual = px.pie(
                 stats_qualita, 

@@ -124,31 +124,21 @@ if uploaded_file:
             # --- TERZA RIGA: QUALITÀ NOTE E PERCENTUALE ---
             st.divider()
             st.write("#### Analisi Qualità Note")
-            col_qual_graf, col_qual_perc = st.columns([2, 1])
+
+            fig_pie_qual = px.pie(
+                stats_qualita, 
+                values='Conteggio', 
+                names='Stato Nota', 
+                hole=0.4,
+                color='Stato Nota',
+                color_discrete_map={
+                    "UTILE (Con Note)": "#2ecc71", 
+                    "INUTILE (Senza Note)": "#e74c3c"
+                }
+            )
+            fig_pie_qual.update_traces(textinfo='percent+label')
+            st.plotly_chart(fig_pie_qual, use_container_width=True)
             
-            with col_qual_graf:
-                fig_pie_qual = px.pie(
-                    stats_qualita, 
-                    values='Conteggio', 
-                    names='Stato Nota', 
-                    hole=0.4,
-                    color='Stato Nota',
-                    color_discrete_map={
-                        "UTILE (Con Note)": "#2ecc71", 
-                        "INUTILE (Senza Note)": "#e74c3c"
-                    }
-                )
-                fig_pie_qual.update_traces(textinfo='percent+label')
-                st.plotly_chart(fig_pie_qual, use_container_width=True)
-            
-            with col_qual_perc:
-                # Calcolo percentuale utilità
-                utili = len(df_qualita[df_qualita['Qualità'] == "UTILE (Con Note)"])
-                perc_utili = (utili / len(df_filtrato)) * 100 if len(df_filtrato) > 0 else 0
-                
-                st.write("") # Spaziatore per allineare meglio
-                st.write("")
-                st.metric("Tasso Compilazione Note", f"{perc_utili:.1f}%")
                 
         
         

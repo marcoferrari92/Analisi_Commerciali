@@ -47,6 +47,9 @@ def mostra_periodo_analisi(df):
     return None, None
 
 # --- MAIN APP ---
+
+
+st.subheader("📆 Analisi Eventi")
 uploaded_file = st.file_uploader("Carica CSV", type="csv")
 
 if uploaded_file:

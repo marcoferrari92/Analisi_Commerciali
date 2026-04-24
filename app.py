@@ -227,38 +227,58 @@ if uploaded_file:
             
     # --- SEZIONE AZIENDE PIÙ COINVOLTE ---
     with st.expander("🏢 Analisi Coinvolgimento Aziende"):
-        st.write("#### Top Aziende per Numero di Attività")
+        st.write("#### Top Aziende per Commerciale")
         
-        # 1. Preparazione dati
-        # Contiamo quante volte appare ogni Ragione Sociale
+        # 1. Preparazione dati per il Treemap
+        # Troviamo per ogni azienda chi è il commerciale che ha fatto più attività
+        df_top_comm = df_filtrato.groupby(['Ragione Sociale', 'Utente']).size().reset_index(name='Conteggio')
+        
+        # Per ogni azienda, prendiamo solo la riga del commerciale con il conteggio massimo
+        df_color = df_top_comm.sort_values('Conteggio', ascending=False).drop_duplicates('Ragione Sociale')
+        df_color = df_color[['Ragione Sociale', 'Utente']]
+        df_color.columns = ['Azienda', 'Commerciale Prevalente']
+    
+        # 2. Uniamo con i totali per azienda
         stats_aziende = df_filtrato['Ragione Sociale'].value_counts().reset_index()
         stats_aziende.columns = ['Azienda', 'Numero Attività']
         
-        # Prendiamo ad esempio le prime 30 per non affollare troppo il grafico
-        top_aziende = stats_aziende.head(30)
+        df_tree = pd.merge(stats_aziende.head(50), df_color, on='Azienda')
+    
+        # 3. Creazione Treemap con Colore per Commerciale
+        fig_tree = px.treemap(
+            df_tree, 
+            path=['Commerciale Prevalente', 'Azienda'], # Gerarchia: Commerciale -> Azienda
+            values='Numero Attività',
+            color='Commerciale Prevalente', # Il colore ora dipende dal nome del commerciale
+            color_discrete_sequence=px.colors.qualitative.Safe, # Palette di colori distinti
+            title="Distribuzione Aziende per Commerciale Riferimento"
+        )
         
-        if not top_aziende.empty:
-            # 2. Creazione Treemap con Plotly
-            fig_tree = px.treemap(
-                top_aziende, 
-                path=['Azienda'], 
-                values='Numero Attività',
-                color='Numero Attività',
-                color_continuous_scale='Blues',
-                title="Focus sulle prime 30 Aziende"
-            )
-            
-            fig_tree.update_traces(textinfo="label+value")
-            fig_tree.update_layout(margin=dict(t=30, l=10, r=10, b=10))
-            
-            st.plotly_chart(fig_tree, use_container_width=True)
-            
-            # 3. Tabella di supporto per i numeri esatti
-            st.write("#### Dettaglio Volumi per Azienda")
-            st.dataframe(stats_aziende, hide_index=True, use_container_width=True)
-        else:
-            st.warning("Dati insufficienti per generare il grafico delle aziende.")
-
+        fig_tree.update_traces(textinfo="label+value")
+        st.plotly_chart(fig_tree, use_container_width=True)
+    
+        # --- TABELLA DETTAGLIATA (Quella di prima, con l'aggiunta della pivot) ---
+        st.write("#### Dettaglio Attività per Azienda")
+        
+        pivot_aziende = df_filtrato.pivot_table(
+            index='Ragione Sociale', 
+            columns='Tipo Evento', 
+            values='Utente', 
+            aggfunc='count', 
+            fill_value=0
+        ).reset_index()
+    
+        colonne_attivita = [c for c in pivot_aziende.columns if c != 'Ragione Sociale']
+        pivot_aziende['Totale'] = pivot_aziende[colonne_attivita].sum(axis=1)
+    
+        comm_riferimento = df_filtrato.groupby('Ragione Sociale')['Utente'].unique().apply(lambda x: ", ".join(x)).reset_index()
+        comm_riferimento.columns = ['Ragione Sociale', 'Commerciali']
+    
+        df_finale_aziende = pd.merge(pivot_aziende, comm_riferimento, on='Ragione Sociale')
+        cols = ['Ragione Sociale', 'Totale'] + list(colonne_attivita) + ['Commerciali']
+        df_finale_aziende = df_finale_aziende[cols].sort_values(by='Totale', ascending=False)
+    
+        st.dataframe(df_finale_aziende, hide_index=True, use_container_width=True)
 
         
         

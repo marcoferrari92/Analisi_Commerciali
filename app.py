@@ -83,7 +83,7 @@ if uploaded_file:
 
         # --- SEZIONE 2: RESOCONTO ---
         st.divider()
-        st.exapnder("📊 Volume e Qualità delle Attività")
+        st.exapnder("📊 Volume e Qualità delle Attività"):
         
         
             # --- PREPARAZIONE DATI ---

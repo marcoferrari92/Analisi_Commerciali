@@ -46,7 +46,7 @@ def mostra_periodo_analisi(df):
 # --- MAIN APP ---
 
 
-st.subheader("📆 Analisi Eventi")
+st.subheader("Analisi Eventi")
 uploaded_file = st.file_uploader("Carica CSV", type="csv")
 
 if uploaded_file:
@@ -61,7 +61,7 @@ if uploaded_file:
         if not date_valide.empty:
             data_min_file, data_max_file = date_valide.min().date(), date_valide.max().date()
             
-            st.markdown("### 📅 Selezione Periodo di Analisi")
+            st.markdown("#### 📅 Selezione Periodo di Analisi")
             
             # Creiamo due colonne: una per l'info e una per il filtro
             col_info_date, col_input_date = st.columns(2)

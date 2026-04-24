@@ -187,7 +187,7 @@ if uploaded_file:
         st.write("")
         with st.expander("💎 Qualità Eventi"):
             
-            #st.write("#### Analisi *Mutismo*")
+            st.write("#### Analisi *Mutismo*")
             with st.popover("💡 Analisi"):
                     st.info(""" 
                     Controlliamo la qualità degli eventi inseriti per il famoso teorema: 

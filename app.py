@@ -283,7 +283,7 @@ if uploaded_file:
                     y='Utente',
                     orientation='h',
                     title="Incidenza Attività senza descrizione (%)",
-                    color_discrete_sequence=['#EF553B'], # Rosso per tutti
+                    color_discrete_sequence=['#EF553B'], 
                     text=stats_muti['Percentuale'].apply(lambda x: f'{x}%'),
                     labels={'N. Eventi Muti': 'N. Eventi Muti'}
                 )
@@ -294,9 +294,9 @@ if uploaded_file:
                 )
             
                 fig_muti.update_layout(
-                    height=350 + (len(stats_muti) * 20), # Altezza dinamica in base al numero di commerciali
+                    height=350 + (len(stats_muti) * 20), 
                     margin=dict(t=50, l=10, r=50, b=10),
-                    xaxis_title="Numero di eventi senza note",
+                    xaxis_title="Quota eventi MUTI sul totale personale",
                     yaxis_title=None,
                     showlegend=False
                 )

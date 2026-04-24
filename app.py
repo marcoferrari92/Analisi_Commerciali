@@ -147,17 +147,6 @@ if uploaded_file:
                 st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
                 
             
-            # --- SECONDA RIGA: TABELLA E TOTALE ---
-            st.write("#### Riepilogo Volumi")
-            col_tab, col_tot = st.columns([3, 1]) 
-            
-            with col_tab:
-                st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
-            
-            with col_tot:
-                totale_attivita = len(df_filtrato)
-                st.metric("Totale Attività", totale_attivita)
-            
             # --- TERZA RIGA: QUALITÀ NOTE E PERCENTUALE ---
             st.divider()
             st.write("#### Analisi Qualità Note")

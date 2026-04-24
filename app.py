@@ -122,6 +122,20 @@ if uploaded_file:
                     color_discrete_sequence=px.colors.qualitative.Pastel
                 )
                 fig_pie_tipo.update_traces(textinfo='percent+label')
+             
+                fig_tree.update_layout(
+                    # Riduciamo il margine superiore da 80 a 40 o 50
+                    margin=dict(t=50, l=10, r=10, b=10), 
+                    coloraxis_colorbar=dict(
+                        title="Intensità Attività",
+                        thicknessmode="pixels", thickness=12, # Barra un po' più sottile
+                        lenmode="fraction", len=0.4,           # Barra un po' più corta per eleganza
+                        yanchor="bottom",                     # Ancoraggio al fondo della barra
+                        y=1.02,                               # Posizionata appena sopra il grafico (1.0 è il bordo)
+                        xanchor="center", x=0.5,
+                        orientation="h"
+                    )
+                )
                 st.plotly_chart(fig_pie_tipo, use_container_width=True)
 
             with col2: 

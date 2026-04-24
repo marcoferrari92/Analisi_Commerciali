@@ -43,8 +43,8 @@ def carica_dati_commerciali(file):
 def mostra_periodo_analisi(df):
     date_valide = df['Data Evento'].dropna()
     if not date_valide.empty:
-        d_min, d_max = min(date_valide), max(date_valide)
-        st.info(f"📅 **Dati disponibili:** dal {d_min.strftime('%d/%m/%Y')} al {d_max.strftime('%d/%m/%Y')}")
+        d_min, d_max = date_valide.min().date(), date_valide.max().date()
+        st.info(f"📅 **Dati disponibili nel file:** dal {d_min.strftime('%d/%m/%Y')} al {d_max.strftime('%d/%m/%Y')}")
         return d_min, d_max
     return None, None
 

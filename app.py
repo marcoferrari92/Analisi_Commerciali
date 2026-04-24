@@ -189,7 +189,7 @@ if uploaded_file:
             st.write("Controlliamo la qualità degli eventi inseriti per evitare la problematica: *Garbage In, Garbage Out* (**GIGO**)")
             st.write("")
             st.write("#### Analisi *Mutismo*")
-            st.write("""
+            st.info("""
                     ⚠️ Alcuni eventi sono privi di note e non apportano contenuto informativo (Eventi MUTI).
                     * 💡*Tip:* mettere un vincolo nel CRM per cui eventi senza note non possono essere caricati.
                     """)

@@ -273,8 +273,8 @@ if uploaded_file:
         
         # Evitiamo che Plotly rimpicciolisca troppo il testo per farlo stare in una riga
         fig_tree.update_layout(
-            margin=dict(t=30, l=10, r=10, b=10),
-            uniformtext=dict(minsize=6, mode='hide') # Nasconde il testo solo se proprio non ci sta, altrimenti mantiene minsize
+            margin=dict(t=30, l=10, r=10, b=10)
+            #uniformtext=dict(minsize=6, mode='hide')
         )
         
         st.plotly_chart(fig_tree, use_container_width=True)

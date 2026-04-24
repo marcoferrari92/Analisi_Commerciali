@@ -69,8 +69,6 @@ if uploaded_file:
             with col_info_date:
                 # Mostriamo il range disponibile nel file
                 st.info(f"**Dati disponibili:** dal {data_min_file.strftime('%d/%m/%Y')} al {data_max_file.strftime('%d/%m/%Y')}")
-            
-            with col_input_date:
                 # Filtro interattivo sulla stessa riga
                 periodo_selezionato = st.date_input(
                     "Filtra per intervallo:",
@@ -79,6 +77,9 @@ if uploaded_file:
                     max_value=data_max_file,
                     label_visibility="collapsed" # Nasconde l'etichetta per pulizia, l'utente capisce dal contesto
                 )
+            
+            with col_input_date:
+                st.write("")
             
             # Logica di filtraggio
             if isinstance(periodo_selezionato, tuple) and len(periodo_selezionato) == 2:

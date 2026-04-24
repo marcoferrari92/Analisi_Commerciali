@@ -95,7 +95,7 @@ if uploaded_file:
 
         # --- SEZIONE 2: RESOCONTO ---
         st.divider()
-        with st.expander("📊 Volume e Qualità delle Attività"):
+        with st.expander("📊 Volume e Tipologia Eventi"):
         
             # --- PREPARAZIONE DATI ---
             # 1. Dati per Tipologia
@@ -149,38 +149,41 @@ if uploaded_file:
             with col3:
                 st.write("")
             
-            # --- TERZA RIGA: QUALITÀ NOTE E PERCENTUALE ---
-            st.divider()
-            st.write("#### Analisi Qualità Note")
-            with st.popover("💡 Analisi"):
-                    st.info(""" 
-                    Controlliamo la qualità degli eventi inseriti per il famoso teorema: 
-                    *Garbage In, Garbage Out* (**GIGO**).
-                    * ⚠️ **Issue 1:** Alcuni eventi sono privi di note e non apportano contenuto informativo (Eventi MUTI).
-                        * 💡*Tip:* mettere un vincolo nel CRM per cui eventi senza note non possono essere caricati.
-                    * ⚠️ **Issue 2:** molti eventi hanno note poco comprensibili.
-                        * 💡*Tip:* strutturare il campo note con le classiche 5 W del giornalismo sarebbe utile.
-                    """)
 
-            fig_pie_qual = px.pie(
-                stats_qualita, 
-                values='Conteggio', 
-                names='Stato Nota', 
-                hole=0.4,
-                color='Stato Nota',
-                color_discrete_map={
-                    "UTILI (Con Note)": "#2ecc71", 
-                    "MUTI (Senza Note)": "#e74c3c"
-                }
-            )
-            fig_pie_qual.update_traces(textinfo='percent+label')
-            st.plotly_chart(fig_pie_qual, use_container_width=True)
+            # --- QUALITÀ NOTE E PERCENTUALE ---
+            st.write("")
+            st.divider()
+            with st.expander("📊 Qualità Eventi"):
+                #st.write("#### Analisi Qualità Note")
+                with st.popover("💡 Analisi"):
+                        st.info(""" 
+                        Controlliamo la qualità degli eventi inseriti per il famoso teorema: 
+                        *Garbage In, Garbage Out* (**GIGO**).
+                        * ⚠️ **Issue 1:** Alcuni eventi sono privi di note e non apportano contenuto informativo (Eventi MUTI).
+                            * 💡*Tip:* mettere un vincolo nel CRM per cui eventi senza note non possono essere caricati.
+                        * ⚠️ **Issue 2:** molti eventi hanno note poco comprensibili.
+                            * 💡*Tip:* strutturare il campo note con le classiche 5 W del giornalismo sarebbe utile.
+                        """)
+    
+                fig_pie_qual = px.pie(
+                    stats_qualita, 
+                    values='Conteggio', 
+                    names='Stato Nota', 
+                    hole=0.4,
+                    color='Stato Nota',
+                    color_discrete_map={
+                        "UTILI (Con Note)": "#2ecc71", 
+                        "MUTI (Senza Note)": "#e74c3c"
+                    }
+                )
+                fig_pie_qual.update_traces(textinfo='percent+label')
+                st.plotly_chart(fig_pie_qual, use_container_width=True)
 
 
         # --- SEZIONE HEATMAP ORARIA ---
+        st.write("")
         with st.expander("🕒 Heatmap Oraria"):        
             
-         
             # Prepariamo i dati
             df_heat_base = df_filtrato.copy()
             if not df_heat_base.empty:
@@ -254,6 +257,7 @@ if uploaded_file:
 
             
     # --- SEZIONE AZIENDE PIÙ COINVOLTE ---
+    st.write("")
     with st.expander("🏢 Analisi Coinvolgimento Aziende"):
         st.write("#### Top Aziende per Commerciale")
             

@@ -128,7 +128,7 @@ if uploaded_file:
                     margin=dict(t=50, l=10, r=10, b=10), 
                     coloraxis_colorbar=dict(
                         title="Intensità Attività",
-                        thicknessmode="pixels", thickness=12, # Barra un po' più sottile
+                        thicknessmode="pixels", thickness=5, # Barra un po' più sottile
                         lenmode="fraction", len=0.4,           # Barra un po' più corta per eleganza
                         yanchor="bottom",                     # Ancoraggio al fondo della barra
                         y=0.5,                               # Posizionata appena sopra il grafico (1.0 è il bordo)

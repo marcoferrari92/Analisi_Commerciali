@@ -250,43 +250,58 @@ if uploaded_file:
 
             # --- ANALISI EVENTI MUTI (Senza Note) ---
 
-            # 1. Filtriamo il dataset per isolare gli eventi senza note
+            # 1. Calcoliamo il totale eventi complessivi per ogni utente (dal dataset intero)
+            totale_per_utente = df_filtrato['Utente'].value_counts().reset_index()
+            totale_per_utente.columns = ['Utente', 'Totale Eventi']
+            
+            # 2. Filtriamo per isolare gli eventi senza note
             df_muti = df_filtrato[
                 df_filtrato['Note'].isnull() | (df_filtrato['Note'].str.strip() == "")
             ].copy()
             
             if not df_muti.empty:
-                # 2. Conteggio eventi muti per utente
+                
+                # 3. Conteggio eventi muti per utente
                 stats_muti = df_muti['Utente'].value_counts().reset_index()
                 stats_muti.columns = ['Utente', 'N. Eventi Muti']
                 
-                # Ordiniamo per avere chi ne ha di più in alto (i "peggiori" in questo caso)
+                # Uniamo i dati: Muti + Totali
+                stats_muti = stats_muti.merge(totale_per_utente, on='Utente', how='left')
                 stats_muti = stats_muti.sort_values('N. Eventi Muti', ascending=True)
-
-                col_grafico = st.columns([2])
-
+            
+                # --- OTTIMIZZAZIONE LAYOUT ---
+                # Creiamo 3 colonne: una per il grafico (larghezza 5) e una vuota (larghezza 3) per centrarlo/ridurlo
+                # Regola i numeri [5, 3] per decidere quanto "piccolo" vuoi il grafico
+                col_grafico, col_vuota = st.columns([5, 3])
+            
                 with col_grafico: 
-                    
                     fig_muti = px.bar(
                         stats_muti,
                         x='N. Eventi Muti',
                         y='Utente',
                         orientation='h',
                         text_auto=True,
-                        title="Chi sta inserendo attività senza descrizione?",
-                        color='N. Eventi Muti',
-                        color_continuous_scale='Reds', # Usiamo il rosso per indicare un'anomalia/errore
-                        labels={'N. Eventi Muti': 'Conteggio Eventi Senza Note'}
+                        title="Focus: Attività senza descrizione",
+                        color='Totale Eventi', 
+                        color_continuous_scale='Viridis', # Scala cromatica leggibile
+                        labels={
+                            'N. Eventi Muti': 'N. Senza Note',
+                            'Totale Eventi': 'Volume Totale'
+                        }
                     )
                 
                     fig_muti.update_layout(
-                        height=400,
-                        showlegend=False,
+                        height=350, # Altezza contenuta
                         margin=dict(t=50, l=10, r=10, b=10),
-                        coloraxis_showscale=False # Nascondiamo la barra colore per pulizia
+                        coloraxis_showscale=True,
+                        # Miglioriamo l'estetica del titolo
+                        title_font_size=18
                     )
                 
                     st.plotly_chart(fig_muti, use_container_width=True)
+            
+            else:
+                st.success("Ottimo lavoro! Non ci sono eventi senza note nel periodo selezionato.")
            
 
             

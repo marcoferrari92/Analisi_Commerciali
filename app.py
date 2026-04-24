@@ -152,70 +152,76 @@ if uploaded_file:
         # --- SEZIONE HEATMAP ORARIA ---
         with st.expander("🕒 Heatmap Oraria"):        
             st.write("### Distribuzione Oraria delle Attività")
-               
-            # --- SEZIONE HEATMAP ORARIA ---
-            st.divider()
-            st.subheader("🕒 Analisi Distribuzione Oraria")
-            
-            # Prepariamo i dati generali
+         
+            # Prepariamo i dati
             df_heat_base = df_filtrato.copy()
-            df_heat_base['Ora'] = pd.to_datetime(df_heat_base['Ora Evento'], format='%H:%M').dt.hour
-            df_heat_base['Giorno'] = pd.to_datetime(df_heat_base['Data Evento']).dt.day_name()
+            if not df_heat_base.empty:
+                df_heat_base['Ora'] = pd.to_datetime(df_heat_base['Ora Evento'], format='%H:%M').dt.hour
+                df_heat_base['Giorno'] = pd.to_datetime(df_heat_base['Data Evento']).dt.day_name()
             
-            # Costanti per il layout fisso
-            giorni_ordine = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-            traduzione_giorni = {
-                'Monday': 'Lunedì', 'Tuesday': 'Martedì', 'Wednesday': 'Mercoledì', 
-                'Thursday': 'Giovedì', 'Friday': 'Venerdì', 'Saturday': 'Sabato', 'Sunday': 'Domenica'
-            }
-            # Definiamo il range orario fisso (es. dalle 7 alle 21 o 0-23)
-            ore_fisso = list(range(0, 24)) 
+                # 1. CALCOLO LIMITI DINAMICI (AUTO-CROP)
+                # Troviamo la prima e l'ultima ora in cui esiste almeno un evento nel set filtrato
+                ora_min = int(df_heat_base['Ora'].min())
+                ora_max = int(df_heat_base['Ora'].max())
+                ore_dinamiche = list(range(ora_min, ora_max + 1))
             
-            def genera_heatmap_fissa(df_input, altezza=450):
-                # Raggruppamento
-                h_data = df_input.groupby(['Giorno', 'Ora']).size().reset_index(name='Conteggio')
+                # Troviamo i giorni della settimana che hanno almeno un evento
+                giorni_ordine_std = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                giorni_presenti = [g for g in giorni_ordine_std if g in df_heat_base['Giorno'].unique()]
                 
-                # Pivot
-                pivot = h_data.pivot(index='Giorno', columns='Ora', values='Conteggio').fillna(0)
-                
-                # FORZATURA LAYOUT: Reindex su giorni e ore per avere sempre la stessa griglia
-                pivot = pivot.reindex(index=giorni_ordine, columns=ore_fisso, fill_value=0)
-                
-                # Traduzione nomi giorni
-                pivot.index = [traduzione_giorni[g] for g in pivot.index]
-                
-                fig = px.imshow(
-                    pivot,
-                    labels=dict(x="Ora", y="Giorno", color="Attività"),
-                    x=pivot.columns,
-                    y=pivot.index,
-                    color_continuous_scale='Viridis',
-                    text_auto=True,
-                    aspect="auto"
-                )
-                fig.update_layout(
-                    height=altezza, 
-                    margin=dict(l=20, r=20, t=30, b=20),
-                    xaxis=dict(tickmode='array', tickvals=ore_fisso) # Forza la visualizzazione di tutte le ore
-                )
-                return fig
+                traduzione_giorni = {
+                    'Monday': 'Lunedì', 'Tuesday': 'Martedì', 'Wednesday': 'Mercoledì', 
+                    'Thursday': 'Giovedì', 'Friday': 'Venerdì', 'Saturday': 'Sabato', 'Sunday': 'Domenica'
+                }
             
-            # 1. HEATMAP TOTALE
-            st.write("#### 🌍 Totale Tutte le Attività")
-            st.plotly_chart(genera_heatmap_fissa(df_heat_base), use_container_width=True)
+                # 2. FUNZIONE DI GENERAZIONE CON FRAME DINAMICO FISSO
+                def genera_heatmap_crop(df_input, altezza=450):
+                    # Raggruppamento
+                    h_data = df_input.groupby(['Giorno', 'Ora']).size().reset_index(name='Conteggio')
+                    
+                    # Pivot
+                    pivot = h_data.pivot(index='Giorno', columns='Ora', values='Conteggio').fillna(0)
+                    
+                    # FORZATURA LAYOUT SUI LIMITI DINAMICI CALCOLATI PRIMA
+                    # Questo garantisce che anche se una specifica attività non ha dati in certe ore/giorni,
+                    # il grafico avrà lo stesso identico frame di quello globale
+                    pivot = pivot.reindex(index=giorni_presenti, columns=ore_dinamiche, fill_value=0)
+                    
+                    # Traduzione nomi giorni
+                    pivot.index = [traduzione_giorni[g] for g in pivot.index]
+                    
+                    fig = px.imshow(
+                        pivot,
+                        labels=dict(x="Ora", y="Giorno", color="Attività"),
+                        x=pivot.columns,
+                        y=pivot.index,
+                        color_continuous_scale='Viridis',
+                        text_auto=True,
+                        aspect="auto"
+                    )
+                    fig.update_layout(
+                        height=altezza, 
+                        margin=dict(l=20, r=20, t=30, b=20),
+                        xaxis=dict(tickmode='array', tickvals=ore_dinamiche)
+                    )
+                    return fig
             
-            # 2. HEATMAP SPECIFICHE (SOTTO)
-            st.write("---")
-            st.write("#### 🔍 Dettaglio per Singola Attività (Stessa scala oraria)")
+                # 3. VISUALIZZAZIONE
+                st.write(f"#### 🌍 Totale Generale (Range: {ora_min}:00 - {ora_max}:00)")
+                st.plotly_chart(genera_heatmap_crop(df_heat_base), use_container_width=True)
             
-            lista_attivita = sorted(df_heat_base['Tipo Evento'].unique())
+                st.write("---")
+                st.write("#### 🔍 Dettaglio per Singola Attività (Stesso frame)")
             
-            for attivita in lista_attivita:
-                df_tipo = df_heat_base[df_heat_base['Tipo Evento'] == attivita]
-                with st.expander(f"Dettaglio: {attivita}"):
-                    # Qui usiamo la stessa funzione: il layout sarà identico a quella globale
-                    st.plotly_chart(genera_heatmap_fissa(df_tipo, altezza=400), use_container_width=True)
-
+                lista_attivita = sorted(df_heat_base['Tipo Evento'].unique())
+            
+                for attivita in lista_attivita:
+                    df_tipo = df_heat_base[df_heat_base['Tipo Evento'] == attivita]
+                    with st.expander(f"Dettaglio: {attivita}"):
+                        # Usiamo la stessa funzione: il layout sarà identico a quella globale
+                        st.plotly_chart(genera_heatmap_crop(df_tipo, altezza=400), use_container_width=True)
+            else:
+                st.warning("Nessun dato disponibile per generare le heatmap nel periodo selezionato.")
 
 
         

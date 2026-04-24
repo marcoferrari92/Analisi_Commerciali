@@ -58,16 +58,10 @@ if uploaded_file:
     df = carica_dati_commerciali(uploaded_file)
     
     if df is not None:
-
-        # PERIODO ****************
-        
-        # 1. Recuperiamo i limiti temporali del file
+        # --- FILTRO TEMPORALE IN AREA PRINCIPALE ---
         data_min_file, data_max_file = mostra_periodo_analisi(df)
-
-        # --- AREA FILTRO TEMPORALE (NON PIÙ SIDEBAR) ---
-        st.markdown("### 📅 Selezione Periodo di Analisi")
         
-        # Creiamo delle colonne per non far occupare al filtro tutta la larghezza se è troppo lungo
+        st.markdown("### 📅 Selezione Periodo di Analisi")
         col_filtro, _ = st.columns([0.4, 0.6]) 
         
         with col_filtro:
@@ -78,16 +72,14 @@ if uploaded_file:
                 max_value=data_max_file
             )
         
-        # Verifica che l'utente abbia selezionato sia inizio che fine
+        # Logica di filtraggio
         if isinstance(periodo_selezionato, tuple) and len(periodo_selezionato) == 2:
             data_inizio, data_fine = periodo_selezionato
-            # Applica il filtro al dataframe
-            df_filtrato = df[(df['Data Evento'] >= pd.Timestamp(data_inizio)) & 
-                             (df['Data Evento'] <= pd.Timestamp(data_fine))]
+            df_filtrato = df[(df['Data Evento'].dt.date >= data_inizio) & 
+                             (df['Data Evento'].dt.date <= data_fine)].copy()
         else:
-            # Fallback se la selezione non è completa
-            df_filtrato = df
-            st.warning("Seleziona una data di inizio e una di fine per aggiornare i grafici.")
+            df_filtrato = df.copy()
+            st.warning("Seleziona data inizio e fine per aggiornare l'analisi.")
 
         #*************************
 

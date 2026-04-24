@@ -250,58 +250,58 @@ if uploaded_file:
 
             # --- ANALISI EVENTI MUTI (Senza Note) ---
 
-            # 1. Calcoliamo il totale eventi complessivi per ogni utente (dal dataset intero)
+            # 1. Lista completa di tutti i commerciali che hanno caricato qualcosa
             totale_per_utente = df_filtrato['Utente'].value_counts().reset_index()
             totale_per_utente.columns = ['Utente', 'Totale Eventi']
             
-            # 2. Filtriamo per isolare gli eventi senza note
+            # 2. Filtriamo gli eventi senza note
             df_muti = df_filtrato[
                 df_filtrato['Note'].isnull() | (df_filtrato['Note'].str.strip() == "")
             ].copy()
             
-            if not df_muti.empty:
-                
-                # 3. Conteggio eventi muti per utente
-                stats_muti = df_muti['Utente'].value_counts().reset_index()
-                stats_muti.columns = ['Utente', 'N. Eventi Muti']
-                
-                # Uniamo i dati: Muti + Totali
-                stats_muti = stats_muti.merge(totale_per_utente, on='Utente', how='left')
-                stats_muti = stats_muti.sort_values('N. Eventi Muti', ascending=True)
+            # 3. Conteggio eventi muti per utente
+            stats_muti_raw = df_muti['Utente'].value_counts().reset_index()
+            stats_muti_raw.columns = ['Utente', 'N. Eventi Muti']
             
-                # --- OTTIMIZZAZIONE LAYOUT ---
-                # Creiamo 3 colonne: una per il grafico (larghezza 5) e una vuota (larghezza 3) per centrarlo/ridurlo
-                # Regola i numeri [5, 3] per decidere quanto "piccolo" vuoi il grafico
-                col_grafico, col_vuota = st.columns([5, 3])
+            # 4. UNIONE: Partiamo da tutti i commerciali e aggiungiamo i muti (chi non ne ha avrà NaN)
+            stats_muti = totale_per_utente.merge(stats_muti_raw, on='Utente', how='left')
             
-                with col_grafico: 
-                    fig_muti = px.bar(
-                        stats_muti,
-                        x='N. Eventi Muti',
-                        y='Utente',
-                        orientation='h',
-                        text_auto=True,
-                        title="Focus: Attività senza descrizione",
-                        color='Totale Eventi', 
-                        color_continuous_scale='Viridis', # Scala cromatica leggibile
-                        labels={
-                            'N. Eventi Muti': 'N. Senza Note',
-                            'Totale Eventi': 'Volume Totale'
-                        }
-                    )
-                
-                    fig_muti.update_layout(
-                        height=350, # Altezza contenuta
-                        margin=dict(t=50, l=10, r=10, b=10),
-                        coloraxis_showscale=True,
-                        # Miglioriamo l'estetica del titolo
-                        title_font_size=18
-                    )
-                
-                    st.plotly_chart(fig_muti, use_container_width=True)
+            # 5. Pulizia: trasformiamo i NaN in 0 e calcoliamo la percentuale
+            stats_muti['N. Eventi Muti'] = stats_muti['N. Eventi Muti'].fillna(0).astype(int)
+            stats_muti['Percentuale'] = (stats_muti['N. Eventi Muti'] / stats_muti['Totale Eventi'] * 100).round(1)
             
-            else:
-                st.success("Ottimo lavoro! Non ci sono eventi senza note nel periodo selezionato.")
+            # Ordiniamo: chi ha più errori in alto, chi ne ha zero in basso
+            stats_muti = stats_muti.sort_values('N. Eventi Muti', ascending=True)
+            
+            # --- LAYOUT ---
+            col_grafico, col_vuota = st.columns([5, 3])
+            
+            with col_grafico: 
+                fig_muti = px.bar(
+                    stats_muti,
+                    x='N. Eventi Muti',
+                    y='Utente',
+                    orientation='h',
+                    title="Incidenza Attività senza descrizione (%)",
+                    color_discrete_sequence=['#EF553B'], # Rosso per tutti
+                    text=stats_muti['Percentuale'].apply(lambda x: f'{x}%'),
+                    labels={'N. Eventi Muti': 'N. Eventi Muti'}
+                )
+            
+                fig_muti.update_traces(
+                    textposition='outside',
+                    cliponaxis=False
+                )
+            
+                fig_muti.update_layout(
+                    height=350 + (len(stats_muti) * 20), # Altezza dinamica in base al numero di commerciali
+                    margin=dict(t=50, l=10, r=50, b=10),
+                    xaxis_title="Numero di eventi senza note",
+                    yaxis_title=None,
+                    showlegend=False
+                )
+            
+                st.plotly_chart(fig_muti, use_container_width=True)
            
 
             

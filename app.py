@@ -253,35 +253,28 @@ if uploaded_file:
         
         df_tree = pd.merge(stats_aziende.head(50), df_color, on='Azienda')
     
-        # --- PREPARAZIONE DATI ---
-        # Prendiamo solo le prime 15 aziende (quelle che contano davvero nel grafico)
-        df_tree_clean = df_tree.head(15).copy()
-        
-        # --- CREAZIONE TREEMAP ---
         fig_tree = px.treemap(
-            df_tree_clean, 
-            path=['Commerciale Prevalente', 'Azienda'], 
-            values='Numero Attività',
-            color='Commerciale Prevalente',
-            color_discrete_sequence=px.colors.qualitative.Safe,
-            height=600
+        df_tree, 
+        path=['Commerciale Prevalente', 'Azienda'], 
+        values='Numero Attività',
+        color='Commerciale Prevalente',
+        color_discrete_sequence=px.colors.qualitative.Safe,
+        height=700
         )
-        
-        # CONFIGURAZIONE PULITA
+    
+        # FORZIAMO IL TESTO AD ANDARE A CAPO E AD ESSERE LEGGIBILE
         fig_tree.update_traces(
             textinfo="label+value",
-            # 'toplevel' impedisce al testo dei "Commerciali" di incasinare quello delle "Aziende"
-            texttemplate="<b>%{label}</b><br>%{value} att.", 
-            insidetextfont=dict(size=18),
-            # 'hide' nasconde il testo se il rettangolo è troppo piccolo, evitando l'effetto sovrapposizione
-            uniformtext=dict(minsize=14, mode='hide') 
+            texttemplate="<b>%{label}</b><br>Attività: %{value}", # <br> forza l'invio a capo
+            hovertemplate="<b>%{label}</b><br>Totale: %{value}",
+            insidetextfont=dict(size=15), # Imposta una dimensione minima leggibile
+            textposition="middle center"  # Centra il testo nel rettangolo
         )
         
+        # Evitiamo che Plotly rimpicciolisca troppo il testo per farlo stare in una riga
         fig_tree.update_layout(
-            margin=dict(t=10, l=10, r=10, b=10),
-            # Rimuove le scritte ridondanti sopra i raggruppamenti
-            treemapcolorway=px.colors.qualitative.Safe,
-            extendtreemapcolors=True
+            margin=dict(t=30, l=10, r=10, b=10),
+            uniformtext=dict(minsize=10, mode='hide') # Nasconde il testo solo se proprio non ci sta, altrimenti mantiene minsize
         )
         
         st.plotly_chart(fig_tree, use_container_width=True)

@@ -253,28 +253,28 @@ if uploaded_file:
         
         df_tree = pd.merge(stats_aziende.head(50), df_color, on='Azienda')
     
+        # --- CREAZIONE TREEMAP CON SFUMATURE ---
         fig_tree = px.treemap(
-        df_tree, 
-        path=['Commerciale Prevalente', 'Azienda'], 
-        values='Numero Attività',
-        color='Commerciale Prevalente',
-        color_discrete_sequence=px.colors.qualitative.Safe,
-        height=700
-        )
-    
-        # FORZIAMO IL TESTO AD ANDARE A CAPO E AD ESSERE LEGGIBILE
-        fig_tree.update_traces(
-            textinfo="label+value",
-            texttemplate="<b>%{label}</b><br>Attività: %{value}", # <br> forza l'invio a capo
-            hovertemplate="<b>%{label}</b><br>Totale: %{value}",
-            insidetextfont=dict(size=15), # Imposta una dimensione minima leggibile
-            textposition="middle center"  # Centra il testo nel rettangolo
+            df_tree, 
+            path=['Commerciale Prevalente', 'Azienda'], 
+            values='Numero Attività',
+            color='Numero Attività', # Cambiamo il target del colore sul valore numerico
+            color_continuous_scale='Blues', # O 'Viridis', 'GnBu', etc.
+            height=700
         )
         
-        # Evitiamo che Plotly rimpicciolisca troppo il testo per farlo stare in una riga
+        # FORZIAMO IL TESTO (Il tuo setup preferito)
+        fig_tree.update_traces(
+            textinfo="label+value",
+            texttemplate="<b>%{label}</b><br>Attività: %{value}",
+            hovertemplate="<b>%{label}</b><br>Totale: %{value}",
+            insidetextfont=dict(size=15),
+            textposition="middle center"
+        )
+        
         fig_tree.update_layout(
-            margin=dict(t=30, l=10, r=10, b=10)
-            #uniformtext=dict(minsize=6, mode='hide')
+            margin=dict(t=30, l=10, r=10, b=10),
+            coloraxis_showscale=True # Mostra la legenda cromatica a destra
         )
         
         st.plotly_chart(fig_tree, use_container_width=True)

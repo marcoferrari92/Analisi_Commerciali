@@ -253,41 +253,35 @@ if uploaded_file:
         
         df_tree = pd.merge(stats_aziende.head(50), df_color, on='Azienda')
     
-        # --- PREPARAZIONE DATI CON WRAPPING MANUALE ---
-        # Prendiamo i nomi delle aziende e, se superano i 15 caratteri, 
-        # inseriamo noi un <br> o li tagliamo per forzare la riga sotto.
-        
-        def wrap_text(text, width=15):
-            if len(text) > width:
-                # Inserisce un a capo dopo circa 'width' caratteri
-                return text[:width] + "<br>" + text[width:]
-            return text
-        
-        # Applichiamo il wrapping ai nomi delle aziende nel dataframe del treemap
-        df_tree['Azienda_Display'] = df_tree['Azienda'].apply(lambda x: wrap_text(str(x), 18))
+        # --- PREPARAZIONE DATI ---
+        # Prendiamo solo le prime 15 aziende (quelle che contano davvero nel grafico)
+        df_tree_clean = df_tree.head(15).copy()
         
         # --- CREAZIONE TREEMAP ---
         fig_tree = px.treemap(
-            df_tree, 
-            path=['Commerciale Prevalente', 'Azienda_Display'], # Usiamo la colonna con <br>
+            df_tree_clean, 
+            path=['Commerciale Prevalente', 'Azienda'], 
             values='Numero Attività',
             color='Commerciale Prevalente',
             color_discrete_sequence=px.colors.qualitative.Safe,
-            height=700
+            height=600
         )
         
+        # CONFIGURAZIONE PULITA
         fig_tree.update_traces(
             textinfo="label+value",
-            # Usiamo %{label} che ora contiene già i <br> inseriti dalla funzione Python
-            texttemplate="<b>%{label}</b><br>N. Attività: %{value}",
-            insidetextfont=dict(size=16), # Font più grande
-            textposition="middle center"
+            # 'toplevel' impedisce al testo dei "Commerciali" di incasinare quello delle "Aziende"
+            texttemplate="<b>%{label}</b><br>%{value} att.", 
+            insidetextfont=dict(size=18),
+            # 'hide' nasconde il testo se il rettangolo è troppo piccolo, evitando l'effetto sovrapposizione
+            uniformtext=dict(minsize=14, mode='hide') 
         )
         
         fig_tree.update_layout(
-            margin=dict(t=30, l=10, r=10, b=10),
-            # Questo forza Plotly a non rimpicciolire troppo il testo
-            uniformtext=dict(minsize=12, mode='show') 
+            margin=dict(t=10, l=10, r=10, b=10),
+            # Rimuove le scritte ridondanti sopra i raggruppamenti
+            treemapcolorway=px.colors.qualitative.Safe,
+            extendtreemapcolors=True
         )
         
         st.plotly_chart(fig_tree, use_container_width=True)

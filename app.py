@@ -300,23 +300,38 @@ if uploaded_file:
                 
                 # --- DETTAGLIO PER COMMERCIALE ---
                 st.write("#### Esaustività media per Commerciale")
-                stats_comm_parole = df_note_vere.groupby('Utente')['Lunghezza Nota'].mean().reset_index()
-                stats_comm_parole = stats_comm_parole.sort_values('Lunghezza Nota', ascending=False)
+                
+                # Calcoliamo sia la media (Lunghezza) che il conteggio (Volume Note)
+                stats_comm_parole = df_note_vere.groupby('Utente')['Lunghezza Nota'].agg(['mean', 'count']).reset_index()
+                stats_comm_parole.columns = ['Utente', 'Media Parole', 'Volume Note']
+                
+                # Ordiniamo per la media parole (lunghezza barre)
+                stats_comm_parole = stats_comm_parole.sort_values('Media Parole', ascending=False)
                 
                 fig_comm_parole = px.bar(
                     stats_comm_parole,
-                    x='Lunghezza Nota',
+                    x='Media Parole',
                     y='Utente',
                     orientation='h',
                     text_auto='.1f',
-                    color='Lunghezza Nota',
+                    color='Volume Note', # <--- IL COLORE ORA INDICA QUANTE NOTE HA SCRITTO
                     color_continuous_scale='Greens',
-                    labels={'Lunghezza Nota': 'Media Parole'}
+                    labels={
+                        'Media Parole': 'Lunghezza Media (Parole)',
+                        'Volume Note': 'N. Note Scritte'
+                    },
+                    # Aggiungiamo il dettaglio nel tooltip al passaggio del mouse
+                    hover_data={'Media Parole': True, 'Volume Note': True, 'Utente': True}
                 )
-                fig_comm_parole.update_layout(height=400, showlegend=False)
+                
+                fig_comm_parole.update_layout(
+                    height=400, 
+                    showlegend=True,
+                    coloraxis_colorbar=dict(title="N. Note"),
+                    margin=dict(t=30, l=10, r=10, b=10)
+                )
+                
                 st.plotly_chart(fig_comm_parole, use_container_width=True)
-            else:
-                st.warning("Non ci sono abbastanza note compilate per analizzare l'esaustività.")
 
 
         # --- SEZIONE HEATMAP ORARIA ---

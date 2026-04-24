@@ -151,7 +151,7 @@ if uploaded_file:
 
         # --- SEZIONE HEATMAP ORARIA ---
         with st.expander("🕒 Heatmap Oraria"):        
-            st.write("### Distribuzione Oraria delle Attività")
+            
          
             # Prepariamo i dati
             df_heat_base = df_filtrato.copy()
@@ -207,8 +207,8 @@ if uploaded_file:
                     return fig
             
                 # 3. VISUALIZZAZIONE
-                st.write(f"#### 🌍 Totale Generale")
-                st.write(f"(Range orario trovato: {ora_min}:00 - {ora_max}:00)")
+                st.write(f"#### 🌍 Distribuzione Oraria Globale delle Attività")
+                st.write(f"Range orario trovato: {ora_min}:00 - {ora_max}:00")
                 st.plotly_chart(genera_heatmap_crop(df_heat_base), use_container_width=True)
             
                 st.write("---")

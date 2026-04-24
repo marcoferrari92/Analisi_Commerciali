@@ -150,7 +150,8 @@ if uploaded_file:
                 st.write("")
 
             # --- SECONDA RIGA (DENTRO L'EXPANDER): COUNTPLOT ---
-            st.divider()
+            st.write("")
+            st.write("")
             st.write("#### Confronto Volumi per Tipologia")
             
             # Ordiniamo i dati per una visualizzazione migliore (dal più frequente al meno)

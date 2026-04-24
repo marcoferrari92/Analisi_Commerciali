@@ -200,11 +200,7 @@ if uploaded_file:
             col_stats, col_grafico = st.columns([1, 1.5])
         
             with col_stats:
-                
-                # Mostriamo i dati in una tabella snella
-                st.dataframe(stats_qualita, hide_index=True, use_container_width=True)
-                st.write("")
-                
+
                 # Piccolo istogramma per il confronto rapido dei volumi
                 fig_bar_qual = px.bar(
                     stats_qualita,

@@ -143,6 +143,8 @@ if uploaded_file:
                 totale_attivita = len(df_filtrato)
                 st.write("")
                 st.write("")
+                st.write("")
+                st.write("")
                 st.metric("Totale Attività", totale_attivita)
                 st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
                 

@@ -111,7 +111,7 @@ if uploaded_file:
             stats_qualita.columns = ['Stato Nota', 'Conteggio']
             
             # --- PRIMA RIGA: GRAFICO A TORTA TIPOLOGIE ---
-            col1, col2, col3 = st.columns([2.5, 1.5, 0.5]) 
+            col1, col2, col3 = st.columns([2.5, 1.5, 0.25]) 
             with col1:
                 st.write("#### Tipologie Eventi")
                 fig_pie_tipo = px.pie(

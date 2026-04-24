@@ -153,30 +153,35 @@ if uploaded_file:
         with st.expander("🕒 Heatmap Oraria"):        
             st.write("### Distribuzione Oraria delle Attività")
                
-            #Prepariamo i dati generali
+            # --- SEZIONE HEATMAP ORARIA ---
+            st.divider()
+            st.subheader("🕒 Analisi Distribuzione Oraria")
+            
+            # Prepariamo i dati generali
             df_heat_base = df_filtrato.copy()
             df_heat_base['Ora'] = pd.to_datetime(df_heat_base['Ora Evento'], format='%H:%M').dt.hour
             df_heat_base['Giorno'] = pd.to_datetime(df_heat_base['Data Evento']).dt.day_name()
             
+            # Costanti per il layout fisso
             giorni_ordine = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
             traduzione_giorni = {
                 'Monday': 'Lunedì', 'Tuesday': 'Martedì', 'Wednesday': 'Mercoledì', 
                 'Thursday': 'Giovedì', 'Friday': 'Venerdì', 'Saturday': 'Sabato', 'Sunday': 'Domenica'
             }
+            # Definiamo il range orario fisso (es. dalle 7 alle 21 o 0-23)
+            ore_fisso = list(range(0, 24)) 
             
-            # 1. HEATMAP ORIGINARIA (TOTALE GENERALE)
-            st.write("#### 🌍 Totale Tutte le Attività")
-            
-            def genera_heatmap(df_input, titolo_grafico, altezza=450):
-                if df_input.empty:
-                    return None
-                
+            def genera_heatmap_fissa(df_input, altezza=450):
+                # Raggruppamento
                 h_data = df_input.groupby(['Giorno', 'Ora']).size().reset_index(name='Conteggio')
+                
+                # Pivot
                 pivot = h_data.pivot(index='Giorno', columns='Ora', values='Conteggio').fillna(0)
                 
-                # Riordino e traduzione
-                presenti = [g for g in giorni_ordine if g in pivot.index]
-                pivot = pivot.reindex(presenti)
+                # FORZATURA LAYOUT: Reindex su giorni e ore per avere sempre la stessa griglia
+                pivot = pivot.reindex(index=giorni_ordine, columns=ore_fisso, fill_value=0)
+                
+                # Traduzione nomi giorni
                 pivot.index = [traduzione_giorni[g] for g in pivot.index]
                 
                 fig = px.imshow(
@@ -188,31 +193,28 @@ if uploaded_file:
                     text_auto=True,
                     aspect="auto"
                 )
-                fig.update_layout(height=altezza, margin=dict(l=20, r=20, t=30, b=20))
+                fig.update_layout(
+                    height=altezza, 
+                    margin=dict(l=20, r=20, t=30, b=20),
+                    xaxis=dict(tickmode='array', tickvals=ore_fisso) # Forza la visualizzazione di tutte le ore
+                )
                 return fig
             
-            # Mostriamo la heatmap grande
-            fig_master = genera_heatmap(df_heat_base, "Generale")
-            if fig_master:
-                st.plotly_chart(fig_master, use_container_width=True)
+            # 1. HEATMAP TOTALE
+            st.write("#### 🌍 Totale Tutte le Attività")
+            st.plotly_chart(genera_heatmap_fissa(df_heat_base), use_container_width=True)
             
-            # 2. HEATMAP SPECIFICHE (SOTTO, IN PICCOLO)
+            # 2. HEATMAP SPECIFICHE (SOTTO)
             st.write("---")
-            st.write("#### 🔍 Dettaglio per Singola Attività")
+            st.write("#### 🔍 Dettaglio per Singola Attività (Stessa scala oraria)")
             
             lista_attivita = sorted(df_heat_base['Tipo Evento'].unique())
             
-            # Usiamo le colonne per rendere gli expander più compatti se vuoi, 
-            # oppure semplicemente uno sotto l'altro
             for attivita in lista_attivita:
                 df_tipo = df_heat_base[df_heat_base['Tipo Evento'] == attivita]
-                
-                with st.expander(f"Dettaglio orario: {attivita}"):
-                    fig_tipo = genera_heatmap(df_tipo, attivita, altezza=350)
-                    if fig_tipo:
-                        st.plotly_chart(fig_tipo, use_container_width=True)
-                    else:
-                        st.write("Dati insufficienti per questa attività.")
+                with st.expander(f"Dettaglio: {attivita}"):
+                    # Qui usiamo la stessa funzione: il layout sarà identico a quella globale
+                    st.plotly_chart(genera_heatmap_fissa(df_tipo, altezza=400), use_container_width=True)
 
 
 

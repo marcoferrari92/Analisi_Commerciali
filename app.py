@@ -124,8 +124,8 @@ if uploaded_file:
             # --- TERZA RIGA: QUALITÀ NOTE E PERCENTUALE ---
             st.divider()
             st.write("#### Analisi Qualità Note")
-            st.popover("💡 Analisi"):
-                st.info(""" """)
+            with st.popover("💡 Analisi"):
+                    st.info(""" """)
 
             fig_pie_qual = px.pie(
                 stats_qualita, 

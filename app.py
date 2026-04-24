@@ -152,8 +152,7 @@ if uploaded_file:
 
         # --- QUALITÀ NOTE E PERCENTUALE ---
         st.write("")
-        st.divider()
-        with st.expander("📊 Qualità Eventi"):
+        with st.expander("💎 Qualità Eventi"):
             #st.write("#### Analisi Qualità Note")
             with st.popover("💡 Analisi"):
                     st.info(""" 

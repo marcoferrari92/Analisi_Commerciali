@@ -274,7 +274,11 @@ if uploaded_file:
         
         # 5. TABELLA (basata su df_filtrato)
         st.write(f"### Dettaglio eventi ({len(df_filtrato)} record)")
-        col_view = ['Utente', 'Data Evento', 'Ora Evento', 'Tipo Evento', 'Ragione Sociale']
+        
+        # Aggiungiamo 'Note' alla lista delle colonne da visualizzare
+        col_view = ['Utente', 'Data Evento', 'Ora Evento', 'Tipo Evento', 'Ragione Sociale', 'Note']
+        
+        # Verifichiamo quali colonne sono effettivamente presenti nel file per evitare errori
         col_presenti = [c for c in col_view if c in df_filtrato.columns]
         
         st.dataframe(

@@ -95,7 +95,7 @@ if uploaded_file:
 
         # --- SEZIONE 2: RESOCONTO ---
         st.divider()
-        with st.expander("📊 Volume e Tipologia Eventi"):
+        with st.expander("⚖️ Volume e Tipologia Eventi"):
         
             # --- PREPARAZIONE DATI ---
             # 1. Dati per Tipologia

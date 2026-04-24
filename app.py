@@ -211,7 +211,7 @@ if uploaded_file:
                 st.plotly_chart(genera_heatmap_crop(df_heat_base), use_container_width=True)
             
                 st.write("---")
-                st.write("#### 🔍 Dettaglio per Singola Attività (Stesso frame)")
+                st.write("#### 🔍 Dettaglio per Singola Attività")
             
                 lista_attivita = sorted(df_heat_base['Tipo Evento'].unique())
             

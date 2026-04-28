@@ -257,7 +257,7 @@ def plot_distribuzione_ordini(df_target):
     fig.update_layout(
         height=800,
         barmode='overlay',
-        title_text="Distribuzione Valori (Scala Square Root - Outlier Compressi)",
+        title_text="",
         margin=dict(t=50, b=50, l=50, r=50),
         legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center"),
         # Applichiamo la compressione visiva qui
@@ -518,7 +518,7 @@ if df_orders is not None:
         st.caption("Nota: La Mediana è spesso più affidabile della Media perché non viene influenzata da singoli ordini eccezionalmente alti o bassi.")
         
         st.divider()
-        st.write("#### Analisi Statistica della Distribuzione")
+        st.write("#### Distribuzione Ordini e Preventivi")
         plot_distribuzione_ordini(df_target)
         
         st.info("""

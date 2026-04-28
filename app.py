@@ -34,12 +34,12 @@ def carica_dati_commerciali(file):
 
 
 
-def mostra_periodo_analisi(df):
+def data_range(df):
     
-    date_valide = df['Data Evento'].dropna()
+    date = df['Data Evento'].dropna()
     
-    if not date_valide.empty:
-        d_min, d_max = date_valide.min().date(), date_valide.max().date()
+    if not date.empty:
+        d_min, d_max = date.min().date(), date.max().date()
         st.info(f"📅 **Dati disponibili nel file:** dal {d_min.strftime('%d/%m/%Y')} al {d_max.strftime('%d/%m/%Y')}")
         
         return d_min, d_max
@@ -54,26 +54,32 @@ def mostra_periodo_analisi(df):
 
 st.subheader("Caricamento")
 col1, col2 = st.columns(2)
+
+# ORDINI
 with col1:
     st.write("#### Eventi")
     uploaded_file_events = st.file_uploader("Carica file eventi (formato CSV)", type="csv")
+    if uploaded_file_orders:
+        df_orders = carica_dati_commerciali(uploaded_file_orders)
+        data_range(df_orders)
 
+# EVENTI
 with col2:
     st.write("#### Ordini")
     uploaded_file_orders = st.file_uploader("Carica file ordini e preventivi (formato CSV)", type="csv")
+    if uploaded_file_events:
+    df_events = carica_dati_commerciali(uploaded_file_events)
+    data_range(df_events)
 
 
 
-if uploaded_file_orders:
-    df_orders = carica_dati_commerciali(uploaded_file_orders)
-    mostra_periodo_analisi(df_orders)
+
 
 
 
 
 if uploaded_file_events:
     df_events = carica_dati_commerciali(uploaded_file_events)
-    df_events.head(10)
     
     if df_events is not None:
         

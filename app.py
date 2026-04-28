@@ -190,7 +190,7 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
             traceorder="normal"
         ),
         margin=dict(t=100, b=20, l=20, r=20),
-        title_x=0 
+        title_x=0.3 
     )
     
     st.plotly_chart(fig, use_container_width=True)

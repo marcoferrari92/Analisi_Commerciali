@@ -200,7 +200,7 @@ def plot_distribuzione_ordini(df_target):
         return
 
     # 1. Filtro rigoroso (già validato, ma per sicurezza)
-    df_log = df_target[df_target['Totale'] > 0.1].copy()
+    df_log = df_target[df_target['Totale'] > 0].copy()
     
     if df_log.empty:
         st.error("Dati non visualizzabili in scala logaritmica (tutti i valori sono <= 0.1).")
@@ -241,7 +241,7 @@ def plot_distribuzione_ordini(df_target):
         marker_line_width=1,       
         marker_line_color="white",
         # Forziamo un numero basso di bin logaritmici per renderli "cicciotti" e visibili
-        nbinsx=10 
+        nbinsx=1 
     )
 
     # 4. Layout

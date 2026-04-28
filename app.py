@@ -66,7 +66,7 @@ def data_range(df):
 # --- MAIN APP ---
 
 
-st.subheader("Caricamento")
+st.subheader("Caricamento File")
 col1, col2 = st.columns(2)
 
 # EVENTI

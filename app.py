@@ -156,6 +156,7 @@ def pie_ordini(df):
 
 
 st.header("Analisi Commerciali")
+st.diveder()
 
 # Inizializzazione
 df_events = None

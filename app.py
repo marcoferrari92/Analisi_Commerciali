@@ -322,31 +322,30 @@ st.write("")
 if df_orders is not None: 
     
     # ************
-    #  PANORAMICA
+    #   PANORAMICA
     # ************
-
-    # Definiamo il perimetro di analisi
+    
+    # 1. Filtriamo il dataframe sugli stadi_target
     stadi_target = ["Preventivo", "Ordine Aperto", "Ordine"]
-    
-    # Filtriamo il dataframe sugli stadi_target
     df_target = df_orders[df_orders['Tipo Doc.'].isin(stadi_target)]
-
-    # 3. Aggregazione Quantità e Volumi
-    conteggio_qty         = df_target['Tipo Doc.'].value_counts().reset_index()
-    conteggio_qty.columns = ['Tipologia', 'Conteggio']
-    conteggio_vol         = df_target.groupby('Tipo Doc.')['Totale'].sum().reset_index()
     
-
+    # 2. Aggregazione Quantità (Rinominiamo subito le colonne per la funzione)
+    conteggio_qty = df_target['Tipo Doc.'].value_counts().reset_index()
+    conteggio_qty.columns = ['Tipo Doc.', 'Conteggio']  # Usiamo 'Tipo Doc.' per coerenza colori
+    
+    # 3. Aggregazione Volumi
+    conteggio_vol = df_target.groupby('Tipo Doc.')['Totale'].sum().reset_index()
+    
     with st.expander("📊 Panoramica Quantità e Volumi", expanded=True):
         
         if not conteggio_qty.empty and not conteggio_vol.empty:
-           
+            
             col_sinistra, col_destra = st.columns(2)
             
             with col_sinistra:
-                
+                # Passiamo conteggio_qty e usiamo names_col='Tipo Doc.'
                 render_grafico_torta(
-                    data=qty_data, 
+                    data=conteggio_qty, 
                     values_col='Conteggio', 
                     names_col='Tipo Doc.', 
                     titolo="Volume per Numero Documenti",
@@ -354,9 +353,9 @@ if df_orders is not None:
                 )
             
             with col_destra:
-               
+                # Passiamo conteggio_vol
                 render_grafico_torta(
-                    data=vol_data, 
+                    data=conteggio_vol, 
                     values_col='Totale', 
                     names_col='Tipo Doc.', 
                     titolo="Volume per Valore Economico",

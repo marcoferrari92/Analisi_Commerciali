@@ -114,9 +114,9 @@ def validazione_importi(df):
         return None
 
         if num is not None and num > 0:
-                return num
-            else:
-                return None
+            return num
+        else:
+            return None
 
     # Creiamo una copia per non modificare il DF originale durante l'elaborazione
     temp_df = df.copy()

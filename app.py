@@ -305,10 +305,13 @@ else:
     # Inseriamo il funnel dentro un expander
     with st.expander("📊 Panoramica", expanded=False):
 
-        st.write("#### Panoramica preventivi, ordini aperti e chiusi")
+        st.write("#### Panoramica preventivi e ordini")
         st.write("")
         plot_pie_ordini(df_orders)
-        #plot_pie_articoli(df_orders)
+
+    
+    with st.expander("📊 Panoramica articoli", expanded=False):
+
         panoramica_articoli(df_orders)
 
 

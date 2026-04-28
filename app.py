@@ -61,13 +61,39 @@ if uploaded_file_orders:
     df_orders = carica_dati_commerciali(uploaded_file_orders)
     df_orders.head(10)
 
+    date_ordini = df_orders['Data Evento'].dropna()
+    
+        if not date_ordini.empty:
+            
+            data_min_ordini, data_max_ordini = date_ordini.min().date(), date_ordini.max().date()
+            
+            st.markdown("#### 📅 Selezione Periodo di Analisi")
+            
+            # Creiamo due colonne: una per l'info e una per il filtro
+            col1, col2 = st.columns(2)
+
+            # Mostriamo il range disponibile nel file
+            with col1:
+                st.info(f"**Dati disponibili:** dal {data_min_ordini.strftime('%d/%m/%Y')} al {data_max_ordini.strftime('%d/%m/%Y')}")
+                # Filtro interattivo sulla stessa riga
+                periodo_selezionato = st.date_input(
+                    "Filtra per intervallo:",
+                    value=(data_min_ordini, data_max_ordini),
+                    min_value=data_min_ordini,
+                    max_value=data_max_ordini,
+                    label_visibility="collapsed"
+                )
+            
+            with col_input_date:
+                st.write("")
+
 
 
 if uploaded_file_events:
     df_events = carica_dati_commerciali(uploaded_file_events)
     df_events.head(10)
     
-    if df is not None:
+    if df_events is not None:
         
         # --- FILTRO TEMPORALE IN AREA PRINCIPALE (LAYOUT OTTIMIZZATO) ---
         

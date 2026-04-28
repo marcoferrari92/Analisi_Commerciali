@@ -226,6 +226,61 @@ def plot_pie_articoli(df):
         st.warning("Nessun dato disponibile nella colonna 'Oggetto'.")
 
 
+import plotly.express as px
+import streamlit as st
+
+def plot_freq_articoli(df):
+    """
+    Genera un grafico a barre orizzontali con TUTTI gli oggetti/articoli.
+    Ordina automaticamente dal più frequente al meno frequente.
+    """
+    if df is None or df.empty:
+        st.error("Dataframe assenete o vuoto")
+        return
+
+    if 'Oggetto' not in df.columns:
+        st.error("Colonna 'Oggetto' non trovata.")
+        return
+
+    # 1. Conteggio frequenze
+    # Usiamo value_counts() che ordina già i dati in modo decrescente
+    conteggio = df['Oggetto'].value_counts().reset_index()
+    conteggio.columns = ['Articolo', 'Quantità']
+
+    # 2. Creazione del Grafico a barre orizzontali
+    if not conteggio.empty:
+        
+        fig_bar = px.bar(
+            conteggio, 
+            x='Quantità', 
+            y='Articolo',
+            orientation='h', # Forza le barre in orizzontale
+            title=f"Analisi Completa Articoli ({len(conteggio)} voci)",
+            labels={'Articolo': 'Nome Articolo', 'Quantità': 'Numero di Documenti'},
+            color='Quantità', # Colore sfumato in base alla quantità
+            color_continuous_scale='Viridis'
+        )
+
+        # Ottimizzazione Layout
+        fig_bar.update_layout(
+            yaxis={'categoryorder':'total ascending'}, # Mette il più grande in alto
+            height=300 + (len(conteggio) * 20),         # Altezza dinamica: più articoli ci sono, più il grafico si allunga
+            margin=dict(l=200),                         # Margine sinistro ampio per nomi lunghi
+            showlegend=False
+        )
+        
+        # Aggiungiamo i numeri alla fine di ogni barra per facilità di lettura
+        fig_bar.update_traces(
+            texttemplate='%{x}', 
+            textposition='outside'
+        )
+
+        # Visualizzazione
+        st.plotly_chart(fig_bar, use_container_width=True)
+        
+    else:
+        st.warning("Nessun dato trovato per la colonna 'Oggetto'.")
+
 
 
 # ***********************************************************************

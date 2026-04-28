@@ -154,7 +154,7 @@ def plot_pie_ordini(df):
 def plot_pie_articoli(df):
     """
     Genera un grafico a torta basato sulla colonna 'Oggetto'.
-    Mantiene i 10 più frequenti e raggruppa tutti gli altri in 'ALTRO'.
+    Mantiene i 7 più frequenti e raggruppa tutti gli altri in 'ALTRO'.
     """
     
     if df is None or df.empty:
@@ -171,13 +171,13 @@ def plot_pie_articoli(df):
 
     if not conteggio_totale.empty:
         # 2. Logica di Raggruppamento
-        if len(conteggio_totale) > 10:
+        if len(conteggio_totale) > 7:
             
-            # Top 10 articoli
-            df_top = conteggio_totale.head(10).copy()
+            # Top 7 articoli
+            df_top = conteggio_totale.head(7).copy()
             
             # Sommiamo tutti gli altri
-            somma_altri = conteggio_totale.iloc[10:]['Conteggio'].sum()
+            somma_altri = conteggio_totale.iloc[7:]['Conteggio'].sum()
             riga_altro = pd.DataFrame({'Oggetto': ['TUTTI GLI ALTRI'], 'Conteggio': [somma_altri]})
             
             # Uniamo
@@ -193,7 +193,7 @@ def plot_pie_articoli(df):
                 df_plot, 
                 values='Conteggio', 
                 names='Oggetto',
-                title="Top 10 Oggetti per Frequenza",
+                title="",
                 hole=0.4,
                 color_discrete_sequence=px.colors.qualitative.Safe
             )
@@ -224,6 +224,8 @@ def plot_pie_articoli(df):
             )
     else:
         st.warning("Nessun dato disponibile nella colonna 'Oggetto'.")
+
+
 
 
 # ***********************************************************************

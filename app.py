@@ -126,10 +126,6 @@ def validazione_importi(df):
     df_errori = df_errori.drop(columns=['Totale_TMP'])
 
     # --- DEBUG FORZATO ---
-    st.write("### 🔍 Debug Validazione")
-    st.write(f"Righe totali caricate: {len(df)}")
-    st.write(f"Righe identificate come errore: {len(df_errori)}")
-
     if len(df_errori) > 0:
         # expanded=True FORZA l'apertura
         with st.expander("⚠️ TABELLA ERRORI RILEVATI", expanded=True):
@@ -367,19 +363,18 @@ with col1:
 with col2:
     st.write("#### Ordini")
     uploaded_file_orders = st.file_uploader("Carica file ordini e preventivi (formato CSV)", type="csv")
+    
     if uploaded_file_orders:
-        df_orders = carica_dati_commerciali(uploaded_file_orders)
-        date_min, date_max = data_range(df_orders)
 
         st.write("---")
-        st.write("Caricamento...")
+        st.write("#### Analisi dati caricati")
         df_raw = carica_dati_commerciali(uploaded_file_orders)
+        date_min, date_max = data_range(df_orders)
         
         if df_raw is not None:
             st.write(f"✅ File caricato: {len(df_raw)} righe totali rilevate.")
             
-            # CHIAMATA ALLA FUNZIONE DI VALIDAZIONE
-            # Se questa funzione non stampa, il problema è dentro la funzione
+            # Check importi
             df_orders, df_errori = validazione_importi(df_raw)
             
             if df_orders is not None:

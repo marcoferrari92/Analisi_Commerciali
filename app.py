@@ -68,7 +68,8 @@ def data_range(df):
     return None, None
 
 
-def data_filtering(period, df)
+def data_filtering(period, df):
+    
     if isinstance(period, tuple) and len(period) == 2:
         #data_start, data_end = period
         df_filtrato = df[

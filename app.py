@@ -199,11 +199,11 @@ def plot_distribuzione_ordini(df_target):
         st.warning("Nessun dato disponibile.")
         return
 
-    # 1. Filtro rigoroso (già validato, ma per sicurezza)
+    # 1. Pulizia dati
     df_log = df_target[df_target['Totale'] > 0].copy()
     
     if df_log.empty:
-        st.error("Dati non visualizzabili in scala logaritmica (tutti i valori sono <= 0.1).")
+        st.error("Dati non visualizzabili in scala logaritmica (valori <= 0).")
         return
 
     colori_personalizzati = {
@@ -212,7 +212,7 @@ def plot_distribuzione_ordini(df_target):
         "Ordine": "#4E944F"
     }
 
-    # Creazione base: rimosso nbins da qui perché log_x gestisce i bin diversamente
+    # Creazione base
     fig = px.histogram(
         df_log, 
         x="Totale", 
@@ -222,45 +222,43 @@ def plot_distribuzione_ordini(df_target):
         barmode='overlay', 
         color_discrete_map=colori_personalizzati,
         category_orders={"Tipo Doc.": ["Preventivo", "Ordine Aperto", "Ordine"]},
-        log_x=True 
+        log_x=True # Gestisce la scala logaritmica internamente per tutti i marginali
     )
 
-    # 2. Configurazione BOX
+    # 2. Configurazione BOX (JITTER A 1 FISSO)
     fig.update_traces(
         selector=dict(type='box'),
         boxpoints='all', 
-        jitter=1, 
+        jitter=1,       # <--- SETTATO A 1 E NON SI TOCCA
         pointpos=0,
         marker=dict(size=4)
     )
 
-    # 3. Configurazione ISTOGRAMMA (Risoluzione problema invisibilità)
+    # 3. Configurazione ISTOGRAMMA
     fig.update_traces(
         selector=dict(type='histogram'),
         opacity=0.7,
-        marker_line_width=1,       
+        marker_line_width=1,        
         marker_line_color="white",
-        # Forziamo un numero basso di bin logaritmici per renderli "cicciotti" e visibili
-        nbinsx=1 
+        nbinsx=30 # Messo a 30 per avere barre visibili, 1 era troppo poco
     )
 
-    # 4. Layout
+    # 4. Layout (Senza ridefinire type='log' per non rompere i box plot)
     fig.update_layout(
         height=850,
         title="Distribuzione Valori (Scala Logaritmica)",
         title_x=0,
-        # Asse X: forziamo la visualizzazione logaritmica pulita
         xaxis=dict(
-            type='log', 
             title="Importo Documento (€) - Log Scale",
-            dtick=1, # Fondamentale: mostra 10, 100, 1000
+            dtick=1, 
             minor=dict(showgrid=True)
         ),
-        yaxis=dict(domain=[0, 0.45], title="Conteggio (Frequenza)"), 
-        yaxis2=dict(domain=[0.50, 1], title="Dispersione (Boxplot)"),
+        # yaxis = Istogramma (basso), yaxis2 = Boxplot (alto)
+        yaxis=dict(domain=[0, 0.45], title="Frequenza"), 
+        yaxis2=dict(domain=[0.55, 1], title="Boxplot"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
         margin=dict(t=100, b=50, l=50, r=50),
-        bargap=0.05 # Aumentato leggermente per separare le barre
+        bargap=0.05
     )
 
     st.plotly_chart(fig, use_container_width=True)

@@ -186,6 +186,50 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
     )
     
     st.plotly_chart(fig, use_container_width=True)
+
+
+def plot_distribuzione_ordini(df_target):
+    """
+    Crea un istogramma raggruppato per i tre stadi con boxplot superiore.
+    """
+    if df_target.empty:
+        st.warning("Nessun dato disponibile per la distribuzione.")
+        return
+
+    # Palette colori coerente con i grafici precedenti
+    colori_personalizzati = {
+        "Preventivo": "#A2D2FF", 
+        "Ordine Aperto": "#B4E197", 
+        "Ordine": "#4E944F"
+    }
+
+    # Creazione del grafico combinato
+    fig = px.histogram(
+        df_target, 
+        x="Totale", 
+        color="Tipo Doc.",
+        marginal="box", # Aggiunge il boxplot sopra l'istogramma
+        hover_data=df_target.columns,
+        title="Distribuzione e Dispersione Valori per Stato Documento",
+        labels={'Totale': 'Valore Economico (€)', 'count': 'Frequenza'},
+        barmode='overlay', # Sovrappone le barre per confronto diretto
+        color_discrete_map=colori_personalizzati,
+        category_orders={"Tipo Doc.": ["Preventivo", "Ordine Aperto", "Ordine"]}
+    )
+
+    # Pulizia estetica
+    fig.update_layout(
+        bargap=0.1, 
+        xaxis_title="Importo Documento (€)",
+        yaxis_title="Numero di Documenti",
+        legend=dict(orientation="h", yanchor="bottom", y=1.1, xanchor="center", x=0.5),
+        margin=dict(t=120)
+    )
+
+    # Opacità per vedere le sovrapposizioni
+    fig.update_traces(opacity=0.75)
+
+    st.plotly_chart(fig, use_container_width=True)
     
 
 def panoramica_articoli(df):
@@ -375,12 +419,10 @@ if df_orders is not None:
         else:
             st.warning("Dati insufficienti per generare i grafici.")
 
-        
-        # --- PARTE SOTTO: TABELLA RIASSUNTIVA COMPLETA ---
-
+        st.write("")
         st.write("")
 
-        # 1. Calcoliamo la Mediana
+        # 1. Mediana
         mediane = df_target.groupby('Tipo Doc.')['Totale'].median().reset_index()
         mediane.columns = ['Tipo Doc.', 'Mediana (€)']
         
@@ -423,7 +465,15 @@ if df_orders is not None:
         
         st.caption("Nota: La Mediana è spesso più affidabile della Media perché non viene influenzata da singoli ordini eccezionalmente alti o bassi.")
         
-
+        st.divider()
+        st.write("#### Analisi Statistica della Distribuzione")
+        plot_distribuzione_ordini(df_target)
+        
+        st.info("""
+        **Come leggere questo grafico:**
+        * **Istogramma (Sotto):** Indica dove si concentrano i tuoi volumi (es. molti ordini tra 500€ e 1000€).
+        * **Box Plot (Sopra):** La linea centrale è la **Mediana**. I punti isolati sono gli **Outliers** (ordini eccezionalmente grandi).
+        """)
 
 
 

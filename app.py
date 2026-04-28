@@ -33,6 +33,28 @@ def carica_dati_commerciali(file):
         return None
 
 
+@st.cache_data
+def caricamento_ordini(file):
+    try:
+        # Caricamento con gestione encoding e delimitatori
+        df = pd.read_csv(file, sep=';', encoding='latin1')
+        if df.shape[1] <= 1:
+            file.seek(0)
+            df = pd.read_csv(file, sep=',', encoding='utf-8')
+        
+        df.columns = df.columns.str.strip()
+        
+        # Conversione date
+        if 'Data Evento' in df.columns:
+            df['Data Evento'] = pd.to_datetime(df['Data Evento'], dayfirst=True, errors='coerce')
+            df = df.dropna(subset=['Data Evento'])
+            
+        return df
+        
+    except Exception as e:
+        st.error(f"Errore caricamento: {e}")
+        return None
+
 
 
 def mostra_periodo_analisi(df):
@@ -47,17 +69,26 @@ def mostra_periodo_analisi(df):
 
 
 st.subheader("Analisi Eventi")
-uploaded_file = st.file_uploader("Carica CSV", type="csv")
+uploaded_events = st.file_uploader("Carica file eventi (forato CSV)", type="csv")
+uploaded_orders = st.file_uploader("Carica file ordini (forato CSV)", type="csv")
+
+
+
+if uploaded_orders:
+    df_orders = carica_dati_commerciali(uploaded_file)
+
+
+
 
 if uploaded_file:
-    df = carica_dati_commerciali(uploaded_file)
+    df_events = carica_dati_commerciali(uploaded_events)
     
     if df is not None:
         
         # --- FILTRO TEMPORALE IN AREA PRINCIPALE (LAYOUT OTTIMIZZATO) ---
         
         # 1. Recuperiamo i limiti temporali dal file
-        date_valide = df['Data Evento'].dropna()
+        date_valide = df_events['Data Evento'].dropna()
         if not date_valide.empty:
             data_min_file, data_max_file = date_valide.min().date(), date_valide.max().date()
             

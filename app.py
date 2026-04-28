@@ -106,7 +106,7 @@ def pie_ordini(df):
     # 2. Creazione Grafico a Torta
     if not conteggio.empty:
 
-        col1, col2 = st.columns(2)
+        col1, col2 = st.columns([1.5],[0.5])
 
         with col1:
 

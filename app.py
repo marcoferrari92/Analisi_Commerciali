@@ -294,7 +294,7 @@ st.divider()
 st.subheader("💰 Analisi Ordini e Preventivi")
 st.write("")
 
-if df_orders is None or df.empty:
+if df_orders is None or df_orders.empty:
         st.error("Dataframe assente o vuoto!")
 else:
     

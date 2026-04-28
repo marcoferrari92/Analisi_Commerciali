@@ -187,7 +187,7 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
             traceorder="normal"
         ),
         margin=dict(t=100, b=20, l=20, r=20),
-        title_x=0  # Riportato a 0 per stare a sinistra
+        title_x=0 
     )
     
     st.plotly_chart(fig, use_container_width=True)
@@ -229,7 +229,7 @@ def plot_distribuzione_ordini(df_target):
     fig.update_traces(
         selector=dict(type='box'),
         boxpoints='all', 
-        jitter=1,       # <--- SETTATO A 1 E NON SI TOCCA
+        jitter=1,       
         pointpos=0,
         marker=dict(size=4)
     )
@@ -239,8 +239,7 @@ def plot_distribuzione_ordini(df_target):
         selector=dict(type='histogram'),
         opacity=0.7,
         marker_line_width=1,        
-        marker_line_color="white",
-        nbinsx=30 # Messo a 30 per avere barre visibili, 1 era troppo poco
+        marker_line_color="white"
     )
 
     # 4. Layout (Senza ridefinire type='log' per non rompere i box plot)

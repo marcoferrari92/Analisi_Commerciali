@@ -155,7 +155,7 @@ else:
 # ***********************************************************************
 
 st.divider()
-st.subheader("Analisi Ordini e Preventivi")
+st.subheader("💰 Analisi Ordini e Preventivi")
 st.write("")
 
 if df_orders is not None:

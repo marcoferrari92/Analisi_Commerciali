@@ -101,7 +101,7 @@ date_max = None
 # *****************
 
 st.subheader("Caricamento File")
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 # EVENTI
 with col1:
@@ -120,21 +120,17 @@ with col2:
         date_min, date_max = data_range(df_orders)
 
 
-
 # ****************
 # FILTRO PERIODO 
 # ****************
 
 st.divider()
 st.subheader("Periodo Analisi")
-col1, col2 = st.columns(2)
 
 # Eseguiamo il filtro solo se almeno un file è caricato
 if date_min and date_max:
 
-    col1, col_spacer1, col_spacer2 = st.columns([1, 1, 1])
-
-    with col1:
+    with col3:
         period = st.date_input(
             "Seleziona date:",
             value=(date_min, date_max),

@@ -129,7 +129,7 @@ with col2:
 if date_min and date_max:
     period = st.date_input(
         "Seleziona date:",
-        value=(d_min_global, d_max_global),
+        value=(date_min, date_max),
         min_value = date_min,
         max_value = date_max
     )

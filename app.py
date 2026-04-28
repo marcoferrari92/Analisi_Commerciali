@@ -340,10 +340,11 @@ if df_orders is not None:
     with st.expander("📊 Panoramica Quantità e Volumi", expanded=True):
         
         if not conteggio_qty.empty and not conteggio_vol.empty:
-           col_sinistra, col_destra = st.columns(2)
+           
+            col_sinistra, col_destra = st.columns(2)
             
             with col_sinistra:
-                # Prima chiamata: Numeri assoluti
+                
                 render_grafico_torta(
                     data=qty_data, 
                     values_col='Conteggio', 
@@ -353,7 +354,7 @@ if df_orders is not None:
                 )
             
             with col_destra:
-                # Seconda chiamata: Soldi
+               
                 render_grafico_torta(
                     data=vol_data, 
                     values_col='Totale', 
@@ -365,11 +366,6 @@ if df_orders is not None:
             st.warning("Dati insufficienti per generare i grafici.")
 
 
-
-    
-    #with st.expander("📊 Panoramica articoli", expanded=False):
-
-        #panoramica_articoli(df_orders)
 
 
 

@@ -113,10 +113,10 @@ if uploaded_file_events:
             # Logica di filtraggio
             if isinstance(periodo_selezionato, tuple) and len(periodo_selezionato) == 2:
                 data_inizio, data_fine = periodo_selezionato
-                df_filtrato = df[(df['Data Evento'].dt.date >= data_inizio) & 
-                                 (df['Data Evento'].dt.date <= data_fine)].copy()
+                df_filtrato = df_events[(df_events['Data Evento'].dt.date >= data_inizio) & 
+                                 (df_events['Data Evento'].dt.date <= data_fine)].copy()
             else:
-                df_filtrato = df.copy()
+                df_filtrato = df_events.copy()
                 # Un piccolo avviso se manca una delle due date (inizio o fine)
                 st.warning("Seleziona entrambe le date (inizio e fine) per filtrare.")
         #*************************

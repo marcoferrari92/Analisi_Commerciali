@@ -87,53 +87,43 @@ def data_filtering(period, df):
 
 
 def validazione_importi(df):
-    """
-    Analizza la colonna 'Totale'.
-    Ritorna:
-    - df_pulito: Solo le righe con importi numerici validi (colonna Totale convertita in float).
-    - df_errori: Solo le righe con importi errati (stringhe, simboli, formati non validi).
-    """
     if df is None or df.empty:
         st.error("Dataframe assente o vuoto!")
         return
 
-    # Funzione rigorosa di validazione
     def valida_puro(valore):
         num = None
-        # 1. Conversione se già numerico
         if isinstance(valore, (int, float)) and not pd.isna(valore):
             num = float(valore)
-        
-        # 2. Conversione se stringa
         elif isinstance(valore, str):
             try:
                 num = float(valore)
             except ValueError:
                 num = None
 
-        # 3. Controllo positività (SISTEMATO: ora è dentro il flusso)
         if num is not None and num > 0:
             return num
         return None
 
-    # Creiamo una copia per non modificare il DF originale durante l'elaborazione
     temp_df = df.copy()
     
-    # Tentiamo la conversione sulla colonna Totale
+    # TRUCCO: Salviamo i valori originali in una colonna di backup prima di sovrascrivere
+    temp_df['Valore_Originale'] = temp_df['Totale']
     temp_df['Totale'] = temp_df['Totale'].apply(valida_puro)
 
-    # Separiamo i due DataFrame
-    # 1. Righe con errori (dove Totale è diventato None dopo il tentativo di conversione)
+    # 1. Righe con errori (dove Totale è diventato None)
     df_errori = temp_df[temp_df['Totale'].isna()].copy()
     
-    # 2. Righe pulite (togliamo i valori nulli)
+    # 2. Righe pulite
     df_pulito = temp_df.dropna(subset=['Totale']).copy()
+    # Rimuoviamo la colonna di backup dal dataframe pulito
+    df_pulito = df_pulito.drop(columns=['Valore_Originale'])
 
-    # Opzionale: Segnalazione visiva in Streamlit se ci sono errori
     if not df_errori.empty:
         with st.expander(f"⚠️ Attenzione: {len(df_errori)} righe scartate", expanded=False):
-            st.warning("Queste righe contengono importi non validi e sono state escluse dalle analisi.")
-            st.table(df_errori[['Data', 'Oggetto', 'Tipo Doc.', 'Totale']] if 'Totale' in df_errori.columns else df_errori)
+            st.warning("Importi non validi o negativi esclusi.")
+            # IMPORTANTE: Qui mostriamo 'Valore_Originale' per vedere il -130!
+            st.table(df_errori[['Data', 'Oggetto', 'Tipo Doc.', 'Valore_Originale']])
 
     return df_pulito, df_errori
     

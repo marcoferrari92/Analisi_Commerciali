@@ -238,10 +238,10 @@ def plot_distribuzione_ordini(df_target):
     fig.update_traces(
         selector=dict(type='histogram'),
         opacity=0.7,
-        marker_line_width=1,        # Bordo per rendere le barre visibili
+        marker_line_width=1,       
         marker_line_color="white",
         # Forziamo un numero basso di bin logaritmici per renderli "cicciotti" e visibili
-        nbinsx=30 
+        nbinsx=10 
     )
 
     # 4. Layout

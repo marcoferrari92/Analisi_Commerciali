@@ -149,6 +149,56 @@ def plot_pie_ordini(df):
         st.warning("La colonna 'Tipo Doc.' sembra essere vuota.")
 
 
+import pandas as pd
+import streamlit as st
+
+def validazione_importi(df):
+    """
+    Analizza la colonna 'Totale'.
+    Ritorna:
+    - df_pulito: Solo le righe con importi numerici validi (colonna Totale convertita in float).
+    - df_errori: Solo le righe con importi errati (stringhe, simboli, formati non validi).
+    """
+    if df is None or df.empty:
+        st.error("Dataframe assente o vuoto!")
+        return
+
+    # Funzione rigorosa di validazione
+    def valida_puro(valore):
+        # Se è già numerico e non NaN
+        if isinstance(valore, (int, float)) and not pd.isna(valore):
+            return float(valore)
+        
+        # Se è una stringa, proviamo la conversione diretta
+        if isinstance(valore, str):
+            try:
+                # Accetta solo formati come "1250.50". 
+                # Fallisce con "1.250,50", "1000€", ecc.
+                return float(valore)
+            except ValueError:
+                return None
+        return None
+
+    # Creiamo una copia per non modificare il DF originale durante l'elaborazione
+    temp_df = df.copy()
+    
+    # Tentiamo la conversione sulla colonna Totale
+    temp_df['Totale'] = temp_df['Totale'].apply(valida_puro)
+
+    # Separiamo i due DataFrame
+    # 1. Righe con errori (dove Totale è diventato None dopo il tentativo di conversione)
+    df_errori = temp_df[temp_df['Totale'].isna()].copy()
+    
+    # 2. Righe pulite (togliamo i valori nulli)
+    df_pulito = temp_df.dropna(subset=['Totale']).copy()
+
+    # Opzionale: Segnalazione visiva in Streamlit se ci sono errori
+    if not df_errori.empty:
+        with st.expander(f"⚠️ Attenzione: {len(df_errori)} righe scartate", expanded=False):
+            st.warning("Queste righe contengono importi non validi e sono state escluse dalle analisi.")
+            st.table(df_errori[['Data', 'Oggetto', 'Tipo Doc.', 'Totale']] if 'Totale' in df_errori.columns else df_errori)
+
+    return df_pulito, df_errori
 
 
 
@@ -215,6 +265,56 @@ def panoramica_articoli(df):
             height=400 # Altezza fissa con scrollbar se i dati sono molti
         )
         st.caption(f"Totale voci univoche rilevate: {len(conteggio_totale)}")
+
+
+def plot_pie_volume(df):
+    """
+    Genera un grafico a torta basato sui volumi economici 
+    delle tre categorie principali.
+    """
+
+    # Volumi per ogni categoria (preventivo, ordine aperto, ordine chiuso)
+    stadi_target   = ["Preventivo", "Ordine Aperto", "Ordine"]
+    df_volumi      = df[df['Tipo Doc.'].isin(stadi_target)]
+    tabella_volumi = df_volumi.groupby('Tipo Doc.')['Totale'].sum().reset_index()
+
+    if tabella_volumi.empty:
+        st.error("Le categorie 'Preventivo', 'Ordine Aperto' o 'Ordine' non sono presenti nei dati.")
+        return
+
+    # Creazione del Grafico
+    fig_pie = px.pie(
+        tabella_volumi, 
+        values='Totale', 
+        names='Tipo Doc.',
+        title="Ripartizione Economica per Stato Documento",
+        hole=0.4, 
+        color='Tipo Doc.',
+        color_discrete_map={
+            "Preventivo": "#AB63FA",    # Viola
+            "Ordine Aperto": "#EF553B", # Rosso/Arancio
+            "Ordine": "#00CC96"         # Verde
+        }
+    )
+
+    # Personalizzazione Etichette e Legenda
+    fig_pie.update_traces(
+        textinfo='percent+value', 
+        texttemplate='%{label}<br>%{percent}<br>€%{value:,.2f}'
+    )
+    
+    fig_pie.update_layout(
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.05,
+            xanchor="center",
+            x=0.5
+        ),
+        margin=dict(t=100, b=0, l=0, r=0)
+    )
+
+    st.plotly_chart(fig_pie, use_container_width=True)
 
 
 
@@ -294,9 +394,11 @@ st.divider()
 st.subheader("💰 Analisi Ordini e Preventivi")
 st.write("")
 
-if df_orders is None or df_orders.empty:
-        st.error("Dataframe assente o vuoto!")
-else:
+# ************
+#  CHECK DATI 
+# ************
+df_orders, df_scarti = valida_e_separa_dati(df_orders)
+
     
     # ***************
     #  FUNNEL CHART 
@@ -308,6 +410,7 @@ else:
         st.write("#### Panoramica preventivi e ordini")
         st.write("")
         plot_pie_ordini(df_orders)
+        plot_pie_volumi(df_orders)
 
     
     with st.expander("📊 Panoramica articoli", expanded=False):

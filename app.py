@@ -105,29 +105,34 @@ def pie_ordini(df):
 
     # 2. Creazione Grafico a Torta
     if not conteggio.empty:
-        
-        fig_pie = px.pie(
-            conteggio, 
-            values='Conteggio', 
-            names='Tipologia',
-            title="Distribuzione Totale Documenti (Tutte le tipologie)",
-            hole=0.4,
-            color_discrete_sequence=px.colors.qualitative.Pastel # Palette varia e piacevole
-        )
-        
-        # Mostra etichette con nome e percentuale
-        fig_pie.update_traces(
-            textinfo='percent+label',
-            pull=[0.05] * len(conteggio) # Stacca leggermente le fette per leggibilità
-        )
-        
-        st.plotly_chart(fig_pie, use_container_width=True)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            fig_pie = px.pie(
+                conteggio, 
+                values='Conteggio', 
+                names='Tipologia',
+                title="Distribuzione Totale Documenti (Tutte le tipologie)",
+                hole=0.4,
+                color_discrete_sequence=px.colors.qualitative.Pastel # Palette varia e piacevole
+            )
+            
+            # Mostra etichette con nome e percentuale
+            fig_pie.update_traces(
+                textinfo='percent+label',
+                pull=[0.05] * len(conteggio)
+            )
+            
+            st.plotly_chart(fig_pie, use_container_width=True)
         
         # 3. Mini legenda testuale automatica
-        with st.expander("Vedi dettagli conteggio"):
+        with col2:
             st.table(conteggio)
     else:
         st.warning("La colonna 'Tipo Doc.' sembra essere vuota.")
+        
 
 
 # ***********************************************************************

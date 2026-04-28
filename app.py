@@ -114,7 +114,7 @@ def pie_ordini(df):
                 conteggio, 
                 values='Conteggio', 
                 names='Tipologia',
-                title="Panoramica preventivi, ordini aperti e chiusi",
+                title="",
                 hole=0.4,
                 color_discrete_sequence=px.colors.qualitative.Pastel
             )
@@ -231,7 +231,9 @@ if df_orders is not None:
 
 # Inseriamo il funnel dentro un expander
     with st.expander("📊 Panoramica", expanded=False):
-       
+
+        st.write("#### Panoramica preventivi, ordini aperti e chiusi")
+        st.write("")
         pie_ordini(df_orders)
 
 

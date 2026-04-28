@@ -84,73 +84,6 @@ def data_filtering(period, df):
 
     return df_filtrato
 
-
-def plot_pie_ordini(df):
-    """
-    Genera un grafico a torta automatico basato su TUTTI i valori 
-    univoci trovati nella colonna 'Tipo Doc.'
-    """
-    if df is None or df.empty:
-        st.info("Carica i dati per visualizzare la distribuzione.")
-        return
-
-    if 'Tipo Doc.' not in df.columns:
-        st.error(f"Colonna 'Tipo Doc.' non trovata.")
-        return
-
-    # 1. Conteggio automatico di tutto quello che c'è nella colonna
-    # dropna=True evita di creare una fetta per i valori mancanti
-    conteggio = df['Tipo Doc.'].value_counts().reset_index()
-    conteggio.columns = ['Tipologia', 'Conteggio']
-
-    # 2. Creazione Grafico a Torta
-    if not conteggio.empty:
-
-        col1, col2, col3, col4 = st.columns([2, 0.3, 1, 0.3])
-
-        with col1:
-
-            fig_pie = px.pie(
-                conteggio, 
-                values='Conteggio', 
-                names='Tipologia',
-                title="",
-                hole=0.4,
-                color_discrete_sequence=px.colors.qualitative.Pastel
-            )
-            
-            # Mostra etichette con nome e percentuale
-            fig_pie.update_traces(
-                textinfo='percent+label',
-                pull=[0.05] * len(conteggio)
-            )
-          
-            fig_pie.update_layout(
-                legend=dict(
-                    orientation="h",      # Orientamento orizzontale
-                    yanchor="bottom",     # Ancora la base della legenda
-                    y=1.02,               # Posizione verticale (sopra 1.0 è fuori dal grafico)
-                    xanchor="center",     # Ancora il centro della legenda
-                    x=0.5                 # Posizione orizzontale al centro
-                ),
-                margin=dict(t=80, b=0, l=0, r=0) # Aumentiamo il margine superiore (t) per far spazio alla legenda
-            )
-            
-            st.plotly_chart(fig_pie, use_container_width=True)
-        
-        # 3. Mini legenda testuale automatica
-        with col3:
-            st.write("")
-            st.write("")
-            st.write("")
-            st.write("")
-            st.table(conteggio)
-    else:
-        st.warning("La colonna 'Tipo Doc.' sembra essere vuota.")
-
-
-
-
 def validazione_importi(df):
     """
     Analizza la colonna 'Totale'.
@@ -198,56 +131,48 @@ def validazione_importi(df):
             st.table(df_errori[['Data', 'Oggetto', 'Tipo Doc.', 'Totale']] if 'Totale' in df_errori.columns else df_errori)
 
     return df_pulito, df_errori
-
-
-def plot_pie_volumi(df):
-    """
-    Genera un grafico a torta basato sui volumi economici 
-    delle tre categorie principali.
-    """
-
-    # Volumi per ogni categoria (preventivo, ordine aperto, ordine chiuso)
-    stadi_target   = ["Preventivo", "Ordine Aperto", "Ordine"]
-    df_volumi      = df[df['Tipo Doc.'].isin(stadi_target)]
-    tabella_volumi = df_volumi.groupby('Tipo Doc.')['Totale'].sum().reset_index()
-
-    if tabella_volumi.empty:
-        st.error("Le categorie 'Preventivo', 'Ordine Aperto' o 'Ordine' non sono presenti nei dati.")
-        return
-
-    # Creazione del Grafico
-    fig_pie = px.pie(
-        tabella_volumi, 
-        values='Totale', 
-        names='Tipo Doc.',
-        title="Ripartizione Economica per Stato Documento",
-        hole=0.4, 
-        color='Tipo Doc.',
-        color_discrete_map={
-            "Preventivo": "#AB63FA",    # Viola
-            "Ordine Aperto": "#EF553B", # Rosso/Arancio
-            "Ordine": "#00CC96"         # Verde
-        }
-    )
-
-    # Personalizzazione Etichette e Legenda
-    fig_pie.update_traces(
-        textinfo='percent+value', 
-        texttemplate='%{label}<br>%{percent}<br>€%{value:,.2f}'
-    )
     
-    fig_pie.update_layout(
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.05,
-            xanchor="center",
-            x=0.5
-        ),
+
+def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
+
+    # Mappatura colori
+    colori_stadi = {
+        "Preventivo": "#AB63FA", 
+        "Ordine Aperto": "#EF553B", 
+        "Ordine": "#00CC96"
+    }
+
+    fig = px.pie(
+        data, 
+        values=values_col, 
+        names=names_col,
+        title=titolo,
+        hole=0.4,
+        color=names_col,
+        color_discrete_map=colori_stadi
+    )
+
+    # Definizione delle etichette (Label)
+    if tipo == "soldi":
+        # Formato Valuta: Nome + Percentuale + € Valore
+        testo_etichette = '%{label}<br>%{percent}<br>€%{value:,.2f}'
+    else:
+        # Formato Assoluto: Nome + Percentuale + N. Pezzi
+        testo_etichette = '%{label}<br>%{percent}<br>N. %{value}'
+
+    fig.update_traces(
+        textinfo='percent+value+label',
+        texttemplate=testo_etichette,
+        pull=[0.05] * len(data) # Sempre esploso
+    )
+
+    fig.update_layout(
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
         margin=dict(t=100, b=0, l=0, r=0)
     )
-
-    st.plotly_chart(fig_pie, use_container_width=True)
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
 
 def panoramica_articoli(df):
     """
@@ -394,28 +319,57 @@ st.divider()
 st.subheader("💰 Analisi Ordini e Preventivi")
 st.write("")
 
-# ************
-#  CHECK DATI 
-# ************
-df_orders, df_scarti = validazione_importi(df_orders)
+if df_orders is not None: 
+    
+    # ************
+    #  PANORAMICA
+    # ************
 
-if df_orders is not None:  
-    # ***************
-    #  FUNNEL CHART 
-    # ***************
+    # Definiamo il perimetro di analisi
+    stadi_target = ["Preventivo", "Ordine Aperto", "Ordine"]
+    
+    # Filtriamo il dataframe sugli stadi_target
+    df_target = df_orders[df_orders['Tipo Doc.'].isin(stadi_target)]
 
-    # Inseriamo il funnel dentro un expander
-    with st.expander("📊 Panoramica", expanded=False):
+    # 3. Aggregazione Quantità e Volumi
+    conteggio_qty         = df_target['Tipo Doc.'].value_counts().reset_index()
+    conteggio_qty.columns = ['Tipologia', 'Conteggio']
+    conteggio_vol         = df_target.groupby('Tipo Doc.')['Totale'].sum().reset_index()
+    
 
-        st.write("#### Panoramica preventivi e ordini")
-        st.write("")
-        plot_pie_ordini(df_orders)
-        plot_pie_volumi(df_orders)
+    with st.expander("📊 Panoramica Quantità e Volumi", expanded=True):
+        
+        if not conteggio_qty.empty and not conteggio_vol.empty:
+           col_sinistra, col_destra = st.columns(2)
+            
+            with col_sinistra:
+                # Prima chiamata: Numeri assoluti
+                render_grafico_torta(
+                    data=qty_data, 
+                    values_col='Conteggio', 
+                    names_col='Tipo Doc.', 
+                    titolo="Volume per Numero Documenti",
+                    tipo="numerico"
+                )
+            
+            with col_destra:
+                # Seconda chiamata: Soldi
+                render_grafico_torta(
+                    data=vol_data, 
+                    values_col='Totale', 
+                    names_col='Tipo Doc.', 
+                    titolo="Volume per Valore Economico",
+                    tipo="soldi"
+                )
+        else:
+            st.warning("Dati insufficienti per generare i grafici.")
+
+
 
     
-    with st.expander("📊 Panoramica articoli", expanded=False):
+    #with st.expander("📊 Panoramica articoli", expanded=False):
 
-        panoramica_articoli(df_orders)
+        #panoramica_articoli(df_orders)
 
 
 

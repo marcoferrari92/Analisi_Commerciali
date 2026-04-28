@@ -124,13 +124,11 @@ with col2:
 # FILTRO PERIODO 
 # ****************
 
-st.divider()
-st.subheader("Periodo Analisi")
-
 # Eseguiamo il filtro solo se almeno un file è caricato
 if date_min and date_max:
 
     with col3:
+        st.write("#### Periodo Analisi")
         period = st.date_input(
             "Seleziona date:",
             value=(date_min, date_max),

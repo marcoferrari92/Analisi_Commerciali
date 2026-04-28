@@ -99,24 +99,22 @@ def validazione_importi(df):
 
     # Funzione rigorosa di validazione
     def valida_puro(valore):
-        # Se è già numerico e non NaN
+        num = None
+        # 1. Conversione se già numerico
         if isinstance(valore, (int, float)) and not pd.isna(valore):
-            return float(valore)
+            num = float(valore)
         
-        # Se è una stringa, proviamo la conversione diretta
-        if isinstance(valore, str):
+        # 2. Conversione se stringa
+        elif isinstance(valore, str):
             try:
-                # Accetta solo formati come "1250.50". 
-                # Fallisce con "1.250,50", "1000€", ecc.
-                return float(valore)
+                num = float(valore)
             except ValueError:
-                return None
-        return None
+                num = None
 
+        # 3. Controllo positività (SISTEMATO: ora è dentro il flusso)
         if num is not None and num > 0:
             return num
-        else:
-            return None
+        return None
 
     # Creiamo una copia per non modificare il DF originale durante l'elaborazione
     temp_df = df.copy()

@@ -4,6 +4,7 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import re
+import numpy as np
 
 st.set_page_config(layout="wide")
 
@@ -197,8 +198,6 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
 
 
 
-import numpy as np
-
 def plot_distribuzione_ordini(df_target):
     if df_target.empty:
         st.warning("Nessun dato disponibile.")
@@ -231,7 +230,7 @@ def plot_distribuzione_ordini(df_target):
                 name=stadio,
                 marker_color=colori[stadio],
                 opacity=0.6,
-                nbinsx=40, # Ora i bin tornano a funzionare normalmente!
+                nbinsx=20,
                 marker_line=dict(width=1, color='white'),
                 legendgroup=stadio
             ),

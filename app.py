@@ -85,7 +85,7 @@ def data_filtering(period, df):
     return df_filtrato
 
 
-def crea_pie_commerciale(df):
+def pie_ordini(df):
     """
     Genera un grafico a torta automatico basato su TUTTI i valori 
     univoci trovati nella colonna 'Tipo Doc.'
@@ -210,9 +210,9 @@ if df_orders is not None:
 # ***************
 
 # Inseriamo il funnel dentro un expander
-    with st.expander("📊 Analisi di Conversione (Funnel Chart)", expanded=False):
+    with st.expander("📊 Panoramica", expanded=False):
        
-        crea_funnel_commerciale(df_orders)
+        pie_ordini(df_orders)
 
 
 

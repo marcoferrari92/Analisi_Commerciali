@@ -106,7 +106,7 @@ def pie_ordini(df):
     # 2. Creazione Grafico a Torta
     if not conteggio.empty:
 
-        col1, col2 = st.columns([3, 1])
+        col1, col2, col3 = st.columns([2, 0.5, 1])
 
         with col1:
 
@@ -128,7 +128,7 @@ def pie_ordini(df):
             st.plotly_chart(fig_pie, use_container_width=True)
         
         # 3. Mini legenda testuale automatica
-        with col2:
+        with col3:
             st.table(conteggio)
     else:
         st.warning("La colonna 'Tipo Doc.' sembra essere vuota.")

@@ -191,7 +191,7 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
 
 def plot_distribuzione_ordini(df_target):
     if df_target.empty:
-        st.error("Nessun dato disponibile per la distribuzione.")
+        st.warning("Nessun dato disponibile per la distribuzione.")
         return
 
     colori_personalizzati = {
@@ -200,6 +200,7 @@ def plot_distribuzione_ordini(df_target):
         "Ordine": "#4E944F"
     }
 
+    # Creazione base
     fig = px.histogram(
         df_target, 
         x="Totale", 
@@ -213,38 +214,43 @@ def plot_distribuzione_ordini(df_target):
         category_orders={"Tipo Doc.": ["Preventivo", "Ordine Aperto", "Ordine"]}
     )
 
-    # Applichiamo Jitter e PointPos SOLO ai Boxplot
+    # 1. Applichiamo Jitter e dispersione solo ai BOX
     fig.update_traces(
         selector=dict(type='box'),
         boxpoints='all', 
-        jitter=1, 
+        jitter=0.9, 
         pointpos=0,
-        marker=dict(size=4) 
+        marker=dict(size=4)
     )
 
+    # 2. Trasparenza solo agli ISTOGRAMMI
     fig.update_traces(
         selector=dict(type='histogram'),
-        opacity=0.6 
+        opacity=0.6
     )
 
+    # 3. Gestione Layout (Altezza e Spazi)
     fig.update_layout(
-        bargap=0.1, 
-        xaxis_title="Importo Documento (€)",
-        yaxis_title="Frequenza / Boxplot",
-        legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5),
-        margin=dict(t=100, b=50, l=50, r=50),
-        
-        # --- MODIFICHE PER DIMENSIONI ---
-        height=800,         
-        bargroupgap=0.1,
-        
-        # Aumentiamo la proporzione dello spazio dedicata ai boxplot (default è 0.15)
-        # 0.40 significa che il boxplot occupa il 40% dell'altezza totale
-        grid=dict(rows=2, columns=1, row_weight=[0.4, 0.6]) 
+        height=800, # Allunghiamo in verticale
+        bargap=0.1,
+        title_x=0,  # Titolo a sinistra
+        legend=dict(
+            orientation="h", 
+            yanchor="bottom", 
+            y=1.02, 
+            xanchor="center", 
+            x=0.5
+        ),
+        margin=dict(t=100, b=50, l=50, r=50)
     )
-    
-    # In alternativa al grid row_weight, Plotly Express usa spesso questo per i marginal:
-    fig.update_layout(yaxis2=dict(domain=[0.6, 1]), yaxis=dict(domain=[0, 0.55]))
+
+    # 4. TRUCCO PER ALLARGARE I BOXPLOT:
+    # In un grafico marginal, yaxis è l'istogramma, yaxis2 è il boxplot.
+    # Diamo il 40% dello spazio al boxplot (sopra) e il 55% all'istogramma (sotto)
+    fig.update_layout(
+        yaxis=dict(domain=[0, 0.55]),     # Istogramma (parte bassa)
+        yaxis2=dict(domain=[0.60, 1])     # Boxplot (parte alta - molto più spazio per i punti)
+    )
 
     st.plotly_chart(fig, use_container_width=True)
     

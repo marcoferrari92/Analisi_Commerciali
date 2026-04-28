@@ -61,7 +61,7 @@ def data_range(df):
     
     if not date.empty:
         d_min, d_max = date.min().date(), date.max().date()
-        st.info(f"📅 **Dati disponibili nel file:** dal {d_min.strftime('%d/%m/%Y')} al {d_max.strftime('%d/%m/%Y')}")
+        st.info(f"📅 **Dati disponibili:** dal {d_min.strftime('%d/%m/%Y')} al {d_max.strftime('%d/%m/%Y')}")
         
         return d_min, d_max
         
@@ -127,15 +127,20 @@ with col2:
 
 st.divider()
 st.subheader("Periodo Analisi")
+col1, col2 = st.columns(2)
 
 # Eseguiamo il filtro solo se almeno un file è caricato
 if date_min and date_max:
-    period = st.date_input(
-        "Seleziona date:",
-        value=(date_min, date_max),
-        min_value = date_min,
-        max_value = date_max
-    )
+
+    col1, col_spacer1, col_spacer2 = st.columns([1, 1, 1])
+
+    with col1:
+        period = st.date_input(
+            "Seleziona date:",
+            value=(date_min, date_max),
+            min_value = date_min,
+            max_value = date_max
+        )
 
     if df_events is not None:
         df_events = data_filtering(period, df_events)

@@ -254,7 +254,6 @@ def plot_distribuzione_ordini(df_target):
         )
 
     # 2. IL TRUCCO PER L'ASSE X: Usiamo una scala di potenza
-    # Questo comprime visivamente gli outlier senza rompere i bin dell'istogramma
     fig.update_layout(
         height=800,
         barmode='overlay',
@@ -263,17 +262,12 @@ def plot_distribuzione_ordini(df_target):
         legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center"),
         # Applichiamo la compressione visiva qui
         xaxis=dict(
-            type='linear', # La scala rimane lineare nei numeri...
+            type='linear',
             exponentformat='none',
-            # ...ma possiamo simulare la compressione o semplicemente lasciare lineare
-            # Se vuoi proprio la compressione fisica simile al log:
             gridcolor='lightgray'
         )
     )
-
-    # Nota: Se gli outlier sono davvero enormi, Plotly permette di impostare 
-    # un asse non lineare più stabile del log:
-    fig.update_xaxes(title_text="Importo Documento (€)", row=2, col=1)
+    fig.update_xaxes(title_text="Importo Articolo (€)", row=2, col=1)
     
     st.plotly_chart(fig, use_container_width=True)
     

@@ -173,17 +173,17 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
     )
 
     fig.update_layout(
+        height=500, 
         legend=dict(
             orientation="h", 
             yanchor="bottom", 
             y=1.02, 
             xanchor="center", 
             x=0.5,
-            traceorder="normal",
-            height=800
+            traceorder="normal"
         ),
-        margin=dict(t=100, b=0, l=0, r=0),
-        title_x=0.3
+        margin=dict(t=100, b=20, l=20, r=20),
+        title_x=0  # Riportato a 0 per stare a sinistra
     )
     
     st.plotly_chart(fig, use_container_width=True)

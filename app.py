@@ -87,53 +87,55 @@ def data_filtering(period, df):
 
 
 def validazione_importi(df):
+    """
+    Analizza la colonna 'Totale'.
+    Ritorna:
+    - df_pulito: Solo le righe con importi numerici validi (colonna Totale convertita in float).
+    - df_errori: Solo le righe con importi errati (stringhe, simboli, formati non validi).
+    """
     if df is None or df.empty:
         st.error("Dataframe assente o vuoto!")
-        return None, None
+        return
 
+    # Funzione rigorosa di validazione
     def valida_puro(valore):
-        # 1. Pulizia e conversione forzata
-        try:
-            if pd.isna(valore):
+        # Se è già numerico e non NaN
+        if isinstance(valore, (int, float)) and not pd.isna(valore):
+            return float(valore)
+        
+        # Se è una stringa, proviamo la conversione diretta
+        if isinstance(valore, str):
+            try:
+                # Accetta solo formati come "1250.50". 
+                # Fallisce con "1.250,50", "1000€", ecc.
+                return float(valore)
+            except ValueError:
                 return None
-            
-            # Se è una stringa, puliamo simboli e sistemiamo la virgola
-            if isinstance(valore, str):
-                # Rimuove tutto tranne numeri, punti, virgole e il segno meno
-                valore_pulito = re.sub(r'[^0-9.,-]', '', valore)
-                valore_pulito = valore_pulito.replace(',', '.')
-                num = float(valore_pulito)
-            else:
-                num = float(valore)
-            
-            # 2. IL FILTRO CRUCIALE: Scartiamo i negativi e lo zero
-            if num <= 0:
-                return None
-            
-            return num
-        except:
-            return None
+        return None
 
+        if num is not None and num > 0:
+                return num
+            else:
+                return None
+
+    # Creiamo una copia per non modificare il DF originale durante l'elaborazione
     temp_df = df.copy()
     
-    # Applichiamo la validazione creando una maschera booleana
-    # Questo ci permette di essere sicuri di cosa stiamo scartando
-    temp_df['Totale_Numerico'] = temp_df['Totale'].apply(valida_puro)
+    # Tentiamo la conversione sulla colonna Totale
+    temp_df['Totale'] = temp_df['Totale'].apply(valida_puro)
 
-    # Identifichiamo gli errori: tutto ciò che era nel DF originale 
-    # ma che ora è diventato None o che era già originariamente invalido
-    df_errori = temp_df[temp_df['Totale_Numerico'].isna()].copy()
+    # Separiamo i due DataFrame
+    # 1. Righe con errori (dove Totale è diventato None dopo il tentativo di conversione)
+    df_errori = temp_df[temp_df['Totale'].isna()].copy()
     
-    # Creiamo il df pulito sovrascrivendo la colonna Totale con i valori validati
-    df_pulito = temp_df.dropna(subset=['Totale_Numerico']).copy()
-    df_pulito['Totale'] = df_pulito['Totale_Numerico']
-    df_pulito = df_pulito.drop(columns=['Totale_Numerico'])
+    # 2. Righe pulite (togliamo i valori nulli)
+    df_pulito = temp_df.dropna(subset=['Totale']).copy()
 
+    # Opzionale: Segnalazione visiva in Streamlit se ci sono errori
     if not df_errori.empty:
-        with st.expander(f"⚠️ {len(df_errori)} righe scartate (Includono il valore {df_errori['Totale'].iloc[0] if not df_errori['Totale'].empty else ''})", expanded=False):
-            st.warning("Righe rimosse: importi non numerici, negativi o nulli.")
-            # Usiamo il dataframe originale per mostrare all'utente i valori "colpevoli"
-            st.dataframe(df_errori[['Data', 'Oggetto', 'Tipo Doc.', 'Totale']], use_container_width=True)
+        with st.expander(f"⚠️ Attenzione: {len(df_errori)} righe scartate", expanded=False):
+            st.warning("Queste righe contengono importi non validi e sono state escluse dalle analisi.")
+            st.table(df_errori[['Data', 'Oggetto', 'Tipo Doc.', 'Totale']] if 'Totale' in df_errori.columns else df_errori)
 
     return df_pulito, df_errori
     

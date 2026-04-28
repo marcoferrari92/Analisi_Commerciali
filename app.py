@@ -231,9 +231,8 @@ def plot_distribuzione_ordini(df_target):
     fig.update_traces(
         selector=dict(type='box'),
         boxpoints='all', 
-        jitter=0.5, 
-        pointpos=0,
-        marker=dict(size=4)
+        jitter=1, 
+        pointpos=0
     )
 
     # Solo per l'ISTOGRAMMA

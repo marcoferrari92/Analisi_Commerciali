@@ -137,9 +137,9 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
 
     # Mappatura colori
     colori_stadi = {
-        "Preventivo": "#AB63FA", 
-        "Ordine Aperto": "#EF553B", 
-        "Ordine": "#00CC96"
+        "Preventivo": "#A2D2FF",    # Azzurro pastello
+        "Ordine Aperto": "#B4E197", # Verde chiaro/menta
+        "Ordine": "#4E944F"         # Verde bosco pastello
     }
 
     fig = px.pie(

@@ -124,6 +124,17 @@ def pie_ordini(df):
                 textinfo='percent+label',
                 pull=[0.05] * len(conteggio)
             )
+          
+            fig_pie.update_layout(
+                legend=dict(
+                    orientation="h",      # Orientamento orizzontale
+                    yanchor="bottom",     # Ancora la base della legenda
+                    y=1.02,               # Posizione verticale (sopra 1.0 è fuori dal grafico)
+                    xanchor="center",     # Ancora il centro della legenda
+                    x=0.5                 # Posizione orizzontale al centro
+                ),
+                margin=dict(t=80, b=0, l=0, r=0) # Aumentiamo il margine superiore (t) per far spazio alla legenda
+            )
             
             st.plotly_chart(fig_pie, use_container_width=True)
         

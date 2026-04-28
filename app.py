@@ -146,7 +146,7 @@ if date_min and date_max:
         
 else:
     st.info("Carica almeno un file per attivare i filtri temporali.")
-st.divider()
+
 
 
 
@@ -154,12 +154,13 @@ st.divider()
 #                             ANALISI ORDINI 
 # ***********************************************************************
 
-
+st.divider()
 st.subheader("Analisi Ordini e Preventivi")
 st.write("")
 
 if df_orders is not None:
 
+    st.write("")
 # ***************
 #  
 # ***************

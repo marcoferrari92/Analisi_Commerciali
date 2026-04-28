@@ -85,7 +85,7 @@ def data_filtering(period, df):
     return df_filtrato
 
 
-def pie_ordini(df):
+def plot_pie_ordini(df):
     """
     Genera un grafico a torta automatico basato su TUTTI i valori 
     univoci trovati nella colonna 'Tipo Doc.'
@@ -147,7 +147,83 @@ def pie_ordini(df):
             st.table(conteggio)
     else:
         st.warning("La colonna 'Tipo Doc.' sembra essere vuota.")
-        
+
+
+
+
+def plot_pie_articoli(df):
+    """
+    Genera un grafico a torta basato sulla colonna 'Oggetto'.
+    Mantiene i 10 più frequenti e raggruppa tutti gli altri in 'ALTRO'.
+    """
+    
+    if df is None or df.empty:
+        st.error("Dataframe vuoto")
+        return
+
+    if 'Oggetto' not in df.columns:
+        st.error("Colonna 'Oggetto' non trovata nel file.")
+        return
+
+    # 1. Conteggio frequenze
+    conteggio_totale = df['Oggetto'].value_counts().reset_index()
+    conteggio_totale.columns = ['Oggetto', 'Conteggio']
+
+    if not conteggio_totale.empty:
+        # 2. Logica di Raggruppamento
+        if len(conteggio_totale) > 10:
+            
+            # Top 10 articoli
+            df_top = conteggio_totale.head(10).copy()
+            
+            # Sommiamo tutti gli altri
+            somma_altri = conteggio_totale.iloc[10:]['Conteggio'].sum()
+            riga_altro = pd.DataFrame({'Oggetto': ['TUTTI GLI ALTRI'], 'Conteggio': [somma_altri]})
+            
+            # Uniamo
+            df_plot = pd.concat([df_top, riga_altro], ignore_index=True)
+        else:
+            df_plot = conteggio_totale
+
+        # 3. Layout a colonne
+        col1, col2 = st.columns([3, 1])
+
+        with col1:
+            fig_pie = px.pie(
+                df_plot, 
+                values='Conteggio', 
+                names='Oggetto',
+                title="Top 10 Oggetti per Frequenza",
+                hole=0.4,
+                color_discrete_sequence=px.colors.qualitative.Safe
+            )
+            
+            fig_pie.update_traces(textinfo='percent+label')
+            
+            # Legenda orizzontale in alto
+            fig_pie.update_layout(
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="center",
+                    x=0.5
+                ),
+                margin=dict(t=100, b=0, l=0, r=0)
+            )
+            
+            st.plotly_chart(fig_pie, use_container_width=True)
+
+        with col2:
+            st.write("#### Dettaglio")
+            # Mostriamo la tabella con i dati reali del grafico
+            st.dataframe(
+                df_plot, 
+                hide_index=True, 
+                use_container_width=True
+            )
+    else:
+        st.warning("Nessun dato disponibile nella colonna 'Oggetto'.")
 
 
 # ***********************************************************************
@@ -237,7 +313,8 @@ if df_orders is not None:
 
         st.write("#### Panoramica preventivi, ordini aperti e chiusi")
         st.write("")
-        pie_ordini(df_orders)
+        plot_pie_ordini(df_orders)
+        plot_pie_articoli(df_orders)
 
 
 

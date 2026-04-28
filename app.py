@@ -200,6 +200,54 @@ def validazione_importi(df):
     return df_pulito, df_errori
 
 
+def plot_pie_volumi(df):
+    """
+    Genera un grafico a torta basato sui volumi economici 
+    delle tre categorie principali.
+    """
+
+    # Volumi per ogni categoria (preventivo, ordine aperto, ordine chiuso)
+    stadi_target   = ["Preventivo", "Ordine Aperto", "Ordine"]
+    df_volumi      = df[df['Tipo Doc.'].isin(stadi_target)]
+    tabella_volumi = df_volumi.groupby('Tipo Doc.')['Totale'].sum().reset_index()
+
+    if tabella_volumi.empty:
+        st.error("Le categorie 'Preventivo', 'Ordine Aperto' o 'Ordine' non sono presenti nei dati.")
+        return
+
+    # Creazione del Grafico
+    fig_pie = px.pie(
+        tabella_volumi, 
+        values='Totale', 
+        names='Tipo Doc.',
+        title="Ripartizione Economica per Stato Documento",
+        hole=0.4, 
+        color='Tipo Doc.',
+        color_discrete_map={
+            "Preventivo": "#AB63FA",    # Viola
+            "Ordine Aperto": "#EF553B", # Rosso/Arancio
+            "Ordine": "#00CC96"         # Verde
+        }
+    )
+
+    # Personalizzazione Etichette e Legenda
+    fig_pie.update_traces(
+        textinfo='percent+value', 
+        texttemplate='%{label}<br>%{percent}<br>€%{value:,.2f}'
+    )
+    
+    fig_pie.update_layout(
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.05,
+            xanchor="center",
+            x=0.5
+        ),
+        margin=dict(t=100, b=0, l=0, r=0)
+    )
+
+    st.plotly_chart(fig_pie, use_container_width=True)
 
 def panoramica_articoli(df):
     """
@@ -266,54 +314,7 @@ def panoramica_articoli(df):
         st.caption(f"Totale voci univoche rilevate: {len(conteggio_totale)}")
 
 
-def plot_pie_volumi(df):
-    """
-    Genera un grafico a torta basato sui volumi economici 
-    delle tre categorie principali.
-    """
 
-    # Volumi per ogni categoria (preventivo, ordine aperto, ordine chiuso)
-    stadi_target   = ["Preventivo", "Ordine Aperto", "Ordine"]
-    df_volumi      = df[df['Tipo Doc.'].isin(stadi_target)]
-    tabella_volumi = df_volumi.groupby('Tipo Doc.')['Totale'].sum().reset_index()
-
-    if tabella_volumi.empty:
-        st.error("Le categorie 'Preventivo', 'Ordine Aperto' o 'Ordine' non sono presenti nei dati.")
-        return
-
-    # Creazione del Grafico
-    fig_pie = px.pie(
-        tabella_volumi, 
-        values='Totale', 
-        names='Tipo Doc.',
-        title="Ripartizione Economica per Stato Documento",
-        hole=0.4, 
-        color='Tipo Doc.',
-        color_discrete_map={
-            "Preventivo": "#AB63FA",    # Viola
-            "Ordine Aperto": "#EF553B", # Rosso/Arancio
-            "Ordine": "#00CC96"         # Verde
-        }
-    )
-
-    # Personalizzazione Etichette e Legenda
-    fig_pie.update_traces(
-        textinfo='percent+value', 
-        texttemplate='%{label}<br>%{percent}<br>€%{value:,.2f}'
-    )
-    
-    fig_pie.update_layout(
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.05,
-            xanchor="center",
-            x=0.5
-        ),
-        margin=dict(t=100, b=0, l=0, r=0)
-    )
-
-    st.plotly_chart(fig_pie, use_container_width=True)
 
 
 
@@ -398,7 +399,7 @@ st.write("")
 # ************
 df_orders, df_scarti = valida_e_separa_dati(df_orders)
 
-    
+if df_orders is not None:  
     # ***************
     #  FUNNEL CHART 
     # ***************

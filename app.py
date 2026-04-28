@@ -371,7 +371,8 @@ if df_orders is not None:
         st.write("#### Panoramica preventivi, ordini aperti e chiusi")
         st.write("")
         plot_pie_ordini(df_orders)
-        plot_pie_articoli(df_orders)
+        #plot_pie_articoli(df_orders)
+        plot_freq_articoli(df_orders)
 
 
 

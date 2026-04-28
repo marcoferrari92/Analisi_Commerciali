@@ -48,23 +48,24 @@ def mostra_periodo_analisi(df):
 st.subheader("Caricamento")
 col1, col2 = st.columns(2)
 with col1:
-    st.write("### Eventi")
+    st.write("#### Eventi")
     uploaded_file_events = st.file_uploader("Carica file eventi (formato CSV)", type="csv")
 
 with col2:
-    st.write("### Ordini")
+    st.write("#### Ordini")
     uploaded_file_orders = st.file_uploader("Carica file ordini e preventivi (formato CSV)", type="csv")
 
 
 
 if uploaded_file_orders:
     df_orders = carica_dati_commerciali(uploaded_file_orders)
-
+    df_orders.head(10)
 
 
 
 if uploaded_file_events:
     df_events = carica_dati_commerciali(uploaded_file_events)
+    df_events.head(10)
     
     if df is not None:
         

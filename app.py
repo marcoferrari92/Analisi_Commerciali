@@ -397,7 +397,7 @@ st.write("")
 # ************
 #  CHECK DATI 
 # ************
-df_orders, df_scarti = valida_e_separa_dati(df_orders)
+df_orders, df_scarti = validazione_importi(df_orders)
 
 if df_orders is not None:  
     # ***************

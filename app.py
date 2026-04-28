@@ -151,135 +151,70 @@ def plot_pie_ordini(df):
 
 
 
-def plot_pie_articoli(df):
+
+def panoramica_articoli(df):
     """
-    Genera un grafico a torta basato sulla colonna 'Oggetto'.
-    Mantiene i 7 più frequenti e raggruppa tutti gli altri in 'ALTRO'.
+    Grafico a torta Top 5 + Tabella completa con valori assoluti e percentuali.
     """
-    
-    if df is None or df.empty:
-        st.error("Dataframe vuoto")
-        return
-
-    if 'Oggetto' not in df.columns:
-        st.error("Colonna 'Oggetto' non trovata nel file.")
-        return
-
-    # 1. Conteggio frequenze
-    conteggio_totale = df['Oggetto'].value_counts().reset_index()
-    conteggio_totale.columns = ['Oggetto', 'Conteggio']
-
-    if not conteggio_totale.empty:
-        # 2. Logica di Raggruppamento
-        if len(conteggio_totale) > 7:
-            
-            # Top 7 articoli
-            df_top = conteggio_totale.head(7).copy()
-            
-            # Sommiamo tutti gli altri
-            somma_altri = conteggio_totale.iloc[7:]['Conteggio'].sum()
-            riga_altro = pd.DataFrame({'Oggetto': ['TUTTI GLI ALTRI'], 'Conteggio': [somma_altri]})
-            
-            # Uniamo
-            df_plot = pd.concat([df_top, riga_altro], ignore_index=True)
-        else:
-            df_plot = conteggio_totale
-
-        # 3. Layout a colonne
-        col1, col2 = st.columns([3, 1])
-
-        with col1:
-            fig_pie = px.pie(
-                df_plot, 
-                values='Conteggio', 
-                names='Oggetto',
-                title="",
-                hole=0.4,
-                color_discrete_sequence=px.colors.qualitative.Safe
-            )
-            
-            fig_pie.update_traces(textinfo='percent+label')
-            
-            # Legenda orizzontale in alto
-            fig_pie.update_layout(
-                legend=dict(
-                    orientation="h",
-                    yanchor="bottom",
-                    y=1.02,
-                    xanchor="center",
-                    x=0.5
-                ),
-                margin=dict(t=100, b=0, l=0, r=0)
-            )
-            
-            st.plotly_chart(fig_pie, use_container_width=True)
-
-        with col2:
-            st.write("#### Dettaglio")
-            # Mostriamo la tabella con i dati reali del grafico
-            st.dataframe(
-                df_plot, 
-                hide_index=True, 
-                use_container_width=True
-            )
-    else:
-        st.warning("Nessun dato disponibile nella colonna 'Oggetto'.")
-
-
-import plotly.express as px
-import streamlit as st
-
-def plot_freq_articoli(df):
-    """
-    Genera un grafico a barre orizzontali con TUTTI gli oggetti/articoli.
-    Ordina automaticamente dal più frequente al meno frequente.
-    """
-    if df is None or df.empty:
-        st.error("Dataframe assenete o vuoto")
-        return
 
     if 'Oggetto' not in df.columns:
         st.error("Colonna 'Oggetto' non trovata.")
         return
 
-    # 1. Conteggio frequenze
-    # Usiamo value_counts() che ordina già i dati in modo decrescente
-    conteggio = df['Oggetto'].value_counts().reset_index()
-    conteggio.columns = ['Articolo', 'Quantità']
+    # 1. Preparazione Dati Completi (per la tabella)
+    conteggio_totale = df['Oggetto'].value_counts().reset_index()
+    conteggio_totale.columns = ['Oggetto', 'Assoluto']
+    
+    # Calcolo della percentuale sul totale
+    totale_pezzi = conteggio_totale['Assoluto'].sum()
+    conteggio_totale['Percentuale'] = (conteggio_totale['Assoluto'] / totale_pezzi * 100).round(2)
+    conteggio_totale['%'] = conteggio_totale['Percentuale'].astype(str) + '%'
 
-    # 2. Creazione del Grafico a barre orizzontali
-    if not conteggio.empty:
-        
-        fig_bar = px.bar(
-            conteggio, 
-            x='Quantità', 
-            y='Articolo',
-            orientation='h', # Forza le barre in orizzontale
-            title=f"Analisi Completa Articoli ({len(conteggio)} voci)",
-            labels={'Articolo': 'Nome Articolo', 'Quantità': 'Numero di Documenti'},
-            color='Quantità', # Colore sfumato in base alla quantità
-            color_continuous_scale='Viridis'
-        )
-
-        # Ottimizzazione Layout
-        fig_bar.update_layout(
-            yaxis={'categoryorder':'total ascending'}, # Mette il più grande in alto
-            height=300 + (len(conteggio) * 20),         # Altezza dinamica: più articoli ci sono, più il grafico si allunga
-            margin=dict(l=200),                         # Margine sinistro ampio per nomi lunghi
-            showlegend=False
-        )
-        
-        # Aggiungiamo i numeri alla fine di ogni barra per facilità di lettura
-        fig_bar.update_traces(
-            texttemplate='%{x}', 
-            textposition='outside'
-        )
-
-        # Visualizzazione
-        st.plotly_chart(fig_bar, use_container_width=True)
-        
+    # 2. Grafico (Top 5 + Altro)
+    if len(conteggio_totale) > 5:
+        df_top = conteggio_totale.head(5).copy()
+        somma_altri = conteggio_totale.iloc[5:]['Assoluto'].sum()
+        riga_altro = pd.DataFrame({'Oggetto': ['RESTANTI'], 'Assoluto': [somma_altri]})
+        df_plot = pd.concat([df_top, riga_altro], ignore_index=True)
     else:
-        st.warning("Nessun dato trovato per la colonna 'Oggetto'.")
+        df_plot = conteggio_totale
+
+    # 3. Output
+    col1, col2 = st.columns([1.8, 1.2])
+
+    with col1:
+        fig_pie = px.pie(
+            df_plot, 
+            values='Assoluto', 
+            names='Oggetto',
+            title="Top 5 Oggetti e Incidenza",
+            hole=0.4,
+            color_discrete_sequence=px.colors.qualitative.Bold
+        )
+        
+        fig_pie.update_traces(textinfo='percent+label')
+        
+        # Legenda orizzontale in alto
+        fig_pie.update_layout(
+            legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5),
+            margin=dict(t=100, b=0, l=0, r=0)
+        )
+        
+        st.plotly_chart(fig_pie, use_container_width=True)
+
+    with col2:
+        st.write("#### Analisi Dettagliata")
+        # Mostriamo la tabella completa (voci univoche totali)
+        # Selezioniamo solo le colonne che ci interessano per la tabella
+        tabella_display = conteggio_totale[['Oggetto', 'Assoluto', '%']]
+        
+        st.dataframe(
+            tabella_display, 
+            hide_index=True, 
+            use_container_width=True,
+            height=400 # Altezza fissa con scrollbar se i dati sono molti
+        )
+        st.caption(f"Totale voci univoche rilevate: {len(conteggio_totale)}")
 
 
 
@@ -359,20 +294,23 @@ st.divider()
 st.subheader("💰 Analisi Ordini e Preventivi")
 st.write("")
 
-if df_orders is not None:
+if df_orders is None or df.empty:
+        st.error("Dataframe assente o vuoto!")
+        return
+else:
     
-# ***************
-#  FUNNEL CHART 
-# ***************
+    # ***************
+    #  FUNNEL CHART 
+    # ***************
 
-# Inseriamo il funnel dentro un expander
+    # Inseriamo il funnel dentro un expander
     with st.expander("📊 Panoramica", expanded=False):
 
         st.write("#### Panoramica preventivi, ordini aperti e chiusi")
         st.write("")
         plot_pie_ordini(df_orders)
         #plot_pie_articoli(df_orders)
-        plot_freq_articoli(df_orders)
+        panoramica_articoli(df_orders)
 
 
 

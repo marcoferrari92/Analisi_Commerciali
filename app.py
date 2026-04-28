@@ -8,11 +8,13 @@ st.set_page_config(layout="wide")
 @st.cache_data
 def carica_dati_commerciali(file):
     try:
-    
+        
         df = pd.read_csv(file, sep=';', encoding='utf-8-sig')
         if df.shape[1] <= 1:
             file.seek(0)
             df = pd.read_csv(file, sep=',', encoding='utf-8-sig')
+
+        # Pulizia colonne
         df.columns = df.columns.str.strip().str.replace('ï»¿', '', regex=False)
         
         righe_iniziali = len(df)
@@ -22,7 +24,7 @@ def carica_dati_commerciali(file):
         colonna_data = next((c for c in possibili_nomi_data if c in df.columns), None)
 
         if colonna_data:
-            # Conversione
+            # Conversione a datatime
             df[colonna_data] = pd.to_datetime(df[colonna_data], dayfirst=True, errors='coerce')
             
             # Conta quante date non sono valide prima di droppare
@@ -34,9 +36,10 @@ def carica_dati_commerciali(file):
             # ALERT se abbiamo perso dati
             if righe_nulle > 0:
                 st.warning(f"⚠️ Attenzione: {righe_nulle} righe sono state rimosse perché la data non era valida o era mancante.")
+                
+         # Se fallisce, mostriamo all'utente cosa ha effettivamente letto Pandas
         else:
-            # Se fallisce, mostriamo all'utente cosa ha effettivamente letto Pandas
-            st.error(f"Colonna Data non trovata! Colonne rilevate: {list(df.columns)}")
+            st.error(f"Colonna date non trovata! Colonne rilevate: {list(df.columns)}")
             return None
 
         # 3. Pulizia Tipo Evento

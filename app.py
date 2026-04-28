@@ -85,70 +85,49 @@ def data_filtering(period, df):
     return df_filtrato
 
 
-
-def crea_funnel_commerciale(df):
+def crea_pie_commerciale(df):
     """
-    Genera un grafico a imbuto basato sulla colonna 'Tipo Doc.'
-    Nomi corretti: Preventivo -> Ordine Aperto -> Ordine
+    Genera un grafico a torta automatico basato su TUTTI i valori 
+    univoci trovati nella colonna 'Tipo Doc.'
     """
     if df is None or df.empty:
-        st.info("Carica i dati degli ordini per visualizzare il Funnel di conversione.")
+        st.info("Carica i dati per visualizzare la distribuzione.")
         return
-
-    df.columns = df.columns.str.strip()
 
     if 'Tipo Doc.' not in df.columns:
-        st.error(f"Colonna 'Tipo Doc.' non trovata. Colonne presenti: {list(df.columns)}")
+        st.error(f"Colonna 'Tipo Doc.' non trovata.")
         return
 
-    # 1. Definiamo i nuovi nomi corretti
-    ordine_logico = ["Preventivo", "Ordine Aperto", "Ordine"]
-    
-    # 2. Aggregazione e conteggio
-    conteggio_stadi = df['Tipo Doc.'].value_counts().reset_index()
-    conteggio_stadi.columns = ['Stadio', 'Conteggio']
+    # 1. Conteggio automatico di tutto quello che c'è nella colonna
+    # dropna=True evita di creare una fetta per i valori mancanti
+    conteggio = df['Tipo Doc.'].value_counts().reset_index()
+    conteggio.columns = ['Tipologia', 'Conteggio']
 
-    # Filtriamo solo i tre tipi richiesti
-    conteggio_stadi = conteggio_stadi[conteggio_stadi['Stadio'].isin(ordine_logico)]
-    
-    # 3. Opzionale: Rinominiamo "Ordine" in "Ordine Chiuso" solo per la legenda del grafico
-    conteggio_stadi['Stadio'] = conteggio_stadi['Stadio'].replace({'Ordine': 'Ordine (Chiuso)'})
-    ordine_grafico = ["Preventivo", "Ordine Aperto", "Ordine (Chiuso)"]
-
-    # 4. Ordinamento categoriale
-    conteggio_stadi['Stadio'] = pd.Categorical(
-        conteggio_stadi['Stadio'], 
-        categories=ordine_grafico, 
-        ordered=True
-    )
-    conteggio_stadi = conteggio_stadi.sort_values('Stadio')
-
-    # 5. Creazione Grafico
-    if not conteggio_stadi.empty:
-        fig_funnel = px.funnel(
-            conteggio_stadi,
-            x='Conteggio',
-            y='Stadio',
-            title="Analisi Conversione: dal Preventivo alla Chiusura",
-            color='Stadio',
-            color_discrete_sequence=px.colors.qualitative.Bold
+    # 2. Creazione Grafico a Torta
+    if not conteggio.empty:
+        
+        fig_pie = px.pie(
+            conteggio, 
+            values='Conteggio', 
+            names='Tipologia',
+            title="Distribuzione Totale Documenti (Tutte le tipologie)",
+            hole=0.4,
+            color_discrete_sequence=px.colors.qualitative.Pastel # Palette varia e piacevole
         )
         
-        fig_funnel.update_traces(textposition='inside', textinfo='value+percent initial')
+        # Mostra etichette con nome e percentuale
+        fig_pie.update_traces(
+            textinfo='percent+label',
+            pull=[0.05] * len(conteggio) # Stacca leggermente le fette per leggibilità
+        )
         
-        st.plotly_chart(fig_funnel, use_container_width=True)
+        st.plotly_chart(fig_pie, use_container_width=True)
         
-        # 6. Calcolo conversione (usando i nuovi nomi)
-        try:
-            prev = conteggio_stadi.loc[conteggio_stadi['Stadio'] == 'Preventivo', 'Conteggio'].values[0]
-            # Cerchiamo il valore per lo stadio finale rinominato
-            chiusi = conteggio_stadi.loc[conteggio_stadi['Stadio'] == 'Ordine (Chiuso)', 'Conteggio'].values[0]
-            tasso = (chiusi / prev) * 100
-            st.caption(f"🎯 **Tasso di conversione:** {tasso:.1f}% dei preventivi è diventato un Ordine definitivo.")
-        except Exception:
-            pass
+        # 3. Mini legenda testuale automatica
+        with st.expander("Vedi dettagli conteggio"):
+            st.table(conteggio)
     else:
-        st.warning("Nessun dato trovato per: Preventivo, Ordine Aperto, Ordine.")
+        st.warning("La colonna 'Tipo Doc.' sembra essere vuota.")
 
 
 # ***********************************************************************

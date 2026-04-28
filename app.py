@@ -126,8 +126,8 @@ def validazione_importi(df):
     df_errori = df_errori.drop(columns=['Totale_TMP'])
 
     # --- DEBUG FORZATO ---
+    st.write(f"✅ File caricato: {len(df)} righe totali rilevate.")
     if len(df_errori) > 0:
-        # expanded=True FORZA l'apertura
         with st.expander("⚠️ TABELLA ERRORI RILEVATI", expanded=True):
             st.error(f"Trovati {len(df_errori)} valori non validi o negativi!")
             st.dataframe(df_errori)
@@ -371,10 +371,8 @@ with col2:
         df_raw = carica_dati_commerciali(uploaded_file_orders)
         date_min, date_max = data_range(df_orders)
         
+        # Check importi
         if df_raw is not None:
-            st.write(f"✅ File caricato: {len(df_raw)} righe totali rilevate.")
-            
-            # Check importi
             df_orders, df_errori = validazione_importi(df_raw)
             
             if df_orders is not None:

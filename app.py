@@ -227,7 +227,7 @@ def plot_distribuzione_ordini(df_target):
     )
 
     # Opacità per vedere le sovrapposizioni
-    fig.update_traces(opacity=0.75)
+    fig.update_traces(opacity=0.75, jitter=1)
 
     st.plotly_chart(fig, use_container_width=True)
     

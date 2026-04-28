@@ -69,8 +69,14 @@ def mostra_periodo_analisi(df):
 
 
 st.subheader("Analisi Eventi")
-uploaded_events = st.file_uploader("Carica file eventi (forato CSV)", type="csv")
-uploaded_orders = st.file_uploader("Carica file ordini (forato CSV)", type="csv")
+col1, col2 = st.columns(2)
+with col1:
+    st.write("### Eventi")
+    uploaded_events = st.file_uploader("Carica file eventi (forato CSV)", type="csv")
+
+with col2:
+    st.write("### Ordini")
+    uploaded_orders = st.file_uploader("Carica file ordini (forato CSV)", type="csv")
 
 
 

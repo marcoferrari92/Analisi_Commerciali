@@ -68,10 +68,27 @@ def data_range(df):
     return None, None
 
 
+def data_filtering(period, df)
+    if isinstance(period, tuple) and len(period) == 2:
+        #data_start, data_end = period
+        df_filtrato = df[
+                (df['Data'].dt.date >= period[0]) & 
+                (df['Data'].dt.date <= period[1])
+                ].copy()
+        
+    # Un piccolo avviso se manca una delle due date (inizio o fine)
+    else:
+        df_filtrato = df_events.copy()
+        st.warning("Seleziona entrambe le date (inizio e fine) per filtrare.")
+
+    return df_filtrato
 
 
 # --- MAIN APP ---
 
+# *****************
+# CARICAMENTO FILE 
+# *****************
 
 st.subheader("Caricamento File")
 col1, col2 = st.columns(2)
@@ -94,8 +111,23 @@ with col2:
 
 
 
+# ****************
+# FILTRO PERIODO 
+# ****************
 
+period = st.date_input(
+    "Filtra per intervallo:",
+    value=(data_min_file, data_max_file),
+    min_value=data_min_file,
+    max_value=data_max_file,
+    label_visibility="collapsed"
+)
 
+if df_events is not None:
+    df_events = data_filtering(period, df_events)
+
+if df_orders is not None:
+    df_orders = data_filtering(period, df_orders)
 
 
 
@@ -104,45 +136,6 @@ if uploaded_file_events:
     
     if df_events is not None:
         
-        # --- FILTRO TEMPORALE IN AREA PRINCIPALE (LAYOUT OTTIMIZZATO) ---
-        
-        # 1. Recuperiamo i limiti temporali dal file
-        date_valide = df_events['Data Evento'].dropna()
-        if not date_valide.empty:
-            data_min_file, data_max_file = date_valide.min().date(), date_valide.max().date()
-            
-            st.markdown("#### 📅 Selezione Periodo di Analisi")
-            
-            # Creiamo due colonne: una per l'info e una per il filtro
-            col_info_date, col_input_date = st.columns(2)
-            
-            with col_info_date:
-                # Mostriamo il range disponibile nel file
-                st.info(f"**Dati disponibili:** dal {data_min_file.strftime('%d/%m/%Y')} al {data_max_file.strftime('%d/%m/%Y')}")
-                # Filtro interattivo sulla stessa riga
-                periodo_selezionato = st.date_input(
-                    "Filtra per intervallo:",
-                    value=(data_min_file, data_max_file),
-                    min_value=data_min_file,
-                    max_value=data_max_file,
-                    label_visibility="collapsed" # Nasconde l'etichetta per pulizia, l'utente capisce dal contesto
-                )
-            
-            with col_input_date:
-                st.write("")
-            
-            # Logica di filtraggio
-            if isinstance(periodo_selezionato, tuple) and len(periodo_selezionato) == 2:
-                data_inizio, data_fine = periodo_selezionato
-                df_filtrato = df_events[(df_events['Data Evento'].dt.date >= data_inizio) & 
-                                 (df_events['Data Evento'].dt.date <= data_fine)].copy()
-            else:
-                df_filtrato = df_events.copy()
-                # Un piccolo avviso se manca una delle due date (inizio o fine)
-                st.warning("Seleziona entrambe le date (inizio e fine) per filtrare.")
-        #*************************
-
-
         # --- SEZIONE 2: RESOCONTO ---
         st.divider()
         with st.expander("⚖️ Volume e Tipologia Eventi"):

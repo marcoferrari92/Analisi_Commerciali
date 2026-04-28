@@ -104,7 +104,7 @@ def crea_funnel_commerciale(df):
 
     # 3. Aggregazione e conteggio
     # Definiamo l'ordine logico del processo
-    ordine_logico = ["Preventivo", "Ordine Aperto", "Ordine Chiuso"]
+    ordine_logico = ["Preventivo", "Ordine Aperto", "Ordine"]
     
     # Contiamo le occorrenze
     conteggio_stadi = df['Tipo Doc.'].value_counts().reset_index()

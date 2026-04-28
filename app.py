@@ -17,7 +17,7 @@ def carica_dati_commerciali(file):
         df.columns = df.columns.str.strip()
         
         # Conversione Date robusta
-        if 'Data Evento' in df.columns:
+        if 'Data Evento' or 'Data' in df.columns:
             df['Data Evento'] = pd.to_datetime(df['Data Evento'], dayfirst=True, errors='coerce')
             df = df.dropna(subset=['Data Evento'])
 

@@ -18,20 +18,20 @@ def carica_dati_commerciali(file):
         df.columns = df.columns.str.strip()
         
         # 2. Gestione Generica della Data
-        # Cerchiamo quale colonna esiste tra quelle possibili
         possibili_nomi_data = ['Data Evento', 'Data']
         colonna_data = next((c for c in possibili_nomi_data if c in df.columns), None)
 
         if colonna_data:
+            
             # Convertiamo la colonna trovata in datetime
             df[colonna_data] = pd.to_datetime(df[colonna_data], dayfirst=True, errors='coerce')
             
-            # Rinominiamo la colonna in un nome standard per il resto della app
-            # Così non dovrai cambiare il resto del codice ogni volta
-            df = df.rename(columns={colonna_data: 'Data Evento'})
+            # Rinominiamo la colonna in un nome standard
+            df = df.rename(columns={colonna_data: 'Data'})
             
             # Rimuoviamo righe dove la data è fallita (NaT)
-            df = df.dropna(subset=['Data Evento'])
+            df = df.dropna(subset=['Data'])
+            
         else:
             st.warning("Attenzione: Nessuna colonna 'Data' o 'Data Evento' trovata.")
 

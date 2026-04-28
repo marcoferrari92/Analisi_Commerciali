@@ -14,8 +14,8 @@ def carica_dati_commerciali(file):
             file.seek(0)
             df = pd.read_csv(file, sep=',', encoding='utf-8')
         
-        # Pulizia nomi colonne (rimuove spazi invisibili)
-        df.columns = df.columns.str.strip()
+        # Pulizia nomi colonne (BOM incluso)
+        df.columns = df.columns.str.strip().str.replace('ï»¿', '')
         
         # 2. Gestione Generica della Data
         possibili_nomi_data = ['Data Evento', 'Data']

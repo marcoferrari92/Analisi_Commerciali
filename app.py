@@ -8,43 +8,47 @@ st.set_page_config(layout="wide")
 @st.cache_data
 def carica_dati_commerciali(file):
     try:
-        # 1. Caricamento flessibile
-        df = pd.read_csv(file, sep=';', encoding='latin1')
+    
+        df = pd.read_csv(file, sep=';', encoding='utf-8-sig')
         if df.shape[1] <= 1:
             file.seek(0)
-            df = pd.read_csv(file, sep=',', encoding='utf-8')
+            df = pd.read_csv(file, sep=',', encoding='utf-8-sig')
+        df.columns = df.columns.str.strip().str.replace('ï»¿', '', regex=False)
         
-        # Pulizia nomi colonne (BOM incluso)
-        df.columns = df.columns.str.strip().str.replace('ï»¿', '')
+        righe_iniziali = len(df)
         
         # 2. Gestione Generica della Data
         possibili_nomi_data = ['Data Evento', 'Data']
         colonna_data = next((c for c in possibili_nomi_data if c in df.columns), None)
 
         if colonna_data:
-            
-            # Convertiamo la colonna trovata in datetime
+            # Conversione
             df[colonna_data] = pd.to_datetime(df[colonna_data], dayfirst=True, errors='coerce')
             
-            # Rinominiamo la colonna in un nome standard
-            df = df.rename(columns={colonna_data: 'Data'})
+            # Conta quante date non sono valide prima di droppare
+            righe_nulle = df[colonna_data].isna().sum()
             
-            # Rimuoviamo righe dove la data è fallita (NaT)
+            df = df.rename(columns={colonna_data: 'Data'})
             df = df.dropna(subset=['Data'])
             
+            # ALERT se abbiamo perso dati
+            if righe_nulle > 0:
+                st.warning(f"⚠️ Attenzione: {righe_nulle} righe sono state rimosse perché la data non era valida o era mancante.")
         else:
-            st.warning("Attenzione: Nessuna colonna 'Data' o 'Data Evento' trovata.")
+            # Se fallisce, mostriamo all'utente cosa ha effettivamente letto Pandas
+            st.error(f"Colonna Data non trovata! Colonne rilevate: {list(df.columns)}")
+            return None
 
         # 3. Pulizia Tipo Evento
         if 'Tipo Evento' in df.columns:
             df['Tipo Evento'] = df['Tipo Evento'].apply(
-                lambda x: re.sub(r'[^a-zA-Z\s]', '', str(x)).strip().upper()
+                lambda x: re.sub(r'[^a-zA-Z\s]', '', str(x)).strip().upper() if pd.notnull(x) else x
             )
             
         return df
 
     except Exception as e:
-        st.error(f"Errore caricamento: {e}")
+        st.error(f"Errore critico caricamento: {e}")
         return None
 
 

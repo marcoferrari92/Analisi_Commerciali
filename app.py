@@ -128,8 +128,8 @@ def validazione_importi(df):
     # --- DEBUG FORZATO ---
     st.write(f"✅ File caricato: {len(df)} righe totali rilevate.")
     if len(df_errori) > 0:
-        with st.expander("⚠️ TABELLA ERRORI RILEVATI", expanded=True):
-            st.error(f"Trovati {len(df_errori)} valori non validi o negativi!")
+        with st.expander("⚠️ ERRORI RILEVATI", expanded=True):
+            st.error(f"Trovati {len(df_errori)} importi non validi o negativi!")
             st.dataframe(df_errori)
     else:
         st.success("Nessun errore rilevato nella colonna Totale.")

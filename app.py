@@ -371,6 +371,22 @@ with col2:
         df_orders = carica_dati_commerciali(uploaded_file_orders)
         date_min, date_max = data_range(df_orders)
 
+        st.write("---")
+        st.write("Caricamento...")
+        df_raw = carica_dati_commerciali(uploaded_file_orders)
+        
+        if df_raw is not None:
+            st.write(f"✅ File caricato: {len(df_raw)} righe totali rilevate.")
+            
+            # CHIAMATA ALLA FUNZIONE DI VALIDAZIONE
+            # Se questa funzione non stampa, il problema è dentro la funzione
+            df_orders, df_errori = validazione_importi(df_raw)
+            
+            if df_orders is not None:
+                st.write(f"✅ Validazione conclusa: {len(df_orders)} righe pulite, {len(df_errori)} scartate.")
+        else:
+            st.error("Il caricamento del file ha restituito None. Controlla il formato del CSV.")
+
 
 # ***************
 # FILTRO PERIODO 

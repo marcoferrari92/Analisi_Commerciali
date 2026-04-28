@@ -373,25 +373,53 @@ if df_orders is not None:
                     tipo="soldi"
                 )
 
-            df_riepilogo = pd.merge(conteggio_qty, conteggio_vol, on='Tipo Doc.')
             
-            # Calcoliamo il prezzo medio per tipo documento (opzionale ma utile)
-            df_riepilogo['Media (€)'] = (df_riepilogo['Totale'] / df_riepilogo['Conteggio']).round(2)
-            
-            # Ordiniamo la tabella secondo il tuo ordine preferito
-            ordine_fisso = ["Preventivo", "Ordine Aperto", "Ordine"]
-            df_riepilogo['Tipo Doc.'] = pd.Categorical(df_riepilogo['Tipo Doc.'], categories=ordine_fisso, ordered=True)
-            df_riepilogo = df_riepilogo.sort_values('Tipo Doc.')
+        # --- PARTE SOTTO: TABELLA RIASSUNTIVA COMPLETA ---
 
-            # Visualizzazione tabella con formattazione
-            st.dataframe(
-                df_riepilogo.style.format({
-                    'Totale': '€ {:,.2f}',
-                    'Media (€)': '€ {:,.2f}'
-                }),
-                use_container_width=True,
-                hide_index=True
-            )
+        st.write("")
+
+        # 1. Calcoliamo la Mediana
+        mediane = df_target.groupby('Tipo Doc.')['Totale'].median().reset_index()
+        mediane.columns = ['Tipo Doc.', 'Mediana (€)']
+        
+        # 2. Uniamo i dati: Quantità + Volumi + Mediane
+        df_riepilogo = pd.merge(conteggio_qty, conteggio_vol, on='Tipo Doc.')
+        df_riepilogo = pd.merge(df_riepilogo, mediane, on='Tipo Doc.')
+        
+        # 3. Calcolo Percentuali sul totale
+        tot_qty = df_riepilogo['Conteggio'].sum()
+        tot_vol = df_riepilogo['Totale'].sum()
+        df_riepilogo['% Qty'] = (df_riepilogo['Conteggio'] / tot_qty * 100).round(1).astype(str) + '%'
+        df_riepilogo['% Vol'] = (df_riepilogo['Totale'] / tot_vol * 100).round(1).astype(str) + '%'
+        
+        # 4. Calcolo Prezzo Medio
+        df_riepilogo['Media (€)'] = (df_riepilogo['Totale'] / df_riepilogo['Conteggio'])
+        
+        # 5. Ordinamento e Selezione Colonne per una lettura logica
+        ordine_fisso = ["Preventivo", "Ordine Aperto", "Ordine"]
+        df_riepilogo['Tipo Doc.'] = pd.Categorical(df_riepilogo['Tipo Doc.'], categories=ordine_fisso, ordered=True)
+        df_riepilogo = df_riepilogo.sort_values('Tipo Doc.')
+        
+        # 6. Organizziamo le colonne in modo che la tabella sia facile da leggere
+        colonne_finali = [
+            'Tipo Doc.', 
+            'Conteggio', '% Qty',      # Gruppo Quantità
+            'Totale', '% Vol',         # Gruppo Valore Economico
+            'Media (€)', 'Mediana (€)' # Indicatori di performance
+        ]
+
+        # 7. Stampa tabella
+        st.dataframe(
+            df_riepilogo[colonne_finali].style.format({
+                'Totale': '€ {:,.2f}',
+                'Media (€)': '€ {:,.2f}',
+                'Mediana (€)': '€ {:,.2f}'
+            }),
+            use_container_width=True,
+            hide_index=True
+        )
+        
+        st.caption("Nota: La Mediana è spesso più affidabile della Media perché non viene influenzata da singoli ordini eccezionalmente alti o bassi.")
         else:
             st.warning("Dati insufficienti per generare i grafici.")
 

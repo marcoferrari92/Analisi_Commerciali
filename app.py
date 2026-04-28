@@ -229,8 +229,8 @@ def plot_distribuzione_ordini(df_target):
     fig.update_traces(
         selector=dict(type='box'), 
         boxpoints='all', 
-        jitter=0.5, 
-        pointpos=-1.8
+        jitter=1, 
+        pointpos=0
     )
 
     st.plotly_chart(fig, use_container_width=True)

@@ -156,7 +156,6 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
         hole=0.4,
         color=names_col,
         color_discrete_map=colori_personalizzati,
-        # Forziamo l'ordine basato sulla lista sopra
         category_orders={names_col: ordine_fisso} 
     )
 
@@ -170,7 +169,6 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
         texttemplate=testo_etichette,
         pull=[0.05] * len(data),
         marker=dict(line=dict(color='#FFFFFF', width=2)),
-        # Disabilita il riordinamento automatico basato sulla grandezza delle fette
         sort=False 
     )
 
@@ -181,11 +179,10 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
             y=1.02, 
             xanchor="center", 
             x=0.5,
-            # Forza la legenda a seguire l'ordine della lista
             traceorder="normal" 
         ),
         margin=dict(t=100, b=0, l=0, r=0),
-        title_x=0.5
+        title_x=0
     )
     
     st.plotly_chart(fig, use_container_width=True)

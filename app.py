@@ -33,29 +33,6 @@ def carica_dati_commerciali(file):
         return None
 
 
-@st.cache_data
-def caricamento_ordini(file):
-    try:
-        # Caricamento con gestione encoding e delimitatori
-        df = pd.read_csv(file, sep=';', encoding='latin1')
-        if df.shape[1] <= 1:
-            file.seek(0)
-            df = pd.read_csv(file, sep=',', encoding='utf-8')
-        
-        df.columns = df.columns.str.strip()
-        
-        # Conversione date
-        if 'Data Evento' in df.columns:
-            df['Data Evento'] = pd.to_datetime(df['Data Evento'], dayfirst=True, errors='coerce')
-            df = df.dropna(subset=['Data Evento'])
-            
-        return df
-        
-    except Exception as e:
-        st.error(f"Errore caricamento: {e}")
-        return None
-
-
 
 def mostra_periodo_analisi(df):
     date_valide = df['Data Evento'].dropna()
@@ -68,26 +45,26 @@ def mostra_periodo_analisi(df):
 # --- MAIN APP ---
 
 
-st.subheader("Analisi Eventi")
+st.subheader("Caricamento")
 col1, col2 = st.columns(2)
 with col1:
     st.write("### Eventi")
-    uploaded_events = st.file_uploader("Carica file eventi (forato CSV)", type="csv")
+    uploaded_file_events = st.file_uploader("Carica file eventi (formato CSV)", type="csv")
 
 with col2:
     st.write("### Ordini")
-    uploaded_orders = st.file_uploader("Carica file ordini (forato CSV)", type="csv")
+    uploaded_file_orders = st.file_uploader("Carica file ordini e preventivi (formato CSV)", type="csv")
 
 
 
-if uploaded_orders:
-    df_orders = carica_dati_commerciali(uploaded_file)
+if uploaded_file_orders:
+    df_orders = carica_dati_commerciali(uploaded_file_orders)
 
 
 
 
-if uploaded_file:
-    df_events = carica_dati_commerciali(uploaded_events)
+if uploaded_file_events:
+    df_events = carica_dati_commerciali(uploaded_file_events)
     
     if df is not None:
         

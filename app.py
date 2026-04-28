@@ -85,8 +85,10 @@ def data_filtering(period, df):
     return df_filtrato
 
 
-#***********************************************************************
-# --- MAIN APP ---
+# ***********************************************************************
+#                                 MAIN APP
+# ***********************************************************************
+
 
 # Inizializzazione
 df_events = None
@@ -120,9 +122,9 @@ with col2:
         date_min, date_max = data_range(df_orders)
 
 
-# ****************
+# ***************
 # FILTRO PERIODO 
-# ****************
+# ***************
 
 # Eseguiamo il filtro solo se almeno un file è caricato
 if date_min and date_max:
@@ -145,6 +147,19 @@ if date_min and date_max:
 else:
     st.info("Carica almeno un file per attivare i filtri temporali.")
 st.divider()
+
+
+
+# ***********************************************************************
+#                             ANALISI ORDINI 
+# ***********************************************************************
+
+
+if df_orders is not None:
+
+# ***************
+#  
+# ***************
 
 
 

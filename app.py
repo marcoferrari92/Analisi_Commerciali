@@ -348,7 +348,7 @@ if df_orders is not None:
                     data=conteggio_qty, 
                     values_col='Conteggio', 
                     names_col='Tipo Doc.', 
-                    titolo="Volume per Numero Documenti",
+                    titolo="Volume per Numero Articoli",
                     tipo="numerico"
                 )
             

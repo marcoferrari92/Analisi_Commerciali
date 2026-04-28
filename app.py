@@ -244,9 +244,8 @@ def plot_distribuzione_ordini(df_target):
                 name=stadio,
                 marker_color=colori[stadio],
                 boxpoints='all',
-                jitter=1,       # <--- IL TUO JITTER A 1.
+                jitter=1,       
                 pointpos=0,
-                marker=dict(size=4),
                 legendgroup=stadio,
                 showlegend=False,
                 orientation='h'

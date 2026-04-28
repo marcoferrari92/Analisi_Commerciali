@@ -68,8 +68,8 @@ with col2:
     st.write("#### Ordini")
     uploaded_file_orders = st.file_uploader("Carica file ordini e preventivi (formato CSV)", type="csv")
     if uploaded_file_events:
-    df_events = carica_dati_commerciali(uploaded_file_events)
-    data_range(df_events)
+        df_events = carica_dati_commerciali(uploaded_file_events)
+        data_range(df_events)
 
 
 

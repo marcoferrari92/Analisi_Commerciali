@@ -149,8 +149,7 @@ def plot_pie_ordini(df):
         st.warning("La colonna 'Tipo Doc.' sembra essere vuota.")
 
 
-import pandas as pd
-import streamlit as st
+
 
 def validazione_importi(df):
     """
@@ -267,7 +266,7 @@ def panoramica_articoli(df):
         st.caption(f"Totale voci univoche rilevate: {len(conteggio_totale)}")
 
 
-def plot_pie_volume(df):
+def plot_pie_volumi(df):
     """
     Genera un grafico a torta basato sui volumi economici 
     delle tre categorie principali.

@@ -165,7 +165,7 @@ def panoramica_articoli(df):
     conteggio_totale = df['Oggetto'].value_counts().reset_index()
     conteggio_totale.columns = ['Oggetto', 'Assoluto']
     
-    # Calcolo della percentuale sul totale
+    # Percentuali sul totale
     totale_pezzi = conteggio_totale['Assoluto'].sum()
     conteggio_totale['Percentuale'] = (conteggio_totale['Assoluto'] / totale_pezzi * 100).round(2)
     conteggio_totale['%'] = conteggio_totale['Percentuale'].astype(str) + '%'

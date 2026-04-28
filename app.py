@@ -190,49 +190,61 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
 
 
 def plot_distribuzione_ordini(df_target):
-    """
-    Crea un istogramma raggruppato per i tre stadi con boxplot superiore.
-    """
     if df_target.empty:
-        st.warning("Nessun dato disponibile per la distribuzione.")
+        st.error("Nessun dato disponibile per la distribuzione.")
         return
 
-    # Palette colori coerente con i grafici precedenti
     colori_personalizzati = {
         "Preventivo": "#A2D2FF", 
         "Ordine Aperto": "#B4E197", 
         "Ordine": "#4E944F"
     }
 
-    # Creazione del grafico combinato
     fig = px.histogram(
         df_target, 
         x="Totale", 
         color="Tipo Doc.",
-        marginal="box", # Aggiunge il boxplot sopra l'istogramma
-        hover_data=df_target.columns,
+        marginal="box", 
+        hover_data=['Oggetto', 'Data'],
         title="Distribuzione e Dispersione Valori per Stato Documento",
-        labels={'Totale': 'Valore Economico (€)', 'count': 'Frequenza'},
-        barmode='overlay', # Sovrappone le barre per confronto diretto
+        labels={'Totale': 'Valore (€)', 'count': 'Frequenza'},
+        barmode='overlay', 
         color_discrete_map=colori_personalizzati,
         category_orders={"Tipo Doc.": ["Preventivo", "Ordine Aperto", "Ordine"]}
     )
 
-    # Pulizia estetica
-    fig.update_layout(
-        bargap=0.1, 
-        xaxis_title="Importo Documento (€)",
-        yaxis_title="Numero di Documenti",
-        legend=dict(orientation="h", yanchor="bottom", y=1.1, xanchor="center", x=0.5),
-        margin=dict(t=120)
+    # Applichiamo Jitter e PointPos SOLO ai Boxplot
+    fig.update_traces(
+        selector=dict(type='box'),
+        boxpoints='all', 
+        jitter=1, 
+        pointpos=0,
+        marker=dict(size=4) 
     )
 
     fig.update_traces(
-        selector=dict(type='box'), 
-        boxpoints='all', 
-        jitter=1, 
-        pointpos=0
+        selector=dict(type='histogram'),
+        opacity=0.6 
     )
+
+    fig.update_layout(
+        bargap=0.1, 
+        xaxis_title="Importo Documento (€)",
+        yaxis_title="Frequenza / Boxplot",
+        legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5),
+        margin=dict(t=100, b=50, l=50, r=50),
+        
+        # --- MODIFICHE PER DIMENSIONI ---
+        height=800,         
+        bargroupgap=0.1,
+        
+        # Aumentiamo la proporzione dello spazio dedicata ai boxplot (default è 0.15)
+        # 0.40 significa che il boxplot occupa il 40% dell'altezza totale
+        grid=dict(rows=2, columns=1, row_weight=[0.4, 0.6]) 
+    )
+    
+    # In alternativa al grid row_weight, Plotly Express usa spesso questo per i marginal:
+    fig.update_layout(yaxis2=dict(domain=[0.6, 1]), yaxis=dict(domain=[0, 0.55]))
 
     st.plotly_chart(fig, use_container_width=True)
     

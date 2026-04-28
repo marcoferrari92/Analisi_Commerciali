@@ -239,7 +239,11 @@ def plot_distribuzione_ordini(df_target):
     # Solo per l'ISTOGRAMMA
     fig.update_traces(
         selector=dict(type='histogram'),
-        opacity=0.6
+        opacity=0.7,
+        marker_line_width=1,        # Aggiunge un bordo alle barre per renderle visibili
+        marker_line_color="white",  # Bordo bianco per staccare le barre
+        # nbins è un suggerimento, se non basta usiamo autobinx
+        autobinx=True               # Forza Plotly a ricalcolare i bin per la scala log
     )
 
     # 3. Layout Finale con correzione assi

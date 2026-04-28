@@ -89,7 +89,7 @@ def data_filtering(period, df):
 def validazione_importi(df):
     if df is None or df.empty:
         st.error("Dataframe assente o vuoto!")
-        return
+        return None, None
 
     def valida_puro(valore):
         num = None
@@ -101,29 +101,34 @@ def validazione_importi(df):
             except ValueError:
                 num = None
 
+        # Ritorna il numero solo se è strettamente positivo
         if num is not None and num > 0:
             return num
         return None
 
-    temp_df = df.copy()
+    # 1. Creiamo il dataframe degli errori PRIMA di sovrascrivere i dati
+    # Applichiamo la funzione a una serie temporanea per identificare cosa scarteremo
+    serie_validata = df['Totale'].apply(valida_puro)
     
-    # TRUCCO: Salviamo i valori originali in una colonna di backup prima di sovrascrivere
-    temp_df['Valore_Originale'] = temp_df['Totale']
-    temp_df['Totale'] = temp_df['Totale'].apply(valida_puro)
-
-    # 1. Righe con errori (dove Totale è diventato None)
-    df_errori = temp_df[temp_df['Totale'].isna()].copy()
+    # Maschera booleana: True per le righe che NON hanno superato la validazione
+    mask_errori = serie_validata.isna()
     
-    # 2. Righe pulite
-    df_pulito = temp_df.dropna(subset=['Totale']).copy()
-    # Rimuoviamo la colonna di backup dal dataframe pulito
-    df_pulito = df_pulito.drop(columns=['Valore_Originale'])
+    # Dataset Errori: prendiamo le righe originali dal DF (così vedi il -130 vero)
+    df_errori = df[mask_errori].copy()
+    
+    # Dataset Pulito: prendiamo le righe che hanno superato il test
+    df_pulito = df[~mask_errori].copy()
+    # Aggiorniamo la colonna Totale con i valori convertiti in float
+    df_pulito['Totale'] = serie_validata[~mask_errori]
 
+    # 2. RIPORTA SEMPRE IL DATASET ERRORI (anche se vuoto, per debug)
+    st.write("### 🔍 Check Validazione Dati")
     if not df_errori.empty:
-        with st.expander(f"⚠️ Attenzione: {len(df_errori)} righe scartate", expanded=False):
-            st.warning("Importi non validi o negativi esclusi.")
-            # IMPORTANTE: Qui mostriamo 'Valore_Originale' per vedere il -130!
-            st.table(df_errori[['Data', 'Oggetto', 'Tipo Doc.', 'Valore_Originale']])
+        with st.expander(f"⚠️ Rilevati {len(df_errori)} errori o valori negativi", expanded=True):
+            st.warning("I seguenti valori sono stati rimossi perché negativi, nulli o non numerici:")
+            st.dataframe(df_errori, use_container_width=True)
+    else:
+        st.success("✅ Tutti i dati sono validi e positivi.")
 
     return df_pulito, df_errori
     

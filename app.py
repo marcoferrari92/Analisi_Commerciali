@@ -195,12 +195,11 @@ def plot_distribuzione_ordini(df_target):
         st.warning("Nessun dato disponibile.")
         return
 
-    # Filtro essenziale: il logaritmo di zero non esiste. 
-    # Usiamo 0.01 per includere eventuali valori minimi senza mandare in crash l'asse.
-    df_log = df_target[df_target['Totale'] > 0].copy()
+    # 1. Pulizia rigorosa per Scala Log: SOLO valori strettamente positivi
+    df_log = df_target[df_target['Totale'] > 0.1].copy()
     
     if df_log.empty:
-        st.error("Dati non validi per scala log (tutti i valori sono <= 0).")
+        st.error("Dati non visualizzabili in scala logaritmica (tutti i valori sono <= 0.1).")
         return
 
     colori_personalizzati = {
@@ -209,6 +208,7 @@ def plot_distribuzione_ordini(df_target):
         "Ordine": "#4E944F"
     }
 
+    # Creazione base
     fig = px.histogram(
         df_log, 
         x="Totale", 
@@ -217,43 +217,39 @@ def plot_distribuzione_ordini(df_target):
         hover_data=['Oggetto', 'Data'],
         barmode='overlay', 
         color_discrete_map=colori_personalizzati,
-        category_orders={"Tipo Doc.": ["Preventivo", "Ordine Aperto", "Ordine"]}
+        category_orders={"Tipo Doc.": ["Preventivo", "Ordine Aperto", "Ordine"]},
+        log_x=True, # Attiviamo il log direttamente nel costruttore Express
+        nbins=50
     )
 
-    # 1. Forza la dispersione dei punti nel BOXPLOT
+    # 2. Configurazione selettiva delle tracce per evitare ValueError
+    # Solo per i BOX
     fig.update_traces(
         selector=dict(type='box'),
         boxpoints='all', 
-        jitter=0.9,      # Dispersione massima
-        pointpos=0,      # Punti centrati nel corridoio
+        jitter=0.5, 
+        pointpos=0,
         marker=dict(size=4)
     )
 
-    # 2. Forza la visibilità dell'ISTOGRAMMA
+    # Solo per l'ISTOGRAMMA
     fig.update_traces(
         selector=dict(type='histogram'),
-        opacity=0.6,
-        # NON usare xbins fissi con la scala log!
-        nbins=50 # Chiediamo a Plotly di dividere in 50 parti lo spazio logaritmico
+        opacity=0.6
     )
 
-    # 3. Layout Critico
+    # 3. Layout Finale con correzione assi
     fig.update_layout(
         height=850,
         title="Distribuzione Valori (Scala Logaritmica)",
         title_x=0,
-        xaxis=dict(
-            type='log', 
-            autorange=True, # Permette al grafico di adattarsi ai dati
-            dtick=1,        # Mostra 10, 100, 1000...
-            minor=dict(showgrid=True) # Mostra le linee sottili tra le decadi
-        ),
-        # yaxis = Istogramma (basso), yaxis2 = Boxplot (alto)
-        yaxis=dict(domain=[0, 0.45], title="Numero Documenti"), 
-        yaxis2=dict(domain=[0.50, 1], title="Boxplot"),
+        # Definiamo i domini Y separatamente per dare spazio
+        yaxis=dict(domain=[0, 0.45], title="Frequenza"), 
+        yaxis2=dict(domain=[0.55, 1], title="Boxplot"),
+        xaxis=dict(title="Importo Documento (€) - Log Scale"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
         margin=dict(t=100, b=50, l=50, r=50),
-        bargap=0.01 # Spazio minimo tra le barre per renderle visibili
+        bargap=0.02
     )
 
     st.plotly_chart(fig, use_container_width=True)

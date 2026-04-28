@@ -372,8 +372,10 @@ if df_orders is not None:
                     titolo="Volume per Valore Economico",
                     tipo="soldi"
                 )
+        else:
+            st.warning("Dati insufficienti per generare i grafici.")
 
-            
+        
         # --- PARTE SOTTO: TABELLA RIASSUNTIVA COMPLETA ---
 
         st.write("")
@@ -420,8 +422,7 @@ if df_orders is not None:
         )
         
         st.caption("Nota: La Mediana è spesso più affidabile della Media perché non viene influenzata da singoli ordini eccezionalmente alti o bassi.")
-        else:
-            st.warning("Dati insufficienti per generare i grafici.")
+        
 
 
 

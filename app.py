@@ -134,13 +134,19 @@ def validazione_importi(df):
     
 
 def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
-
-    # Mappatura colori
-    colori_stadi = {
-        "Preventivo": "#A2D2FF",    # Azzurro pastello
-        "Ordine Aperto": "#B4E197", # Verde chiaro/menta
-        "Ordine": "#4E944F"         # Verde bosco pastello
+    """
+    Renderizza un grafico a torta con stile fisso e ordine orario costante.
+    """
+    
+    # Palette Pastello
+    colori_personalizzati = {
+        "Preventivo": "#A2D2FF",    # Azzurro
+        "Ordine Aperto": "#B4E197", # Verde chiaro
+        "Ordine": "#4E944F"         # Verde bosco
     }
+
+    # Ordine desiderato in senso orario
+    ordine_fisso = ["Preventivo", "Ordine Aperto", "Ordine"]
 
     fig = px.pie(
         data, 
@@ -149,26 +155,37 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
         title=titolo,
         hole=0.4,
         color=names_col,
-        color_discrete_map=colori_stadi
+        color_discrete_map=colori_personalizzati,
+        # Forziamo l'ordine basato sulla lista sopra
+        category_orders={names_col: ordine_fisso} 
     )
 
-    # Definizione delle etichette (Label)
     if tipo == "soldi":
-        # Formato Valuta: Nome + Percentuale + € Valore
         testo_etichette = '%{label}<br>%{percent}<br>€%{value:,.2f}'
     else:
-        # Formato Assoluto: Nome + Percentuale + N. Pezzi
         testo_etichette = '%{label}<br>%{percent}<br>N. %{value}'
 
     fig.update_traces(
         textinfo='percent+value+label',
         texttemplate=testo_etichette,
-        pull=[0.05] * len(data) # Sempre esploso
+        pull=[0.05] * len(data),
+        marker=dict(line=dict(color='#FFFFFF', width=2)),
+        # Disabilita il riordinamento automatico basato sulla grandezza delle fette
+        sort=False 
     )
 
     fig.update_layout(
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-        margin=dict(t=100, b=0, l=0, r=0)
+        legend=dict(
+            orientation="h", 
+            yanchor="bottom", 
+            y=1.02, 
+            xanchor="center", 
+            x=0.5,
+            # Forza la legenda a seguire l'ordine della lista
+            traceorder="normal" 
+        ),
+        margin=dict(t=100, b=0, l=0, r=0),
+        title_x=0.5
     )
     
     st.plotly_chart(fig, use_container_width=True)

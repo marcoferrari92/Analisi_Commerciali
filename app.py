@@ -227,11 +227,7 @@ def plot_distribuzione_ordini(df_target):
     # 2. Trasparenza solo agli ISTOGRAMMI
     fig.update_traces(
         selector=dict(type='histogram'),
-        opacity=0.6,
-        xbins=dict(
-            start=0,      
-            size=100      
-        )
+        opacity=0.6
     )
 
     # 3. Gestione Layout (Altezza e Spazi)
@@ -239,6 +235,10 @@ def plot_distribuzione_ordini(df_target):
         height=850, # Altezza generosa
         title_x=0,
         bargap=0.1,
+        xaxis=dict(
+            type='log', 
+            title="Importo Documento (€)"
+        ),
         # Asse Y (Istogramma) e Y2 (Boxplot) separati correttamente
         yaxis=dict(domain=[0, 0.45]),     # 45% spazio sotto
         yaxis2=dict(domain=[0.52, 1]),    # 48% spazio sopra per i punti

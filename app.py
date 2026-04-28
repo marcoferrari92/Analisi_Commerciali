@@ -179,7 +179,8 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
             y=1.02, 
             xanchor="center", 
             x=0.5,
-            traceorder="normal" 
+            traceorder="normal",
+            height=800
         ),
         margin=dict(t=100, b=0, l=0, r=0),
         title_x=0.3

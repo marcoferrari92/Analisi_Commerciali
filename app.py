@@ -91,44 +91,52 @@ def validazione_importi(df):
         st.error("Dataframe assente o vuoto!")
         return None, None
 
-    def valida_puro(valore):
-        num = None
-        if isinstance(valore, (int, float)) and not pd.isna(valore):
-            num = float(valore)
-        elif isinstance(valore, str):
-            try:
-                num = float(valore)
-            except ValueError:
-                num = None
+    # FORZIAMO la colonna Totale a stringa per pulirla da ogni residuo
+    df['Totale_TMP'] = df['Totale'].astype(str).str.replace(' ', '').str.replace(',', '.')
 
-        # Ritorna il numero solo se è strettamente positivo
-        if num is not None and num > 0:
-            return num
-        return None
+    def valida_puro(valore_str):
+        try:
+            # Pulizia estrema: tieni solo numeri, punto e segno meno
+            pulito = re.sub(r'[^0-9.-]', '', valore_str)
+            if not pulito: return None
+            
+            num = float(pulito)
+            
+            # Se è <= 0 lo scartiamo (ritorna None -> finisce in mask_errori)
+            if num > 0:
+                return num
+            return None
+        except:
+            return None
 
-    # 1. Creiamo il dataframe degli errori PRIMA di sovrascrivere i dati
-    # Applichiamo la funzione a una serie temporanea per identificare cosa scarteremo
-    serie_validata = df['Totale'].apply(valida_puro)
+    # 1. Calcoliamo la serie validata
+    serie_validata = df['Totale_TMP'].apply(valida_puro)
     
-    # Maschera booleana: True per le righe che NON hanno superato la validazione
+    # 2. Creiamo la maschera degli errori: se è nullo dopo la pulizia O se il valore originale era problematico
     mask_errori = serie_validata.isna()
-    
-    # Dataset Errori: prendiamo le righe originali dal DF (così vedi il -130 vero)
-    df_errori = df[mask_errori].copy()
-    
-    # Dataset Pulito: prendiamo le righe che hanno superato il test
-    df_pulito = df[~mask_errori].copy()
-    # Aggiorniamo la colonna Totale con i valori convertiti in float
-    df_pulito['Totale'] = serie_validata[~mask_errori]
 
-    # 2. RIPORTA SEMPRE IL DATASET ERRORI (anche se vuoto, per debug)
-    st.write("### 🔍 Check Validazione Dati")
-    if not df_errori.empty:
-        with st.expander(f"⚠️ Rilevati {len(df_errori)} errori o valori negativi", expanded=True):
-            st.warning("I seguenti valori sono stati rimossi perché negativi, nulli o non numerici:")
-            st.dataframe(df_errori, use_container_width=True)
+    df_errori = df[mask_errori].copy()
+    df_pulito = df[~mask_errori].copy()
+    
+    # Assegniamo i valori numerici puliti al df_pulito
+    df_pulito['Totale'] = serie_validata[~mask_errori]
+    
+    # Pulizia colonne temporanee
+    df_pulito = df_pulito.drop(columns=['Totale_TMP'])
+    df_errori = df_errori.drop(columns=['Totale_TMP'])
+
+    # --- DEBUG FORZATO ---
+    st.write("### 🔍 Debug Validazione")
+    st.write(f"Righe totali caricate: {len(df)}")
+    st.write(f"Righe identificate come errore: {len(df_errori)}")
+
+    if len(df_errori) > 0:
+        # expanded=True FORZA l'apertura
+        with st.expander("⚠️ TABELLA ERRORI RILEVATI", expanded=True):
+            st.error(f"Trovati {len(df_errori)} valori non validi o negativi!")
+            st.dataframe(df_errori)
     else:
-        st.success("✅ Tutti i dati sono validi e positivi.")
+        st.success("Nessun errore rilevato nella colonna Totale.")
 
     return df_pulito, df_errori
     

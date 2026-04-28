@@ -226,12 +226,11 @@ def plot_distribuzione_ordini(df_target):
         margin=dict(t=120)
     )
 
-    # Opacità per vedere le sovrapposizioni
     fig.update_traces(
-        opacity=0.7,
+        selector=dict(type='box'), 
         boxpoints='all', 
-        jitter=1, 
-        pointpos=0 
+        jitter=0.5, 
+        pointpos=-1.8
     )
 
     st.plotly_chart(fig, use_container_width=True)

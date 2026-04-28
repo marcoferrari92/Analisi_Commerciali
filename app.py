@@ -6,10 +6,6 @@ import re
 st.set_page_config(layout="wide")
 
 @st.cache_data
-import pandas as pd
-import re
-import streamlit as st
-
 def carica_dati_commerciali(file):
     try:
         # 1. Caricamento flessibile

@@ -195,27 +195,34 @@ def plot_distribuzione_ordini(df_target):
         st.warning("Nessun dato disponibile per la distribuzione.")
         return
 
+    # Filtro di sicurezza: la scala logaritmica non accetta valori <= 0
+    df_log = df_target[df_target['Totale'] > 0].copy()
+    
+    if df_log.empty:
+        st.error("Impossibile mostrare scala log: tutti i valori sono <= 0.")
+        return
+
     colori_personalizzati = {
         "Preventivo": "#A2D2FF", 
         "Ordine Aperto": "#B4E197", 
         "Ordine": "#4E944F"
     }
 
-    # Creazione base
+    # Creazione base con marginal="box"
     fig = px.histogram(
-        df_target, 
+        df_log, 
         x="Totale", 
         color="Tipo Doc.",
         marginal="box", 
         hover_data=['Oggetto', 'Data'],
-        title="Distribuzione e Dispersione Valori per Stato Documento",
+        title="Distribuzione Valori (Scala Logaritmica)",
         labels={'Totale': 'Valore (€)', 'count': 'Frequenza'},
         barmode='overlay', 
         color_discrete_map=colori_personalizzati,
         category_orders={"Tipo Doc.": ["Preventivo", "Ordine Aperto", "Ordine"]}
     )
 
-    # 1. Applichiamo Jitter e dispersione solo ai BOX
+    # 1. Configurazione BOXPLOT (Sopra)
     fig.update_traces(
         selector=dict(type='box'),
         boxpoints='all', 
@@ -224,29 +231,32 @@ def plot_distribuzione_ordini(df_target):
         marker=dict(size=4)
     )
 
-    # 2. Trasparenza solo agli ISTOGRAMMI
+    # 2. Configurazione ISTOGRAMMA (Sotto)
     fig.update_traces(
         selector=dict(type='histogram'),
         opacity=0.6
+        # Rimosso xbins perché incompatibile con scala logaritmica
     )
 
-    # 3. Gestione Layout (Altezza e Spazi)
+    # 3. Gestione Layout e SCALA LOG
     fig.update_layout(
         height=850, 
         title_x=0,
-        bargap=0.1,
-        # Asse Y (Istogramma) e Y2 (Boxplot) separati correttamente
-        yaxis=dict(domain=[0, 0.45]),     # 45% spazio sotto
-        yaxis2=dict(domain=[0.52, 1]),    # 48% spazio sopra per i punti
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
-    )
-
-    # 4. TRUCCO PER ALLARGARE I BOXPLOT:
-    # In un grafico marginal, yaxis è l'istogramma, yaxis2 è il boxplot.
-    # Diamo il 40% dello spazio al boxplot (sopra) e il 55% all'istogramma (sotto)
-    fig.update_layout(
-        yaxis=dict(domain=[0, 0.55]),     # Istogramma (parte bassa)
-        yaxis2=dict(domain=[0.60, 1])     # Boxplot (parte alta - molto più spazio per i punti)
+        bargap=0.05, # Ridotto per migliorare la resa visiva in log scale
+        
+        # ATTIVAZIONE SCALA LOG SU X
+        xaxis=dict(
+            type='log', 
+            title="Importo Documento (€) - Scala Logaritmica",
+            dtick=1 # Mostra i tick principali sulle potenze di 10 (10, 100, 1000...)
+        ),
+        
+        # Ripartizione spazi verticali
+        yaxis=dict(domain=[0, 0.50]),     # Istogramma
+        yaxis2=dict(domain=[0.55, 1]),    # Boxplot
+        
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        margin=dict(t=100, b=50, l=50, r=50)
     )
 
     st.plotly_chart(fig, use_container_width=True)

@@ -6,32 +6,50 @@ import re
 st.set_page_config(layout="wide")
 
 @st.cache_data
+import pandas as pd
+import re
+import streamlit as st
+
 def carica_dati_commerciali(file):
     try:
-        # Caricamento con gestione encoding e delimitatori
+        # 1. Caricamento flessibile
         df = pd.read_csv(file, sep=';', encoding='latin1')
         if df.shape[1] <= 1:
             file.seek(0)
             df = pd.read_csv(file, sep=',', encoding='utf-8')
         
+        # Pulizia nomi colonne (rimuove spazi invisibili)
         df.columns = df.columns.str.strip()
         
-        # Conversione Date robusta
-        if 'Data Evento' or 'Data' in df.columns:
-            df['Data Evento'] = pd.to_datetime(df['Data Evento'], dayfirst=True, errors='coerce')
-            df = df.dropna(subset=['Data Evento'])
+        # 2. Gestione Generica della Data
+        # Cerchiamo quale colonna esiste tra quelle possibili
+        possibili_nomi_data = ['Data Evento', 'Data']
+        colonna_data = next((c for c in possibili_nomi_data if c in df.columns), None)
 
-        # Pulizia Tipo Evento
+        if colonna_data:
+            # Convertiamo la colonna trovata in datetime
+            df[colonna_data] = pd.to_datetime(df[colonna_data], dayfirst=True, errors='coerce')
+            
+            # Rinominiamo la colonna in un nome standard per il resto della app
+            # Così non dovrai cambiare il resto del codice ogni volta
+            df = df.rename(columns={colonna_data: 'Data Evento'})
+            
+            # Rimuoviamo righe dove la data è fallita (NaT)
+            df = df.dropna(subset=['Data Evento'])
+        else:
+            st.warning("Attenzione: Nessuna colonna 'Data' o 'Data Evento' trovata.")
+
+        # 3. Pulizia Tipo Evento
         if 'Tipo Evento' in df.columns:
             df['Tipo Evento'] = df['Tipo Evento'].apply(
                 lambda x: re.sub(r'[^a-zA-Z\s]', '', str(x)).strip().upper()
             )
             
         return df
+
     except Exception as e:
         st.error(f"Errore caricamento: {e}")
         return None
-
 
 
 def data_range(df):

@@ -114,9 +114,9 @@ def pie_ordini(df):
                 conteggio, 
                 values='Conteggio', 
                 names='Tipologia',
-                title="Distribuzione Totale Documenti (Tutte le tipologie)",
+                title="Panoramica preventivi, ordini aperti e chiusi",
                 hole=0.4,
-                color_discrete_sequence=px.colors.qualitative.Pastel # Palette varia e piacevole
+                color_discrete_sequence=px.colors.qualitative.Pastel
             )
             
             # Mostra etichette con nome e percentuale
@@ -129,6 +129,10 @@ def pie_ordini(df):
         
         # 3. Mini legenda testuale automatica
         with col3:
+            st.write("")
+            st.write("")
+            st.write("")
+            st.write("")
             st.table(conteggio)
     else:
         st.warning("La colonna 'Tipo Doc.' sembra essere vuota.")

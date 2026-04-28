@@ -85,7 +85,16 @@ def data_filtering(period, df):
     return df_filtrato
 
 
+#***********************************************************************
 # --- MAIN APP ---
+
+# Inizializzazione
+df_events = None
+df_orders = None
+# Limiti filtro date calendario
+date_min = None
+date_max = None
+
 
 # *****************
 # CARICAMENTO FILE 
@@ -100,7 +109,7 @@ with col1:
     uploaded_file_events = st.file_uploader("Carica file eventi (formato CSV)", type="csv")
     if uploaded_file_events:
         df_events = carica_dati_commerciali(uploaded_file_events)
-        data_range(df_events)
+        date_min, date_max = data_range(df_events)
 
 # ORDINI
 with col2:
@@ -108,7 +117,7 @@ with col2:
     uploaded_file_orders = st.file_uploader("Carica file ordini e preventivi (formato CSV)", type="csv")
     if uploaded_file_orders:
         df_orders = carica_dati_commerciali(uploaded_file_orders)
-        data_range(df_orders)
+        date_min, date_max = data_range(df_orders)
 
 
 
@@ -116,19 +125,25 @@ with col2:
 # FILTRO PERIODO 
 # ****************
 
-period = st.date_input(
-    "Filtra per intervallo:",
-    value=(data_min_file, data_max_file),
-    min_value=data_min_file,
-    max_value=data_max_file,
-    label_visibility="collapsed"
-)
+# Eseguiamo il filtro solo se almeno un file è caricato
+if date_min and date_max:
+    period = st.date_input(
+        "Seleziona date:",
+        value=(d_min_global, d_max_global),
+        min_value = date_min,
+        max_value = date_max
+    )
 
-if df_events is not None:
-    df_events = data_filtering(period, df_events)
+    if df_events is not None:
+        df_events = data_filtering(period, df_events)
 
-if df_orders is not None:
-    df_orders = data_filtering(period, df_orders)
+    if df_orders is not None:
+        df_orders = data_filtering(period, df_orders)
+        
+else:
+    st.info("Carica almeno un file per attivare i filtri temporali.")
+
+
 
 
 

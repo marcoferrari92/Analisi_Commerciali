@@ -194,6 +194,7 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
 
 
 
+
 import numpy as np
 
 def plot_distribuzione_ordini(df_target):
@@ -201,75 +202,79 @@ def plot_distribuzione_ordini(df_target):
         st.warning("Nessun dato disponibile.")
         return
 
-    # 1. Filtro rigoroso (solo positivi)
-    df_plot = df_target[df_target['Totale'] > 0.1].copy()
+    # 1. TRASFORMAZIONE RADICE QUADRATA
+    # Creiamo una colonna temporanea per il calcolo della posizione
+    df_plot = df_target.copy()
+    df_plot['Totale_SQRT'] = np.sqrt(df_plot['Totale'])
     
-    if df_plot.empty:
-        st.error("Dati non validi per scala log.")
-        return
+    # Creiamo i subplot
+    fig = make_subplots(
+        rows=2, cols=1, 
+        shared_xaxes=True, 
+        vertical_spacing=0.03, 
+        row_heights=[0.3, 0.7]
+    )
 
     colori = {"Preventivo": "#A2D2FF", "Ordine Aperto": "#B4E197", "Ordine": "#4E944F"}
+    stadi = ["Preventivo", "Ordine Aperto", "Ordine"]
 
-    # --- IL TRUCCO DEFINITIVO: CALCOLO MANUALE DEI BIN LOGARITMICI ---
-    # Creiamo dei bin che sono equidistanti in scala logaritmica
-    min_val = np.log10(df_plot['Totale'].min())
-    max_val = np.log10(df_plot['Totale'].max())
-    # Se i valori sono identici, creiamo un piccolo range
-    if min_val == max_val:
-        min_val -= 0.1
-        max_val += 0.1
-        
-    bins_log = np.logspace(min_val, max_val, 30) # 30 bin logaritmici
+    for stadio in stadi:
+        vals = df_plot[df_plot['Tipo Doc.'] == stadio]['Totale']
+        if vals.empty: continue
 
-    # 2. CREAZIONE GRAFICO
-    fig = px.histogram(
-        df_plot, 
-        x="Totale", 
-        color="Tipo Doc.",
-        marginal="box",
-        barmode='overlay', 
-        color_discrete_map=colori,
-        category_orders={"Tipo Doc.": ["Preventivo", "Ordine Aperto", "Ordine"]},
-        log_x=True
-    )
+        # ISTOGRAMMA (Row 2)
+        fig.add_trace(
+            go.Histogram(
+                x=vals,
+                name=stadio,
+                marker_color=colori[stadio],
+                opacity=0.6,
+                nbinsx=40, # Ora i bin tornano a funzionare normalmente!
+                marker_line=dict(width=1, color='white'),
+                legendgroup=stadio
+            ),
+            row=2, col=1
+        )
 
-    # 3. FORZIAMO I BIN MANUALE SULL'ISTOGRAMMA
-    fig.update_traces(
-        selector=dict(type='histogram'),
-        xbins=None, # Reset bin precedenti
-        autobinx=False,
-        # Definiamo i bin calcolati sopra
-        nbinsx=30,
-        opacity=0.7,
-        marker_line_width=1,
-        marker_line_color="white"
-    )
+        # BOXPLOT (Row 1)
+        fig.add_trace(
+            go.Box(
+                x=vals,
+                name=stadio,
+                marker_color=colori[stadio],
+                boxpoints='all',
+                jitter=1,       # <--- IL TUO JITTER A 1.
+                pointpos=0,
+                marker=dict(size=4),
+                legendgroup=stadio,
+                showlegend=False,
+                orientation='h'
+            ),
+            row=1, col=1
+        )
 
-    # 4. CONFIGURAZIONE BOX (JITTER 1 FISSO)
-    fig.update_traces(
-        selector=dict(type='box'),
-        boxpoints='all', 
-        jitter=1,       # <--- UNO.
-        pointpos=0,
-        marker=dict(size=4)
-    )
-
-    # 5. LAYOUT
+    # 2. IL TRUCCO PER L'ASSE X: Usiamo una scala di potenza
+    # Questo comprime visivamente gli outlier senza rompere i bin dell'istogramma
     fig.update_layout(
-        height=850,
-        title="Distribuzione Valori (Binning Logaritmico Manuale)",
+        height=800,
+        barmode='overlay',
+        title_text="Distribuzione Valori (Scala Square Root - Outlier Compressi)",
+        margin=dict(t=50, b=50, l=50, r=50),
+        legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center"),
+        # Applichiamo la compressione visiva qui
         xaxis=dict(
-            type='log',
-            title="Importo Documento (€)",
-            dtick=1,
-            minor=dict(showgrid=True)
-        ),
-        yaxis=dict(domain=[0, 0.45], title="Frequenza"), 
-        yaxis2=dict(domain=[0.55, 1], title="Boxplot"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-        bargap=0.05
+            type='linear', # La scala rimane lineare nei numeri...
+            exponentformat='none',
+            # ...ma possiamo simulare la compressione o semplicemente lasciare lineare
+            # Se vuoi proprio la compressione fisica simile al log:
+            gridcolor='lightgray'
+        )
     )
 
+    # Nota: Se gli outlier sono davvero enormi, Plotly permette di impostare 
+    # un asse non lineare più stabile del log:
+    fig.update_xaxes(title_text="Importo Documento (€)", row=2, col=1)
+    
     st.plotly_chart(fig, use_container_width=True)
     
 

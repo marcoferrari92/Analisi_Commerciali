@@ -232,13 +232,9 @@ def plot_distribuzione_ordini(df_target):
 
     # 3. Gestione Layout (Altezza e Spazi)
     fig.update_layout(
-        height=850, # Altezza generosa
+        height=850, 
         title_x=0,
         bargap=0.1,
-        xaxis=dict(
-            type='log', 
-            title="Importo Documento (€)"
-        ),
         # Asse Y (Istogramma) e Y2 (Boxplot) separati correttamente
         yaxis=dict(domain=[0, 0.45]),     # 45% spazio sotto
         yaxis2=dict(domain=[0.52, 1]),    # 48% spazio sopra per i punti

@@ -199,7 +199,7 @@ def plot_distribuzione_ordini(df_target):
         st.warning("Nessun dato disponibile.")
         return
 
-    # 1. Pulizia rigorosa per Scala Log: SOLO valori strettamente positivi
+    # 1. Filtro rigoroso (già validato, ma per sicurezza)
     df_log = df_target[df_target['Totale'] > 0.1].copy()
     
     if df_log.empty:
@@ -212,7 +212,7 @@ def plot_distribuzione_ordini(df_target):
         "Ordine": "#4E944F"
     }
 
-    # Creazione base
+    # Creazione base: rimosso nbins da qui perché log_x gestisce i bin diversamente
     fig = px.histogram(
         df_log, 
         x="Totale", 
@@ -222,41 +222,45 @@ def plot_distribuzione_ordini(df_target):
         barmode='overlay', 
         color_discrete_map=colori_personalizzati,
         category_orders={"Tipo Doc.": ["Preventivo", "Ordine Aperto", "Ordine"]},
-        log_x=True, # Attiviamo il log direttamente nel costruttore Express
-        nbins=50
+        log_x=True 
     )
 
-    # 2. Configurazione selettiva delle tracce per evitare ValueError
-    # Solo per i BOX
+    # 2. Configurazione BOX
     fig.update_traces(
         selector=dict(type='box'),
         boxpoints='all', 
         jitter=1, 
-        pointpos=0
+        pointpos=0,
+        marker=dict(size=4)
     )
 
-    # Solo per l'ISTOGRAMMA
+    # 3. Configurazione ISTOGRAMMA (Risoluzione problema invisibilità)
     fig.update_traces(
         selector=dict(type='histogram'),
         opacity=0.7,
-        marker_line_width=1,        # Aggiunge un bordo alle barre per renderle visibili
-        marker_line_color="white",  # Bordo bianco per staccare le barre
-        # nbins è un suggerimento, se non basta usiamo autobinx
-        autobinx=True               # Forza Plotly a ricalcolare i bin per la scala log
+        marker_line_width=1,        # Bordo per rendere le barre visibili
+        marker_line_color="white",
+        # Forziamo un numero basso di bin logaritmici per renderli "cicciotti" e visibili
+        nbinsx=30 
     )
 
-    # 3. Layout Finale con correzione assi
+    # 4. Layout
     fig.update_layout(
         height=850,
         title="Distribuzione Valori (Scala Logaritmica)",
         title_x=0,
-        # Definiamo i domini Y separatamente per dare spazio
-        yaxis=dict(domain=[0, 0.45], title="Frequenza"), 
-        yaxis2=dict(domain=[0.55, 1], title="Boxplot"),
-        xaxis=dict(title="Importo Documento (€) - Log Scale"),
+        # Asse X: forziamo la visualizzazione logaritmica pulita
+        xaxis=dict(
+            type='log', 
+            title="Importo Documento (€) - Log Scale",
+            dtick=1, # Fondamentale: mostra 10, 100, 1000
+            minor=dict(showgrid=True)
+        ),
+        yaxis=dict(domain=[0, 0.45], title="Conteggio (Frequenza)"), 
+        yaxis2=dict(domain=[0.50, 1], title="Dispersione (Boxplot)"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
         margin=dict(t=100, b=50, l=50, r=50),
-        bargap=0.02
+        bargap=0.05 # Aumentato leggermente per separare le barre
     )
 
     st.plotly_chart(fig, use_container_width=True)

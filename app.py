@@ -369,14 +369,13 @@ with col2:
         st.write("---")
         st.write("#### Analisi dati caricati")
         df_raw = carica_dati_commerciali(uploaded_file_orders)
-        date_min, date_max = data_range(df_orders)
         
         # Check importi
         if df_raw is not None:
             df_orders, df_errori = validazione_importi(df_raw)
-            
             if df_orders is not None:
                 st.write(f"✅ Validazione conclusa: {len(df_orders)} righe pulite, {len(df_errori)} scartate.")
+                date_min, date_max = data_range(df_orders)
         else:
             st.error("Il caricamento del file ha restituito None. Controlla il formato del CSV.")
 

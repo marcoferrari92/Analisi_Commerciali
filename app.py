@@ -125,6 +125,9 @@ with col2:
 # FILTRO PERIODO 
 # ****************
 
+st.divider()
+st.subheader("Periodo Analisi")
+
 # Eseguiamo il filtro solo se almeno un file è caricato
 if date_min and date_max:
     period = st.date_input(
@@ -142,7 +145,7 @@ if date_min and date_max:
         
 else:
     st.info("Carica almeno un file per attivare i filtri temporali.")
-
+st.divider()
 
 
 

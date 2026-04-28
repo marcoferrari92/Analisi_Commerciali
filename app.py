@@ -227,7 +227,11 @@ def plot_distribuzione_ordini(df_target):
     # 2. Trasparenza solo agli ISTOGRAMMI
     fig.update_traces(
         selector=dict(type='histogram'),
-        opacity=0.6
+        opacity=0.6,
+        xbins=dict(
+            start=0,      
+            size=100      
+        )
     )
 
     # 3. Gestione Layout (Altezza e Spazi)

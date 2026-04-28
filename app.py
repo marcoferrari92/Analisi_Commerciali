@@ -89,39 +89,41 @@ def data_filtering(period, df):
 def crea_funnel_commerciale(df):
     """
     Genera un grafico a imbuto basato sulla colonna 'Tipo Doc.'
+    Nomi corretti: Preventivo -> Ordine Aperto -> Ordine
     """
-    # 1. Controllo se il DataFrame è valido
     if df is None or df.empty:
         st.info("Carica i dati degli ordini per visualizzare il Funnel di conversione.")
         return
 
-    # 2. Pulizia nomi colonne (per evitare errori di spazi extra)
     df.columns = df.columns.str.strip()
 
     if 'Tipo Doc.' not in df.columns:
         st.error(f"Colonna 'Tipo Doc.' non trovata. Colonne presenti: {list(df.columns)}")
         return
 
-    # 3. Aggregazione e conteggio
-    # Definiamo l'ordine logico del processo
+    # 1. Definiamo i nuovi nomi corretti
     ordine_logico = ["Preventivo", "Ordine Aperto", "Ordine"]
     
-    # Contiamo le occorrenze
+    # 2. Aggregazione e conteggio
     conteggio_stadi = df['Tipo Doc.'].value_counts().reset_index()
     conteggio_stadi.columns = ['Stadio', 'Conteggio']
 
-    # Filtriamo solo i tipi che ci interessano e ordiniamoli
+    # Filtriamo solo i tre tipi richiesti
     conteggio_stadi = conteggio_stadi[conteggio_stadi['Stadio'].isin(ordine_logico)]
     
-    # Rendiamo la colonna categoriale per forzare l'ordine nel grafico
+    # 3. Opzionale: Rinominiamo "Ordine" in "Ordine Chiuso" solo per la legenda del grafico
+    conteggio_stadi['Stadio'] = conteggio_stadi['Stadio'].replace({'Ordine': 'Ordine (Chiuso)'})
+    ordine_grafico = ["Preventivo", "Ordine Aperto", "Ordine (Chiuso)"]
+
+    # 4. Ordinamento categoriale
     conteggio_stadi['Stadio'] = pd.Categorical(
         conteggio_stadi['Stadio'], 
-        categories=ordine_logico, 
+        categories=ordine_grafico, 
         ordered=True
     )
     conteggio_stadi = conteggio_stadi.sort_values('Stadio')
 
-    # 4. Creazione Grafico
+    # 5. Creazione Grafico
     if not conteggio_stadi.empty:
         fig_funnel = px.funnel(
             conteggio_stadi,
@@ -129,24 +131,24 @@ def crea_funnel_commerciale(df):
             y='Stadio',
             title="Analisi Conversione: dal Preventivo alla Chiusura",
             color='Stadio',
-            color_discrete_sequence=px.colors.qualitative.Prism
+            color_discrete_sequence=px.colors.qualitative.Bold
         )
         
         fig_funnel.update_traces(textposition='inside', textinfo='value+percent initial')
         
-        # Visualizzazione
         st.plotly_chart(fig_funnel, use_container_width=True)
         
-        # Calcolo conversione rapida
+        # 6. Calcolo conversione (usando i nuovi nomi)
         try:
             prev = conteggio_stadi.loc[conteggio_stadi['Stadio'] == 'Preventivo', 'Conteggio'].values[0]
-            chiusi = conteggio_stadi.loc[conteggio_stadi['Stadio'] == 'Ordine Chiuso', 'Conteggio'].values[0]
+            # Cerchiamo il valore per lo stadio finale rinominato
+            chiusi = conteggio_stadi.loc[conteggio_stadi['Stadio'] == 'Ordine (Chiuso)', 'Conteggio'].values[0]
             tasso = (chiusi / prev) * 100
-            st.caption(f"🎯 **Tasso di conversione totale:** {tasso:.1f}% dei preventivi si trasforma in Ordine Chiuso.")
-        except:
+            st.caption(f"🎯 **Tasso di conversione:** {tasso:.1f}% dei preventivi è diventato un Ordine definitivo.")
+        except Exception:
             pass
     else:
-        st.warning("Nessun dato trovato per gli stadi: Preventivo, Ordine Aperto, Ordine Chiuso.")
+        st.warning("Nessun dato trovato per: Preventivo, Ordine Aperto, Ordine.")
 
 
 # ***********************************************************************

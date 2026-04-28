@@ -365,9 +365,6 @@ with col2:
     uploaded_file_orders = st.file_uploader("Carica file ordini e preventivi (formato CSV)", type="csv")
     
     if uploaded_file_orders:
-
-        st.write("---")
-        st.write("#### Analisi dati caricati")
         df_raw = carica_dati_commerciali(uploaded_file_orders)
         
         # Check importi
@@ -375,16 +372,19 @@ with col2:
             df_orders, df_errori = validazione_importi(df_raw)
             if df_orders is not None:
                 st.write(f"✅ Validazione conclusa: {len(df_orders)} righe pulite, {len(df_errori)} scartate.")
-                date_min, date_max = data_range(df_orders)
         else:
             st.error("Il caricamento del file ha restituito None. Controlla il formato del CSV.")
 
+        # Range date
+        date_min, date_max = data_range(df_orders)
+        
 
 # ***************
 # FILTRO PERIODO 
 # ***************
 
 # Eseguiamo il filtro solo se almeno un file è caricato
+
 if date_min and date_max:
 
     with col3:

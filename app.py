@@ -296,7 +296,6 @@ st.write("")
 
 if df_orders is None or df.empty:
         st.error("Dataframe assente o vuoto!")
-        return
 else:
     
     # ***************

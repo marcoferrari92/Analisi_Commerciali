@@ -189,6 +189,7 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
     st.plotly_chart(fig, use_container_width=True)
 
 
+
 def plot_distribuzione_ordini(df_target):
     if df_target.empty:
         st.warning("Nessun dato disponibile per la distribuzione.")
@@ -231,17 +232,13 @@ def plot_distribuzione_ordini(df_target):
 
     # 3. Gestione Layout (Altezza e Spazi)
     fig.update_layout(
-        height=800, # Allunghiamo in verticale
+        height=850, # Altezza generosa
+        title_x=0,
         bargap=0.1,
-        title_x=0,  # Titolo a sinistra
-        legend=dict(
-            orientation="h", 
-            yanchor="bottom", 
-            y=1.02, 
-            xanchor="center", 
-            x=0.5
-        ),
-        margin=dict(t=100, b=50, l=50, r=50)
+        # Asse Y (Istogramma) e Y2 (Boxplot) separati correttamente
+        yaxis=dict(domain=[0, 0.45]),     # 45% spazio sotto
+        yaxis2=dict(domain=[0.52, 1]),    # 48% spazio sopra per i punti
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
     )
 
     # 4. TRUCCO PER ALLARGARE I BOXPLOT:

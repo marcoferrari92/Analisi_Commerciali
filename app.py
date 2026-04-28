@@ -194,69 +194,79 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
 
 
 
+import numpy as np
+
 def plot_distribuzione_ordini(df_target):
     if df_target.empty:
         st.warning("Nessun dato disponibile.")
         return
 
-    # 1. Pulizia dati
-    df_log = df_target[df_target['Totale'] > 0].copy()
+    # 1. Filtro rigoroso (solo positivi)
+    df_plot = df_target[df_target['Totale'] > 0.1].copy()
     
-    if df_log.empty:
-        st.error("Dati non visualizzabili in scala logaritmica (valori <= 0).")
+    if df_plot.empty:
+        st.error("Dati non validi per scala log.")
         return
 
-    colori_personalizzati = {
-        "Preventivo": "#A2D2FF", 
-        "Ordine Aperto": "#B4E197", 
-        "Ordine": "#4E944F"
-    }
+    colori = {"Preventivo": "#A2D2FF", "Ordine Aperto": "#B4E197", "Ordine": "#4E944F"}
 
-    # Creazione base
+    # --- IL TRUCCO DEFINITIVO: CALCOLO MANUALE DEI BIN LOGARITMICI ---
+    # Creiamo dei bin che sono equidistanti in scala logaritmica
+    min_val = np.log10(df_plot['Totale'].min())
+    max_val = np.log10(df_plot['Totale'].max())
+    # Se i valori sono identici, creiamo un piccolo range
+    if min_val == max_val:
+        min_val -= 0.1
+        max_val += 0.1
+        
+    bins_log = np.logspace(min_val, max_val, 30) # 30 bin logaritmici
+
+    # 2. CREAZIONE GRAFICO
     fig = px.histogram(
-        df_log, 
+        df_plot, 
         x="Totale", 
         color="Tipo Doc.",
-        marginal="box", 
-        hover_data=['Oggetto', 'Data'],
+        marginal="box",
         barmode='overlay', 
-        color_discrete_map=colori_personalizzati,
+        color_discrete_map=colori,
         category_orders={"Tipo Doc.": ["Preventivo", "Ordine Aperto", "Ordine"]},
-        log_x=True # Gestisce la scala logaritmica internamente per tutti i marginali
+        log_x=True
     )
 
-    # 2. Configurazione BOX (JITTER A 1 FISSO)
+    # 3. FORZIAMO I BIN MANUALE SULL'ISTOGRAMMA
+    fig.update_traces(
+        selector=dict(type='histogram'),
+        xbins=None, # Reset bin precedenti
+        autobinx=False,
+        # Definiamo i bin calcolati sopra
+        nbinsx=30,
+        opacity=0.7,
+        marker_line_width=1,
+        marker_line_color="white"
+    )
+
+    # 4. CONFIGURAZIONE BOX (JITTER 1 FISSO)
     fig.update_traces(
         selector=dict(type='box'),
         boxpoints='all', 
-        jitter=1,       
+        jitter=1,       # <--- UNO.
         pointpos=0,
         marker=dict(size=4)
     )
 
-    # 3. Configurazione ISTOGRAMMA
-    fig.update_traces(
-        selector=dict(type='histogram'),
-        opacity=0.7,
-        marker_line_width=1,        
-        marker_line_color="white"
-    )
-
-    # 4. Layout (Senza ridefinire type='log' per non rompere i box plot)
+    # 5. LAYOUT
     fig.update_layout(
         height=850,
-        title="Distribuzione Valori (Scala Logaritmica)",
-        title_x=0,
+        title="Distribuzione Valori (Binning Logaritmico Manuale)",
         xaxis=dict(
-            title="Importo Documento (€) - Log Scale",
-            dtick=1, 
+            type='log',
+            title="Importo Documento (€)",
+            dtick=1,
             minor=dict(showgrid=True)
         ),
-        # yaxis = Istogramma (basso), yaxis2 = Boxplot (alto)
         yaxis=dict(domain=[0, 0.45], title="Frequenza"), 
         yaxis2=dict(domain=[0.55, 1], title="Boxplot"),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-        margin=dict(t=100, b=50, l=50, r=50),
         bargap=0.05
     )
 

@@ -336,19 +336,18 @@ st.write("")
 if df_orders is not None: 
     
     # ************
-    #   PANORAMICA
+    #  PANORAMICA
     # ************
     
-    # 1. Filtriamo il dataframe sugli stadi_target
-    stadi_target = ["Preventivo", "Ordine Aperto", "Ordine"]
-    df_target = df_orders[df_orders['Tipo Doc.'].isin(stadi_target)]
+    # 1. Filtriamo il dataframe sui tre stadi: 
+    # preventivo, ordine aperto e ordine chiuso
+    stadi_target  = ["Preventivo", "Ordine Aperto", "Ordine"]
+    df_target     = df_orders[df_orders['Tipo Doc.'].isin(stadi_target)]
     
-    # 2. Aggregazione Quantità (Rinominiamo subito le colonne per la funzione)
-    conteggio_qty = df_target['Tipo Doc.'].value_counts().reset_index()
-    conteggio_qty.columns = ['Tipo Doc.', 'Conteggio']  # Usiamo 'Tipo Doc.' per coerenza colori
-    
-    # 3. Aggregazione Volumi
-    conteggio_vol = df_target.groupby('Tipo Doc.')['Totale'].sum().reset_index()
+    # 2. Aggregazione quantità e volumi
+    conteggio_qty         = df_target['Tipo Doc.'].value_counts().reset_index()
+    conteggio_qty.columns = ['Tipo Doc.', 'Conteggio'] 
+    conteggio_vol         = df_target.groupby('Tipo Doc.')['Totale'].sum().reset_index()
     
     with st.expander("📊 Panoramica Quantità e Volumi", expanded=True):
         
@@ -357,7 +356,6 @@ if df_orders is not None:
             col_sinistra, col_destra = st.columns(2)
             
             with col_sinistra:
-                # Passiamo conteggio_qty e usiamo names_col='Tipo Doc.'
                 render_grafico_torta(
                     data=conteggio_qty, 
                     values_col='Conteggio', 
@@ -367,7 +365,6 @@ if df_orders is not None:
                 )
             
             with col_destra:
-                # Passiamo conteggio_vol
                 render_grafico_torta(
                     data=conteggio_vol, 
                     values_col='Totale', 
@@ -375,6 +372,26 @@ if df_orders is not None:
                     titolo="Volume per Valore Economico",
                     tipo="soldi"
                 )
+
+            df_riepilogo = pd.merge(conteggio_qty, conteggio_vol, on='Tipo Doc.')
+            
+            # Calcoliamo il prezzo medio per tipo documento (opzionale ma utile)
+            df_riepilogo['Media (€)'] = (df_riepilogo['Totale'] / df_riepilogo['Conteggio']).round(2)
+            
+            # Ordiniamo la tabella secondo il tuo ordine preferito
+            ordine_fisso = ["Preventivo", "Ordine Aperto", "Ordine"]
+            df_riepilogo['Tipo Doc.'] = pd.Categorical(df_riepilogo['Tipo Doc.'], categories=ordine_fisso, ordered=True)
+            df_riepilogo = df_riepilogo.sort_values('Tipo Doc.')
+
+            # Visualizzazione tabella con formattazione
+            st.dataframe(
+                df_riepilogo.style.format({
+                    'Totale': '€ {:,.2f}',
+                    'Media (€)': '€ {:,.2f}'
+                }),
+                use_container_width=True,
+                hide_index=True
+            )
         else:
             st.warning("Dati insufficienti per generare i grafici.")
 

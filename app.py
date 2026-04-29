@@ -504,14 +504,18 @@ if df_orders is not None:
         
             with col1:
                 st.write("**Top 5 per Numero di Ordini**")
-                render_grafico_torta(top_5_count, 'Ordini', 'Oggetto', 'Distribuzione Quantità', tipo="numerico")
-                
+                fig_count = px.pie(top_5_count, values='Conteggio', names='Oggetto', 
+                                   hole=0.3, color_discrete_sequence=px.colors.sequential.RdBu)
+                st.plotly_chart(fig_count, use_container_width=True)
+    
             with col2:
                 st.write("**Top 5 per Volume d'Affari (€)**")
-                render_grafico_torta(top_5_revenue, 'Fatturato_Totale', 'Oggetto', 'Distribuzione Valore', tipo="soldi")
+                fig_rev = px.pie(top_5_revenue, values='Fatturato', names='Oggetto', 
+                                 hole=0.3, color_discrete_sequence=px.colors.sequential.Blues_r)
+                st.plotly_chart(fig_rev, use_container_width=True)
         
-            # 5. Tabella riassuntiva completa
-            st.divider()
+            # 5. Tabella riassuntiva
+            
             st.write("**Dettaglio Completo per Articolo**")
             
             # Ordiniamo per Fatturato Totale

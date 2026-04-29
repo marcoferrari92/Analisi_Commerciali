@@ -300,7 +300,7 @@ def plot_distribuzione_ordini(df_target):
 
 def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
-    # 1. Separa il dataframe df in due per Preventivi e Ordini (Aperti e Chiusi)
+    # 1. Separa il dataframe df in due per Preventivi e Ordini
     preventivi = df[df['Tipo Doc.'] == "Preventivo"].copy()
     ordini     = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
 
@@ -311,21 +311,38 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     data_riferimento = df['Data'].max()
 
     # 2. Matching per identificare i "Vinti"
-    # Confronta i due dataframe (preventivi vs ordini)
-    # per trovare match nel nome cliente e oggetto. 
-    merged = pd.merge(
+    # Eseguiamo un merge completo senza rimuovere i duplicati per analizzare le anomalie
+    merged_full = pd.merge(
         preventivi, 
         ordini, 
         on=['Cliente', 'Oggetto'], 
         suffixes=('_prev', '_ord')
     )
-    merged['diff_giorni'] = (merged['Data_ord'] - merged['Data_prev']).dt.days
+    merged_full['diff_giorni'] = (merged_full['Data_ord'] - merged_full['Data_prev']).dt.days
     
-    vinti_effettivi = merged[
-        (merged['diff_giorni'] >= 0) & (merged['diff_giorni'] <= finestra)
-    ].sort_values('diff_giorni').drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev'])
+    # Filtro validità temporale
+    valid_matches = merged_full[
+        (merged_full['diff_giorni'] >= 0) & (merged_full['diff_giorni'] <= finestra)
+    ]
 
-    # 3. Logica di Stato Dettagliata (per Registro, Metriche e Funnel)
+    # --- ANALISI ANOMALIE ---
+    # A. Ordini Orfani (Ordini che non hanno un preventivo corrispondente nella finestra)
+    ordini_matchati_ids = valid_matches[['Cliente', 'Oggetto', 'Data_ord']].drop_duplicates()
+    ordini_orfani = ordini.merge(
+        ordini_matchati_ids, 
+        on=['Cliente', 'Oggetto'], 
+        how='left', 
+        indicator=True
+    ).query('_merge == "left_only"').drop(columns='_merge')
+
+    # B. Preventivi con Ordini Multipli
+    counts = valid_matches.groupby(['Cliente', 'Oggetto', 'Data_prev']).size().reset_index(name='n_ordini')
+    preventivi_multipli = counts[counts['n_ordini'] > 1]
+
+    # --- LOGICA DI STATO PULITA ---
+    # Per l'analisi standard, usiamo il match più vicino nel tempo
+    vinti_effettivi = valid_matches.sort_values('diff_giorni').drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev'])
+
     def calcola_riga_stato(row):
         match = vinti_effettivi[
             (vinti_effettivi['Cliente'] == row['Cliente']) & 
@@ -351,11 +368,24 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     preventivi[['Stato', 'Durata']] = preventivi.apply(calcola_riga_stato, axis=1)
     
-    # 4. Creazione colonna specifica per i GRAFICI A TORTA (Raggruppamento Aggiudicati)
+    # 3. Grafici a Torta (Raggruppamento Aggiudicati)
     preventivi['Stato_Torta'] = preventivi['Stato'].replace({
         "Ordini Chiusi": "Aggiudicati",
         "Ordini Aperti": "Aggiudicati"
     })
+
+    # --- SEZIONE AVVISI ANOMALIE ---
+    if not preventivi_multipli.empty or not ordini_orfani.empty:
+        st.error("⚠️ Rilevate anomalie nel flusso documenti")
+        col_an1, col_an2 = st.columns(2)
+        with col_an1:
+            if not preventivi_multipli.empty:
+                with st.expander(f"🚩 {len(preventivi_multipli)} Preventivi con Ordini Multipli"):
+                    st.dataframe(preventivi_multipli, use_container_width=True, hide_index=True)
+        with col_an2:
+            if not ordini_orfani.empty:
+                with st.expander(f"❓ {len(ordini_orfani)} Ordini Orfani (Senza Preventivo)"):
+                    st.dataframe(ordini_orfani[['Data', 'Cliente', 'Oggetto', 'Totale']], use_container_width=True, hide_index=True)
 
     # --- CALCOLI PER FUNNEL ---
     df_conclusi    = preventivi[preventivi['Stato'].isin(["Ordini Chiusi", "Ordini Aperti", "Persi"])]
@@ -366,12 +396,9 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     n_chiusi       = len(preventivi[preventivi['Stato'] == "Ordini Chiusi"])
     val_chiusi     = preventivi[preventivi['Stato'] == "Ordini Chiusi"]['Totale'].sum()
 
-    # --- LAYOUT RIGA 1: GRAFICI A TORTA (Aggiudicati, In Attesa, In Scadenza, Persi) ---
+    # --- VISUALIZZAZIONE GRAFICI ---
     st.subheader("📊 Distribuzione Stati Preventivi")
-    color_map_torta = {
-        "Aggiudicati": "#4E944F", "In Scadenza": "#FFD700", 
-        "In Attesa": "#A2D2FF", "Persi": "#FF9999"
-    }
+    color_map_torta = {"Aggiudicati": "#4E944F", "In Scadenza": "#FFD700", "In Attesa": "#A2D2FF", "Persi": "#FF9999"}
 
     r1_c1, r1_c2 = st.columns(2)
     with r1_c1:
@@ -387,7 +414,6 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         fig_pie_val.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
         st.plotly_chart(fig_pie_val, use_container_width=True)
 
-    # --- LAYOUT RIGA 2: FUNNEL (Conclusi, Aperti, Chiusi) ---
     r2_c1, r2_c2 = st.columns(2)
     with r2_c1:
         fig_f_n = go.Figure(go.Funnel(
@@ -409,7 +435,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         fig_f_v.update_layout(title="Efficacia Valore (Casi Chiusi)", height=350)
         st.plotly_chart(fig_f_v, use_container_width=True)
 
-    # --- RIEPILOGO METRICHE (Dettagliato) ---
+    # --- RIEPILOGO METRICHE ---
     st.divider()
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Totale Emesso", f"€ {preventivi['Totale'].sum():,.2f}")
@@ -426,7 +452,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     val_scad = preventivi[preventivi['Stato'] == "In Scadenza"]['Totale'].sum()
     m4.metric("In Scadenza", f"{n_scad} Doc", f"€ {val_scad:,.2f}", delta_color="inverse")
 
-    # --- REGISTRO FINALE (Tutti e 5 gli stati) ---
+    # --- REGISTRO FINALE ---
     with st.expander("📋 Registro Dettagliato Preventivi", expanded=True):
         df_f = preventivi[['Data', 'Cliente', 'Oggetto', 'Totale', 'Stato', 'Durata']].copy()
         df_f = df_f.rename(columns={'Data': 'Data Preventivo', 'Oggetto': 'Articolo'})

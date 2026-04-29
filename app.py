@@ -521,7 +521,7 @@ if df_orders is not None:
     
             with col2:
                 st.write("**Top 5 per Volume d'Affari (€)**")
-                fig_rev = px.pie(top_5_revenue, values='Fatturato_Totale', names='Oggetto', 
+                fig_rev = px.pie(top_5_revenue, values='Fatturato', names='Oggetto', 
                                  hole=0.3, color_discrete_sequence=px.colors.sequential.Blues_r)
                 st.plotly_chart(fig_rev, use_container_width=True)
         
@@ -530,7 +530,7 @@ if df_orders is not None:
             st.write("**Dettaglio Completo per Articolo**")
             
             # Ordiniamo per Fatturato Totale
-            df_visualizzazione = df_stats.sort_values(by='Fatturato_Totale', ascending=False)
+            df_visualizzazione = df_stats.sort_values(by='Fatturato', ascending=False)
             
             # Formattazione tabella
             st.dataframe(

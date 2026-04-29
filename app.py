@@ -311,7 +311,8 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     data_riferimento = df['Data'].max()
 
     # 2. Matching per identificare i "Vinti"
-    # Confronta i match per 
+    # Confronta i due dataframe (preventivi vs ordini)
+    # per trovare match nel nome cliente e oggetto. 
     merged = pd.merge(
         preventivi, 
         ordini, 

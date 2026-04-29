@@ -89,34 +89,41 @@ def data_filtering(period, df):
 
 
 
+
+
 def validazione_importi(df):
     if df is None or df.empty:
         st.error("Dataframe assente o vuoto!")
         return None, None
 
-    # FORZIAMO la colonna Totale a stringa per pulirla da ogni residuo
+    # --- VALIDAZIONE IMPORTI ---
     df['Totale_TMP'] = df['Totale'].astype(str).str.replace(' ', '').str.replace(',', '.')
 
     def valida_puro(valore_str):
         try:
-            # Pulizia estrema: tieni solo numeri, punto e segno meno
             pulito = re.sub(r'[^0-9.-]', '', valore_str)
             if not pulito: return None
-            
             num = float(pulito)
-            
-            # Se è <= 0 lo scartiamo (ritorna None -> finisce in mask_errori)
             if num > 0:
                 return num
             return None
         except:
             return None
 
-    # 1. Calcoliamo la serie validata
     serie_validata = df['Totale_TMP'].apply(valida_puro)
     
-    # 2. Creiamo la maschera degli errori: se è nullo dopo la pulizia O se il valore originale era problematico
-    mask_errori = serie_validata.isna()
+    # --- VALIDAZIONE TIPO DOC ---
+    # Definiamo le tipologie di articoli validi
+    tipi_ammessi = ["Preventivo", "Ordine Aperto", "Ordine"]
+    
+    # Maschera per Tipo Doc: True se il tipo NON è tra quelli ammessi
+    # Nota: usiamo .fillna('') per gestire eventuali celle vuote senza crashare
+    mask_tipo_errato = ~df['Tipo Doc.'].astype(str).isin(tipi_ammessi)
+
+    # --- CREAZIONE MASCHERE FINALI ---
+    # Un errore è tale se l'importo è nullo, NaN o negativo
+    # OPPURE se il Tipo Doc è errato (mask_tipo_errato)
+    mask_errori = serie_validata.isna() | mask_tipo_errato
 
     df_errori = df[mask_errori].copy()
     df_pulito = df[~mask_errori].copy()
@@ -130,12 +137,13 @@ def validazione_importi(df):
 
     # --- DEBUG FORZATO ---
     st.write(f"✅ File caricato: {len(df)} righe totali rilevate.")
+    
     if len(df_errori) > 0:
         with st.expander("⚠️ ERRORI RILEVATI", expanded=True):
-            st.error(f"Trovati {len(df_errori)} importi non validi o negativi!")
+            st.error(f"Trovate {len(df_errori)} righe scartate (Importo non valido o Tipo Doc non ammesso)!")
             st.dataframe(df_errori)
     else:
-        st.success("Nessun errore rilevato nella colonna Totale.")
+        st.success("Nessun errore rilevato (Tutti gli importi e i tipi documento sono validi).")
 
     return df_pulito, df_errori
     

@@ -380,7 +380,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             y=["Emessi", "Accettati", "Chiusi"],
             x=[n_tot, n_vinti, n_chiusi],
             textinfo="value+percent initial",
-            marker={"color": ["#A2D5FF", "#B4E197", "#4E944F"]}
+            marker={"color": ["#D3D3D3", "#B4E197", "#4E944F"]}
         ))
         st.plotly_chart(fig_funnel, use_container_width=True)
 

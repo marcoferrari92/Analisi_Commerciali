@@ -387,7 +387,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # --- TABELLA FINALE ---
     st.write("")
     st.write("")
-    st.expander(f"**📋 Registro**"):
+    with st.expander("📋 Registro", expanded=True):
 
         df_finale = preventivi[['Data', 'Cliente', 'Oggetto', 'Totale', 'Stato', 'Durata']].copy()
         df_finale = df_finale.rename(columns={'Data': 'Data Preventivo', 'Oggetto': 'Articolo'})

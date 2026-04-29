@@ -348,17 +348,17 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     preventivi[['Stato', 'Durata']] = preventivi.apply(calcola_riga_stato, axis=1)
 
-    # --- DATI PER IL RIEPILOGO ---
-    n_tot = len(preventivi)
-    val_tot = preventivi['Totale'].sum()
+    # --- CALCOLO BACINO REALE (Vinti + Persi) PER FUNNEL E TASSI ---
+    df_conclusi = preventivi[preventivi['Stato'].isin(["Ordine Chiuso", "Ordine Aperto", "Perso"])]
+    
+    n_conclusi = len(df_conclusi)
+    val_conclusi = df_conclusi['Totale'].sum()
     
     n_vinti = len(preventivi[preventivi['Stato'].str.contains("Ordine")])
     val_vinti = preventivi[preventivi['Stato'].str.contains("Ordine")]['Totale'].sum()
     
     n_chiusi = len(preventivi[preventivi['Stato'] == "Ordine Chiuso"])
     val_chiusi = preventivi[preventivi['Stato'] == "Ordine Chiuso"]['Totale'].sum()
-    
-    tasso_conv = (n_vinti / n_tot * 100) if n_tot > 0 else 0
 
     # --- DEFINIZIONE COLORI ---
     color_map = {
@@ -369,56 +369,60 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # --- LAYOUT GRAFICI (Griglia 2x2) ---
     st.subheader("📊 Analisi Visuale Conversioni")
     
-    # RIGA 1: TORTE
     r1_c1, r1_c2 = st.columns(2)
     with r1_c1:
         stats_n = preventivi['Stato'].value_counts().reset_index()
-        fig_pie_n = px.pie(stats_n, values='count', names='Stato', title="Esito (Quantità)", hole=0.4, color='Stato', color_discrete_map=color_map)
+        fig_pie_n = px.pie(stats_n, values='count', names='Stato', title="Esito (Quantità Totale)", hole=0.4, color='Stato', color_discrete_map=color_map)
         st.plotly_chart(fig_pie_n, use_container_width=True)
     with r1_c2:
         stats_val = preventivi.groupby('Stato')['Totale'].sum().reset_index()
-        fig_pie_val = px.pie(stats_val, values='Totale', names='Stato', title="Esito (Valore €)", hole=0.4, color='Stato', color_discrete_map=color_map)
+        fig_pie_val = px.pie(stats_val, values='Totale', names='Stato', title="Esito (Valore Totale €)", hole=0.4, color='Stato', color_discrete_map=color_map)
         fig_pie_val.update_traces(textinfo='percent', hovertemplate='€%{value:,.2f}')
         st.plotly_chart(fig_pie_val, use_container_width=True)
 
-    # RIGA 2: FUNNEL
     r2_c1, r2_c2 = st.columns(2)
     with r2_c1:
         fig_f_n = go.Figure(go.Funnel(
-            y=["Emessi", "Vinti", "Chiusi"], x=[n_tot, n_vinti, n_chiusi],
-            textinfo="value+percent initial", marker={"color": ["#D3D3D3", "#B4E197", "#4E944F"]}
+            y=["Casi Conclusi", "Vinti", "Chiusi"], 
+            x=[n_conclusi, n_vinti, n_chiusi],
+            textinfo="value+percent initial", 
+            marker={"color": ["#D3D3D3", "#B4E197", "#4E944F"]}
         ))
-        fig_f_n.update_layout(title="Funnel Quantità (N. Preventivi)", height=350)
+        fig_f_n.update_layout(title="Funnel Efficacia (N. su casi chiusi)", height=350)
         st.plotly_chart(fig_f_n, use_container_width=True)
     with r2_c2:
         fig_f_v = go.Figure(go.Funnel(
-            y=["Emessi", "Vinti", "Chiusi"], x=[val_tot, val_vinti, val_chiusi],
-            textinfo="value+percent initial", marker={"color": ["#D3D3D3", "#B4E197", "#4E944F"]}
+            y=["Volume Concluso", "Vinto", "Chiuso"], 
+            x=[val_conclusi, val_vinti, val_chiusi],
+            textinfo="value+percent initial", 
+            marker={"color": ["#D3D3D3", "#B4E197", "#4E944F"]}
         ))
-        fig_f_v.update_layout(title="Funnel Valore (Euro €)", height=350)
+        fig_f_v.update_layout(title="Funnel Efficacia (€ su casi chiusi)", height=350)
         fig_f_v.update_traces(hovertemplate="€%{value:,.2f}")
         st.plotly_chart(fig_f_v, use_container_width=True)
 
     # --- DATI DI RIEPILOGO ---
+    tasso_conv_reale_n = (n_vinti / n_conclusi * 100) if n_conclusi > 0 else 0
+    tasso_conv_reale_val = (val_vinti / val_conclusi * 100) if val_conclusi > 0 else 0
+    
     preventivi_scadenza = preventivi[preventivi['Stato'] == "In Scadenza"]
     n_scadenza = len(preventivi_scadenza)
     val_scadenza = preventivi_scadenza['Totale'].sum()
-    tasso_conv_valore = (val_vinti / val_tot * 100) if val_tot > 0 else 0
     
     st.divider()
-    st.subheader("📝 Riepilogo Performance")
+    st.subheader("📝 Riepilogo Performance (Esiti Definitivi)")
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Totale Preventivi", f"€ {val_tot:,.2f}", f"{n_tot} Articoli")
+    m1.metric("Totale Emesso", f"€ {preventivi['Totale'].sum():,.2f}", f"{len(preventivi)} Articoli")
     m2.metric("Totale Vinto (A+C)", f"€ {val_vinti:,.2f}", f"{n_vinti} Articoli")
     m3.metric(
-        label="Tasso Conversione", 
-        value=f"{tasso_conv:.1f}% (N.)", 
-        delta=f"{tasso_conv_valore:.1f}% (Valore)",
-        delta_color="normal" # "normal" lo mette verde se positivo
+        label="Tasso Conversione Reale", 
+        value=f"{tasso_conv_reale_n:.1f}% (N.)", 
+        delta=f"{tasso_conv_reale_val:.1f}% (Valore)",
+        help="Calcolato solo sui preventivi vinti o scaduti (esclude quelli in attesa/scadenza)."
     )
     m4.metric(
         label="In Scadenza", 
-        value=f"{n_scadenza} Preventivi", 
+        value=f"{n_scadenza} Articoli", 
         delta=f"€ {val_scadenza:,.2f}", 
         delta_color="inverse"
     )
@@ -428,7 +432,6 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         df_finale = preventivi[['Data', 'Cliente', 'Oggetto', 'Totale', 'Stato', 'Durata']].copy()
         df_finale = df_finale.rename(columns={'Data': 'Data Preventivo', 'Oggetto': 'Articolo'})
         
-        # Priority sort: Scadenza -> Vinti -> Attesa -> Perso
         prio = {"In Scadenza": 0, "Ordine Aperto": 1, "Ordine Chiuso": 2, "In Attesa": 3, "Perso": 4}
         df_finale['p'] = df_finale['Stato'].map(prio)
         df_finale = df_finale.sort_values(['p', 'Data Preventivo'], ascending=[True, False]).drop(columns='p')
@@ -447,7 +450,6 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             }).map(colora_stato, subset=['Stato']),
             use_container_width=True, hide_index=True
         )
-
 
 
 

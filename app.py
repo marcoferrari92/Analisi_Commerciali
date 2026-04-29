@@ -407,12 +407,12 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     st.divider()
     st.subheader("📝 Riepilogo Performance")
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Totale Preventivi", f"€ {val_tot:,.2f}", f"{n_tot} articoli")
-    m2.metric("Totale Vinto (A+C)", f"€ {val_vinti:,.2f}", f"{n_vinti} articoli")
+    m1.metric("Totale Preventivi", f"€ {val_tot:,.2f}", f"{n_tot} Articoli")
+    m2.metric("Totale Vinto (A+C)", f"€ {val_vinti:,.2f}", f"{n_vinti} Articoli")
     m3.metric("Tasso Conversione", f"{tasso_conv:.1f}%")
     m4.metric(
         label="In Scadenza", 
-        value=f"{n_scadenza} Doc", 
+        value=f"{n_scadenza} Articoli", 
         delta=f"€ {val_scadenza:,.2f}", 
         delta_color="inverse"
     )

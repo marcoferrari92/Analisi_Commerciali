@@ -300,20 +300,16 @@ def plot_distribuzione_ordini(df_target):
 
 
 def analisi_conversione_preventivi(df, finestra):
-
-    # Assicuriamoci che la data sia in formato datetime
-    #df['Data'] = pd.to_datetime(df['Data'])
-
-    # 2. Separazione Preventivi e Ordini
+    
+    # 1. Separazione Preventivi e Ordini
     preventivi = df[df['Tipo Doc.'] == "Preventivo"].copy()
-    ordini = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
+    ordini     = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
 
-    if preventivi.empty or ordini.empty:
-        st.warning("Dati insufficienti per calcolare la conversione (mancano preventivi o ordini).")
+    if preventivi.empty:
+        st.warning("⚠️ Nessun preventivo trovato nei dati!")
         return
 
-    # 3. Logica di Matching
-    # Uniamo i preventivi agli ordini basandoci su Cliente e Oggetto
+    # 2. Logica di Matching per Tasso di Conversione
     merged = pd.merge(
         preventivi, 
         ordini, 
@@ -324,49 +320,82 @@ def analisi_conversione_preventivi(df, finestra):
     # Calcoliamo la differenza di giorni tra preventivo e ordine
     merged['diff_giorni'] = (merged['Data_ord'] - merged['Data_prev']).dt.days
 
-    # Filtriamo solo i match validi: l'ordine deve essere successivo al preventivo 
-    # e rientrare nella finestra temporale
+    # Filtro temporale: ordine deve essere successivo al preventivo entro la finestra
     match_validi = merged[
         (merged['diff_giorni'] >= 0) & 
         (merged['diff_giorni'] <= finestra)
-    ]
+    ].copy()
 
-    # Identifichiamo i preventivi unici convertiti (evitiamo doppi conteggi)
-    # Usiamo l'indice originale per marcare chi è stato convertito
-    #id_preventivi_vinti = match_validi['Data_prev'].index.unique() # O un ID univoco se presente
-    
-    # In alternativa, contiamo quanti preventivi unici (per riga) hanno trovato almeno un match
+    # Conteggi per KPI
     n_preventivi_totali = len(preventivi)
     n_preventivi_vinti = match_validi.drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev']).shape[0]
     n_persi = n_preventivi_totali - n_preventivi_vinti
-    tasso_conversione = (n_preventivi_vinti / n_preventivi_totali) * 100
+    tasso_conversione = (n_preventivi_vinti / n_preventivi_totali) * 100 if n_preventivi_totali > 0 else 0
 
-    # 4. Visualizzazione KPI
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Preventivi Totali", n_preventivi_totali)
-    col2.metric("Preventivi Convertiti", n_preventivi_vinti)
-    col3.metric("Tasso di Conversione", f"{tasso_conversione:.1f}%")
-
-    # 5. Grafico a torta della conversione
-    df_pie = pd.DataFrame({
-        "Stato": ["Vinti", "Persi/In attesa"],
-        "Conteggio": [n_preventivi_vinti, n_persi]
-    })
+    # 3. Calcolo Volumi per il Funnel Chart
+    n_aperti = len(df[df['Tipo Doc.'] == "Ordine Aperto"])
+    n_chiusi = len(df[df['Tipo Doc.'] == "Ordine"])
     
-    # Riutilizzo la tua funzione render_grafico_torta se disponibile, 
-    # o ne creo uno semplice qui
-    fig_conv = px.pie(
-        df_pie, values='Conteggio', names='Stato', 
-        title="Successo Preventivi",
-        color='Stato',
-        color_discrete_map={"Vinti": "#4E944F", "Persi/In attesa": "#FF9999"},
-        hole=0.4
-    )
-    st.plotly_chart(fig_conv, use_container_width=True)
+    val_prev = preventivi['Totale'].sum()
+    val_aperti = df[df['Tipo Doc.'] == "Ordine Aperto"]['Totale'].sum()
+    val_chiusi = df[df['Tipo Doc.'] == "Ordine"]['Totale'].sum()
 
-    # 6. Tabella dei Preventivi Vinti
+    # --- VISUALIZZAZIONE ---
+
+    # KPI in alto
+    st.subheader("🎯 Performance Conversioni")
+    kpi1, kpi2, kpi3 = st.columns(3)
+    kpi1.metric("Preventivi Totali", n_preventivi_totali)
+    kpi2.metric("Preventivi Convertiti", n_preventivi_vinti)
+    kpi3.metric("Tasso di Conversione", f"{tasso_conversione:.1f}%")
+
+    # Layout a due colonne per i grafici
+    col_left, col_right = st.columns(2)
+
+    with col_left:
+        # 4. Grafico a Torta Successo Preventivi
+        df_pie = pd.DataFrame({
+            "Stato": ["Vinti", "Persi/In attesa"],
+            "Conteggio": [n_preventivi_vinti, n_persi]
+        })
+        fig_pie = px.pie(
+            df_pie, values='Conteggio', names='Stato', 
+            title="Successo Preventivi (%)",
+            hole=0.4,
+            color='Stato',
+            color_discrete_map={"Vinti": "#4E944F", "Persi/In attesa": "#FF9999"}
+        )
+        fig_pie.update_layout(height=450, margin=dict(t=50, b=0, l=0, r=0))
+        st.plotly_chart(fig_pie, use_container_width=True)
+
+    with col_right:
+        # 5. Grafico Funnel
+        fasi = ["Preventivi", "Ordini Aperti", "Ordini"]
+        valori_n = [n_preventivi_totali, n_aperti, n_chiusi]
+        valori_euro = [val_prev, val_aperti, val_chiusi]
+
+        fig_funnel = go.Figure(go.Funnel(
+            y=fasi,
+            x=valori_n,
+            textinfo="value+percent initial",
+            marker={
+                "color": ["#A2D2FF", "#B4E197", "#4E944F"],
+                "line": {"width": [2, 2, 2], "color": "white"}
+            },
+            connector={"line": {"color": "gray", "width": 1, "dash": "dot"}},
+            customdata=valori_euro,
+            hovertemplate="<b>%{y}</b><br>N. Doc: %{value}<br>Volume: €%{customdata:,.2f}<extra></extra>"
+        ))
+        fig_funnel.update_layout(
+            title="Funnel Documenti (N.)",
+            height=450, 
+            margin=dict(t=50, b=0, l=0, r=0)
+        )
+        st.plotly_chart(fig_funnel, use_container_width=True)
+
+    # 6. Tabella di dettaglio
     if not match_validi.empty:
-        with st.expander("Dettaglio Preventivi Convertiti"):
+        with st.expander("🔍 Dettaglio Preventivi Convertiti (Vinti)"):
             tabella_vinti = match_validi[[
                 'Cliente', 'Oggetto', 'Data_prev', 'Data_ord', 'diff_giorni', 'Totale_ord'
             ]].rename(columns={
@@ -375,7 +404,11 @@ def analisi_conversione_preventivi(df, finestra):
                 'Totale_ord': 'Valore Ordine (€)',
                 'diff_giorni': 'Giorni impiegati'
             })
-            st.dataframe(tabella_vinti.style.format({'Valore Ordine (€)': '{:,.2f}'}), use_container_width=True)
+            st.dataframe(
+                tabella_vinti.style.format({'Valore Ordine (€)': '{:,.2f}'}), 
+                use_container_width=True, 
+                hide_index=True
+            )
 
 
 

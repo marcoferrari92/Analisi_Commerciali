@@ -301,131 +301,115 @@ def plot_distribuzione_ordini(df_target):
 
 
 def analisi_conversione_preventivi(df, finestra):
-    """
-    Analizza la conversione dei preventivi seguendo il loro ciclo di vita.
-    Il funnel mostra: Preventivi -> Convertiti (Aperti/Chiusi) -> Chiusi definitivi.
-    """
-    # 1. Separazione Preventivi e Ordini
+    
+    # 1. Preparazione Dataframe (preventivi e ordini)
     preventivi = df[df['Tipo Doc.'] == "Preventivo"].copy()
-    ordini = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
+    ordini     = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
 
     if preventivi.empty:
-        st.warning("Nessun preventivo trovato nei dati filtrati per l'analisi di conversione.")
+        st.warning("⚠️ Nessun preventivo trovato!")
         return
 
-    # 2. Logica di Matching (Il "ponte" tra preventivo e ordine)
-    # Uniamo per Cliente e Oggetto
+    # Data di riferimento (l'ultima data disponibile nel dataset)
+    data_riferimento = df['Data'].max()
+
+    # 2. Matching per identificare i "Vinti"
     merged = pd.merge(
         preventivi, 
         ordini, 
         on=['Cliente', 'Oggetto'], 
         suffixes=('_prev', '_ord')
     )
-
-    # Calcolo differenza giorni
     merged['diff_giorni'] = (merged['Data_ord'] - merged['Data_prev']).dt.days
-
-    # Filtro: l'ordine deve essere successivo al preventivo entro la finestra scelta
-    match_validi = merged[
-        (merged['diff_giorni'] >= 0) & 
-        (merged['diff_giorni'] <= finestra)
-    ].copy()
-
-    # --- CALCOLO DATI PER FUNNEL (BASATO SUI PREVENTIVI) ---
     
-    # Step 1: Preventivi Totali
-    n_prev_tot = len(preventivi)
-    val_prev_tot = preventivi['Totale'].sum()
+    # Match validi (Vinti)
+    vinti_indices = merged[
+        (merged['diff_giorni'] >= 0) & (merged['diff_giorni'] <= finestra)
+    ]['Data_prev'].index.unique() # Usiamo l'indice per tracciarli
 
-    # Step 2: Preventivi che hanno generato ALMENO un ordine (Aperto o Chiuso)
-    # Rimuoviamo i duplicati per contare il preventivo una sola volta anche se ha più match
-    vinti_df = match_validi.drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev'])
-    n_vinti = len(vinti_df)
-    val_vinti = vinti_df['Totale_prev'].sum()
+    # Creiamo una colonna di stato nel DF preventivi
+    # Inizializziamo tutti come 'In Attesa' o 'Perso'
+    preventivi['Stato_Analisi'] = "In Attesa"
+    
+    # Identifichiamo i vinti (usando un set di chiavi Cliente-Oggetto-Data per sicurezza)
+    match_vinti_keys = merged[
+        (merged['diff_giorni'] >= 0) & (merged['diff_giorni'] <= finestra)
+    ][['Cliente', 'Oggetto', 'Data_prev']].drop_duplicates()
+    
+    # Funzione per marcare lo stato
+    def determina_stato(row):
+        # Verifica se è vinto
+        is_vinto = not match_vinti_keys[
+            (match_vinti_keys['Cliente'] == row['Cliente']) & 
+            (match_vinti_keys['Oggetto'] == row['Oggetto']) & 
+            (match_vinti_keys['Data_prev'] == row['Data'])
+        ].empty
+        
+        if is_vinto:
+            return "Vinto"
+        
+        # Se non è vinto, controlliamo se è scaduto o in attesa
+        giorni_passati = (data_riferimento - row['Data']).days
+        if giorni_passati > finestra:
+            return "Perso (Scaduto)"
+        else:
+            return "In Attesa"
 
-    # Step 3: Preventivi che sono diventati specificamente "Ordine" (Chiusi)
-    chiusi_def_df = match_validi[match_validi['Tipo Doc._ord'] == "Ordine"].drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev'])
-    n_chiusi = len(chiusi_def_df)
-    val_chiusi = chiusi_def_df['Totale_prev'].sum()
+    preventivi['Stato_Analisi'] = preventivi.apply(determina_stato, axis=1)
 
-    # Calcolo Tasso Conversione Finale
-    tasso_conv = (n_vinti / n_prev_tot * 100) if n_prev_tot > 0 else 0
-    n_persi = n_prev_tot - n_vinti
+    # 3. Conteggi per i grafici
+    stats_stato = preventivi['Stato_Analisi'].value_counts().reset_index()
+    stats_stato.columns = ['Stato', 'Conteggio']
 
     # --- VISUALIZZAZIONE ---
-    st.subheader("🎯 Analisi Efficacia Preventivi")
+    st.subheader("🎯 Ciclo di Vita dei Preventivi")
     
-    # Metriche principali
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Preventivi Emessi", n_prev_tot)
-    m2.metric("Preventivi Vinti", n_vinti)
-    m3.metric("Tasso Conversione", f"{tasso_conv:.1f}%")
-
     col_left, col_right = st.columns(2)
 
     with col_left:
-        # Grafico a Torta: Successo vs Perdita
-        df_pie = pd.DataFrame({
-            "Stato": ["Vinti", "Persi / In attesa"],
-            "Conteggio": [n_vinti, n_persi]
-        })
+        # Grafico a Torta a 3 colori
         fig_pie = px.pie(
-            df_pie, values='Conteggio', names='Stato', 
-            title="Successo Preventivi (%)",
+            stats_stato, values='Conteggio', names='Stato', 
+            title="Dettaglio Esito Preventivi",
             hole=0.4,
             color='Stato',
-            color_discrete_map={"Vinti": "#4E944F", "Persi / In attesa": "#FF9999"}
+            color_discrete_map={
+                "Vinto": "#4E944F",           # Verde
+                "In Attesa": "#A2D2FF",       # Azzurro
+                "Perso (Scaduto)": "#FF9999"  # Rosso/Rosa
+            }
         )
-        fig_pie.update_layout(height=450)
         st.plotly_chart(fig_pie, use_container_width=True)
 
     with col_right:
-        # Grafico Funnel: Ciclo di vita del preventivo
-        fasi_funnel = ["Preventivi Emessi", "Portati a Ordine", "Di cui Chiusi Def."]
-        valori_n = [n_prev_tot, n_vinti, n_chiusi]
-        valori_euro = [val_prev_tot, val_vinti, val_chiusi]
+        # Funnel (Logica Preventivi -> Convertiti -> Chiusi)
+        n_prev_tot = len(preventivi)
+        n_vinti = len(preventivi[preventivi['Stato_Analisi'] == "Vinto"])
+        
+        # Per il funnel cerchiamo nel df originale quanti di quei vinti sono 'Ordine'
+        match_chiusi = merged[
+            (merged['diff_giorni'] >= 0) & 
+            (merged['diff_giorni'] <= finestra) & 
+            (merged['Tipo Doc._ord'] == "Ordine")
+        ].drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev'])
+        n_chiusi = len(match_chiusi)
 
         fig_funnel = go.Figure(go.Funnel(
-            y=fasi_funnel,
-            x=valori_n,
+            y=["Emessi", "Vinti", "Chiusi"],
+            x=[n_prev_tot, n_vinti, n_chiusi],
             textinfo="value+percent initial",
-            marker={
-                "color": ["#A2D2FF", "#B4E197", "#4E944F"],
-                "line": {"width": [2, 2, 2], "color": "white"}
-            },
-            connector={"line": {"color": "gray", "width": 1, "dash": "dot"}},
-            customdata=valori_euro,
-            hovertemplate="<b>%{y}</b><br>N. Preventivi: %{value}<br>Valore Orig.: €%{customdata:,.2f}<extra></extra>"
+            marker={"color": ["#A2D2FF", "#B4E197", "#4E944F"]}
         ))
-        
-        fig_funnel.update_layout(
-            title="Percorso di Conversione (N.)",
-            height=450,
-            margin=dict(l=150) # Spazio per le etichette a sinistra
-        )
+        fig_funnel.update_layout(title="Conversione Reale", height=450)
         st.plotly_chart(fig_funnel, use_container_width=True)
 
-    # Tabella di dettaglio
-    if not match_validi.empty:
-        with st.expander("🔍 Dettaglio Preventivi Convertiti"):
-            tabella_vinti = match_validi[[
-                'Cliente', 'Oggetto', 'Data_prev', 'Data_ord', 'Tipo Doc._ord', 'diff_giorni', 'Totale_ord'
-            ]].rename(columns={
-                'Data_prev': 'Data Prev.',
-                'Data_ord': 'Data Ord.',
-                'Tipo Doc._ord': 'Stato Finale',
-                'Totale_ord': 'Valore Ordine (€)',
-                'diff_giorni': 'Giorni'
-            })
-            
-            # Ordiniamo per i più recenti
-            tabella_vinti = tabella_vinti.sort_values(by='Data Ord.', ascending=False)
-            
-            st.dataframe(
-                tabella_vinti.style.format({'Valore Ordine (€)': '{:,.2f}'}), 
-                use_container_width=True, 
-                hide_index=True
-            )
+    # Tabella di controllo
+    with st.expander("🔍 Analisi dettagliata stati preventivi"):
+        st.dataframe(
+            preventivi[['Data', 'Cliente', 'Oggetto', 'Totale', 'Stato_Analisi']]
+            .sort_values('Data', ascending=False),
+            use_container_width=True, hide_index=True
+        )
 
 
 

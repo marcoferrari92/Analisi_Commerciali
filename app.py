@@ -532,7 +532,7 @@ if df_orders is not None:
         * **Istogramma:** Indica le fasce di prezzo dove si concentrano i tuoi volumi.
         * **Box Plot:** La linea centrale è la **Mediana**. I punti isolati sono gli **Outliers** (⚠️ ordini eccezionalmente grandi -> verificare).
         """)
-        plot_distribuzione_ordini(df_target)
+        plot_distribuzione_ordini(df_orders)
         
         
 

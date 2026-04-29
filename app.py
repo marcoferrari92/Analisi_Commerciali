@@ -671,16 +671,16 @@ if df_orders is not None:
 
     with st.expander("Analisi Conversione Preventivi", expanded=True):
         # Creiamo due colonne per i parametri
-        c1, c2 = st.columns(2)
+        c1, c2, c3, c4, c5 = st.columns([0.2, 1, 0.3, 1, 0.2])
         
-        with c1:
+        with c2:
             finestra = st.slider(
                 "Validità preventivi (giorni):", 
                 min_value=1, max_value=180, value=30, 
                 help="Giorni massimi per convertire un preventivo in ordine."
             )
         
-        with c2:
+        with c4:
             scadenza = st.number_input(
                 "Pre-avviso 'In Scadenza' (giorni):", 
                 min_value=1, max_value=30, value=7,

@@ -478,44 +478,56 @@ if df_orders is not None:
         df_ordini_vinti = df_orders[df_orders['Tipo Doc.'].isin(["Ordine Aperto", "Ordine"])].copy()
     
         if not df_ordini_vinti.empty:
-            
-            st.subheader("📊 Analisi Top 5 Articoli (Ordini + Ordini Aperti)")
-    
-            # Raggruppamento per Oggetto (Articolo)
-            # Conteggio = numero di righe; Totale = somma del fatturato
+            st.subheader("📊 Analisi Avanzata Articoli (Ordini + Ordini Aperti)")
+        
+            # 1. Raggruppamento con aggiunta della Mediana
+            # Usiamo 'Totale' per calcolare Somma e Mediana del fatturato per ogni Oggetto
             df_stats = df_ordini_vinti.groupby('Oggetto').agg(
-                Ordini     = ('Oggetto', 'count'),
-                Fatturato  = ('Totale', 'sum')
+                Ordini=('Oggetto', 'count'),
+                Fatturato_Totale=('Totale', 'sum'),
+                Mediana_Fatturato=('Totale', 'median')
             ).reset_index()
-    
-            # Top 5
+        
+            # 2. Calcolo delle Percentuali sul totale generale
+            totale_ordini_n = df_stats['Ordini'].sum()
+            totale_fatturato_val = df_stats['Fatturato_Totale'].sum()
+        
+            df_stats['% Su Tot. Ordini'] = (df_stats['Ordini'] / totale_ordini_n) * 100
+            df_stats['% Su Tot. Fatturato'] = (df_stats['Fatturato_Totale'] / totale_fatturato_val) * 100
+        
+            # 3. Preparazione Top 5 per i grafici
             top_5_count = df_stats.nlargest(5, 'Ordini')
-            top_5_revenue = df_stats.nlargest(5, 'Fatturato')
-    
-            # Grafici a torta
+            top_5_revenue = df_stats.nlargest(5, 'Fatturato_Totale')
+        
+            # 4. Visualizzazione Grafici (usando la tua funzione render_grafico_torta)
             col1, col2 = st.columns(2)
-    
+        
             with col1:
                 st.write("**Top 5 per Numero di Ordini**")
-                fig_count = px.pie(top_5_count, values='Ordini', names='Oggetto', 
-                               hole=0.3, color_discrete_sequence=px.colors.sequential.RdBu)
-                st.plotly_chart(fig_count, use_container_width=True)
-    
+                render_grafico_torta(top_5_count, 'Ordini', 'Oggetto', 'Distribuzione Quantità', tipo="numerico")
+                
             with col2:
                 st.write("**Top 5 per Volume d'Affari (€)**")
-                fig_rev = px.pie(top_5_revenue, values='Fatturato', names='Oggetto', 
-                                 hole=0.3, color_discrete_sequence=px.colors.sequential.Blues_r)
-                st.plotly_chart(fig_rev, use_container_width=True)
-    
-            # Tabella riassuntiva totale (tutti gli articoli)
-            df_stats_sorted = df_stats.sort_values(by='Fatturato', ascending=False)
+                render_grafico_torta(top_5_revenue, 'Fatturato_Totale', 'Oggetto', 'Distribuzione Valore', tipo="soldi")
+        
+            # 5. Tabella riassuntiva completa
+            st.divider()
+            st.write("**Dettaglio Completo per Articolo**")
+            
+            # Ordiniamo per Fatturato Totale
+            df_visualizzazione = df_stats.sort_values(by='Fatturato_Totale', ascending=False)
+            
+            # Formattazione tabella
             st.dataframe(
-                df_stats_sorted.style.format({'Fatturato': '{:.2f} €'}),
+                df_visualizzazione.style.format({
+                    'Fatturato_Totale': '{:.2f} €',
+                    'Mediana_Fatturato': '{:.2f} €',
+                    '% Su Tot. Ordini': '{:.1f}%',
+                    '% Su Tot. Fatturato': '{:.1f}%'
+                }),
                 use_container_width=True,
                 hide_index=True
             )
-        else:
-            st.warning("Nessun dato trovato per 'Ordine' o 'Ordine Aperto'.")
 
 
         

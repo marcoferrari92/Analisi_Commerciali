@@ -483,7 +483,7 @@ if df_orders is not None:
         st.write("")
 
         # 1. Mediana
-        mediane = df_target.groupby('Tipo Doc.')['Totale'].median().reset_index()
+        mediane = df_orders.groupby('Tipo Doc.')['Totale'].median().reset_index()
         mediane.columns = ['Tipo Doc.', 'Mediana (€)']
         
         # 2. Uniamo i dati: Quantità + Volumi + Mediane

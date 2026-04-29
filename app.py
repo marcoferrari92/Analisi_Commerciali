@@ -211,12 +211,8 @@ def plot_distribuzione_ordini(df_target):
         st.warning("Nessun dato disponibile.")
         return
 
-    # 1. TRASFORMAZIONE RADICE QUADRATA
-    # Creiamo una colonna temporanea per il calcolo della posizione
     df_plot = df_target.copy()
-    df_plot['Totale_SQRT'] = np.sqrt(df_plot['Totale'])
-    
-    # Creiamo i subplot
+
     fig = make_subplots(
         rows=2, cols=1, 
         shared_xaxes=True, 
@@ -228,8 +224,11 @@ def plot_distribuzione_ordini(df_target):
     stadi = ["Preventivo", "Ordine Aperto", "Ordine"]
 
     for stadio in stadi:
-        vals = df_plot[df_plot['Tipo Doc.'] == stadio]['Totale']
-        if vals.empty: continue
+        # Filtriamo il dataframe per lo stadio attuale
+        df_stadio = df_plot[df_plot['Tipo Doc.'] == stadio]
+        if df_stadio.empty: continue
+
+        vals = df_stadio['Totale']
 
         # ISTOGRAMMA (Row 2)
         fig.add_trace(
@@ -245,30 +244,38 @@ def plot_distribuzione_ordini(df_target):
             row=2, col=1
         )
 
-        # BOXPLOT (Row 1)
+        # BOXPLOT (Row 1) con Hover personalizzato
         fig.add_trace(
             go.Box(
                 x=vals,
                 name=stadio,
                 marker_color=colori[stadio],
                 boxpoints='all',
-                jitter=1,       
+                jitter=0.5,       
                 pointpos=0,
                 legendgroup=stadio,
                 showlegend=False,
-                orientation='h'
+                orientation='h',
+                # Passiamo i dati extra qui
+                customdata=df_stadio[['Data_Str', 'Oggetto', 'Cliente', 'Agente']],
+                # Definiamo cosa appare al passaggio del mouse
+                hovertemplate=(
+                    "<b>Importo:</b> €%{x:,.2f}<br>" +
+                    "<b>Data:</b> %{customdata[0]}<br>" +
+                    "<b>Oggetto:</b> %{customdata[1]}<br>" +
+                    "<b>Cliente:</b> %{customdata[2]}<br>" +
+                    "<b>Agente:</b> %{customdata[3]}<br>" +
+                    "<extra></extra>" # Rimuove la scritta "trace name" a lato
+                )
             ),
             row=1, col=1
         )
 
-    # 2. IL TRUCCO PER L'ASSE X: Usiamo una scala di potenza
     fig.update_layout(
         height=800,
         barmode='overlay',
-        title_text="",
         margin=dict(t=50, b=50, l=50, r=50),
         legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center"),
-        # Applichiamo la compressione visiva qui
         xaxis=dict(
             type='linear',
             exponentformat='none',

@@ -300,17 +300,17 @@ def plot_distribuzione_ordini(df_target):
 
 def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
-    # 1. Preparazione Dataframe
+    # 1. Dataframe per preventivi e ordini (aperti + chiusi)
     preventivi = df[df['Tipo Doc.'] == "Preventivo"].copy()
-    ordini = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
+    ordini     = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
 
     if preventivi.empty:
-        st.warning("Nessun preventivo trovato per l'analisi di conversione.")
+        st.warning("⚠️ Nessun preventivo trovato per l'analisi di conversione.")
         return
 
     data_riferimento = df['Data'].max()
 
-    # 2. Matching per identificare i "Vinti"
+    # 2. Matching per identificare i preventivi vinti entro la scadenza
     merged = pd.merge(
         preventivi, 
         ordini, 
@@ -346,19 +346,23 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         else:
             return pd.Series(["In Attesa", giorni_passati])
 
-    preventivi[['Stato', 'Durata']] = preventivi.apply(calcola_riga_stato, axis=1)
+    
 
     # --- CALCOLO BACINO REALE (Vinti + Persi) PER FUNNEL E TASSI ---
+    
+    # Consideriamo i preventivi conclusi se:
+    #     1. Sono scaduti (persi)
+    #     2. Hanno generato un ordine (ancora aperto o già chiuso)
+    
+    preventivi[['Stato', 'Durata']] = preventivi.apply(calcola_riga_stato, axis=1)
     df_conclusi = preventivi[preventivi['Stato'].isin(["Ordine Chiuso", "Ordine Aperto", "Perso"])]
     
-    n_conclusi = len(df_conclusi)
-    val_conclusi = df_conclusi['Totale'].sum()
-    
-    n_vinti = len(preventivi[preventivi['Stato'].str.contains("Ordine")])
-    val_vinti = preventivi[preventivi['Stato'].str.contains("Ordine")]['Totale'].sum()
-    
-    n_chiusi = len(preventivi[preventivi['Stato'] == "Ordine Chiuso"])
-    val_chiusi = preventivi[preventivi['Stato'] == "Ordine Chiuso"]['Totale'].sum()
+    n_conclusi     = len(df_conclusi)
+    val_conclusi   = df_conclusi['Totale'].sum()
+    n_vinti        = len(preventivi[preventivi['Stato'].str.contains("Ordine")])
+    val_vinti      = preventivi[preventivi['Stato'].str.contains("Ordine")]['Totale'].sum()
+    n_chiusi       = len(preventivi[preventivi['Stato'] == "Ordine Chiuso"])
+    val_chiusi     = preventivi[preventivi['Stato'] == "Ordine Chiuso"]['Totale'].sum()
 
     # --- DEFINIZIONE COLORI ---
     color_map = {
@@ -383,7 +387,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     r2_c1, r2_c2 = st.columns(2)
     with r2_c1:
         fig_f_n = go.Figure(go.Funnel(
-            y=["Casi Conclusi", "Vinti", "Chiusi"], 
+            y=["Preventivi Conclusi", "Ordini Aperti", "Ordini Chiusi"], 
             x=[n_conclusi, n_vinti, n_chiusi],
             textinfo="value+percent initial", 
             marker={"color": ["#D3D3D3", "#B4E197", "#4E944F"]}
@@ -392,7 +396,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         st.plotly_chart(fig_f_n, use_container_width=True)
     with r2_c2:
         fig_f_v = go.Figure(go.Funnel(
-            y=["Volume Concluso", "Vinto", "Chiuso"], 
+            y=["Preventivi Conclusi (€)", "Ordini Aperti (€)", "Ordini Chiusi (€)"], 
             x=[val_conclusi, val_vinti, val_chiusi],
             textinfo="value+percent initial", 
             marker={"color": ["#D3D3D3", "#B4E197", "#4E944F"]}

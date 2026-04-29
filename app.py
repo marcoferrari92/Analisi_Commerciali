@@ -443,15 +443,10 @@ if df_orders is not None:
     #  PANORAMICA
     # ************
     
-    # 1. Filtriamo il dataframe sui tre stadi: 
-    # preventivo, ordine aperto e ordine chiuso
-   # stadi_target  = ["Preventivo", "Ordine Aperto", "Ordine"]
-    #df_target     = df_orders[df_orders['Tipo Doc.'].isin(stadi_target)]
-    
-    # 2. Aggregazione quantità e volumi
-    conteggio_qty         = df_orders['Tipo Doc.'].value_counts().reset_index()
-    conteggio_qty.columns = ['Tipo Doc.', 'Conteggio'] 
-    conteggio_vol         = df_orders.groupby('Tipo Doc.')['Totale'].sum().reset_index()
+    # Aggregazione quantità e volumi
+    conteggio_qty             = df_orders['Tipo Doc.'].value_counts().reset_index()
+    conteggio_qty.columns     = ['Tipo Doc.', 'Conteggio'] 
+    conteggio_vol             = df_orders.groupby('Tipo Doc.')['Totale'].sum().reset_index()
     
     with st.expander("📊 Panoramica Quantità e Volumi", expanded=True):
         
@@ -479,8 +474,7 @@ if df_orders is not None:
         else:
             st.warning("Dati insufficienti per generare i grafici.")
 
-        st.write("")
-        st.write("")
+        
 
         # 1. Mediana
         mediane = df_orders.groupby('Tipo Doc.')['Totale'].median().reset_index()
@@ -513,6 +507,8 @@ if df_orders is not None:
         ]
 
         # 7. Stampa tabella
+        st.write("")
+        st.write("")
         st.dataframe(
             df_riepilogo[colonne_finali].style.format({
                 'Totale': '€ {:,.2f}',
@@ -522,9 +518,9 @@ if df_orders is not None:
             use_container_width=True,
             hide_index=True
         )
-        
         st.caption("Nota: La Mediana è spesso più affidabile della Media perché non viene influenzata da singoli ordini eccezionalmente alti o bassi.")
-        
+
+        # Istogramma e BoxPlot della distribuzione articoli
         st.divider()
         st.write("#### Distribuzione Ordini e Preventivi")
         st.info("""
@@ -535,9 +531,16 @@ if df_orders is not None:
         plot_distribuzione_ordini(df_orders)
         
         
+    # ***********************
+    #  PANORAMICA - ARTICOLI
+    # ***********************
+
+    with st.expander("📊 Panoramica Articoli", expanded=True):
+        panoramica_articoli(df_orders):
 
 
 
+        
 
 if uploaded_file_events:
     df_events = carica_dati_commerciali(uploaded_file_events)

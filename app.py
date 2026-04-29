@@ -534,7 +534,7 @@ if df_orders is not None:
                 df_visualizzazione.style.format({
                     'Ordini': '{:,.0f}',
                     '% Ordini': '{:.1f}%',
-                    'Fatturato': '{:.2f} €',
+                    Fatturato': '{:,.2f} €',
                     '% Fatturato': '{:.1f}%',
                     'Mediana_Fatturato': '{:.2f} €'
                 }),

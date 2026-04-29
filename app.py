@@ -412,7 +412,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     m3.metric("Tasso Conversione", f"{tasso_conv:.1f}%")
     m4.metric(
         label="In Scadenza", 
-        value=f"{n_scadenza} Articoli", 
+        value=f"{n_scadenza} Preventivi", 
         delta=f"€ {val_scadenza:,.2f}", 
         delta_color="inverse"
     )

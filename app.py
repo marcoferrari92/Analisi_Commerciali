@@ -298,22 +298,19 @@ def plot_distribuzione_ordini(df_target):
 
 
 
-
-
 def analisi_conversione_preventivi(df, finestra):
-    
-    # 1. Preparazione Dataframe (preventivi e ordini)
+    # 1. Preparazione Dataframe
     preventivi = df[df['Tipo Doc.'] == "Preventivo"].copy()
-    ordini     = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
+    ordini = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
 
     if preventivi.empty:
-        st.warning("⚠️ Nessun preventivo trovato!")
+        st.warning("Nessun preventivo trovato per l'analisi.")
         return
 
     # Data di riferimento (l'ultima data disponibile nel dataset)
     data_riferimento = df['Data'].max()
 
-    # 2. Matching per identificare i "Vinti"
+    # 2. Matching per identificare i "Vinti" e recuperare i dettagli dell'ordine
     merged = pd.merge(
         preventivi, 
         ordini, 
@@ -322,94 +319,94 @@ def analisi_conversione_preventivi(df, finestra):
     )
     merged['diff_giorni'] = (merged['Data_ord'] - merged['Data_prev']).dt.days
     
-    # Match validi (Vinti)
-    vinti_indices = merged[
+    # Teniamo solo i match che rientrano nella finestra e sono cronologicamente corretti
+    vinti_effettivi = merged[
         (merged['diff_giorni'] >= 0) & (merged['diff_giorni'] <= finestra)
-    ]['Data_prev'].index.unique() # Usiamo l'indice per tracciarli
+    ].sort_values('diff_giorni').drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev'])
 
-    # Creiamo una colonna di stato nel DF preventivi
-    # Inizializziamo tutti come 'In Attesa' o 'Perso'
-    preventivi['Stato_Analisi'] = "In Attesa"
-    
-    # Identifichiamo i vinti (usando un set di chiavi Cliente-Oggetto-Data per sicurezza)
-    match_vinti_keys = merged[
-        (merged['diff_giorni'] >= 0) & (merged['diff_giorni'] <= finestra)
-    ][['Cliente', 'Oggetto', 'Data_prev']].drop_duplicates()
-    
-    # Funzione per marcare lo stato
-    def determina_stato(row):
-        # Verifica se è vinto
-        is_vinto = not match_vinti_keys[
-            (match_vinti_keys['Cliente'] == row['Cliente']) & 
-            (match_vinti_keys['Oggetto'] == row['Oggetto']) & 
-            (match_vinti_keys['Data_prev'] == row['Data'])
-        ].empty
+    # 3. Costruzione della Tabella Finale
+    def calcola_riga_stato(row):
+        # Cerchiamo se questo preventivo specifico ha un match tra i vinti
+        match = vinti_effettivi[
+            (vinti_effettivi['Cliente'] == row['Cliente']) & 
+            (vinti_effettivi['Oggetto'] == row['Oggetto']) & 
+            (vinti_effettivi['Data_prev'] == row['Data'])
+        ]
         
-        if is_vinto:
-            return "Vinto"
+        if not match.empty:
+            tipo_ordine = match.iloc[0]['Tipo Doc._ord']
+            durata = match.iloc[0]['diff_giorni']
+            stato = "Ordine Chiuso" if tipo_ordine == "Ordine" else "Ordine Aperto"
+            return pd.Series([stato, durata])
         
-        # Se non è vinto, controlliamo se è scaduto o in attesa
-        giorni_passati = (data_riferimento - row['Data']).days
-        if giorni_passati > finestra:
-            return "Perso (Scaduto)"
+        # Se non è vinto, verifichiamo se è scaduto o in attesa
+        giorni_da_emissione = (data_riferimento - row['Data']).days
+        if giorni_da_emissione > finestra:
+            return pd.Series(["Perso", giorni_da_emissione])
         else:
-            return "In Attesa"
+            return pd.Series(["In Attesa", giorni_da_emissione])
 
-    preventivi['Stato_Analisi'] = preventivi.apply(determina_stato, axis=1)
+    # Applichiamo la logica riga per riga
+    preventivi[['Stato', 'Durata']] = preventivi.apply(calcola_riga_stato, axis=1)
 
-    # 3. Conteggi per i grafici
-    stats_stato = preventivi['Stato_Analisi'].value_counts().reset_index()
-    stats_stato.columns = ['Stato', 'Conteggio']
-
-    # --- VISUALIZZAZIONE ---
-    st.subheader("🎯 Ciclo di Vita dei Preventivi")
+    # --- PARTE GRAFICA (Affiancata) ---
+    st.subheader("🎯 Dashboard Conversioni")
     
-    col_left, col_right = st.columns(2)
-
-    with col_left:
-        # Grafico a Torta a 3 colori
+    col_l, col_r = st.columns(2)
+    
+    with col_l:
+        # Grafico a Torta (Aggregato per il nuovo Stato)
+        stats_pie = preventivi['Stato'].value_counts().reset_index()
         fig_pie = px.pie(
-            stats_stato, values='Conteggio', names='Stato', 
-            title="Dettaglio Esito Preventivi",
-            hole=0.4,
+            stats_pie, values='count', names='Stato', 
+            title="Distribuzione Esiti", hole=0.4,
             color='Stato',
             color_discrete_map={
-                "Vinto": "#4E944F",           # Verde
-                "In Attesa": "#A2D2FF",       # Azzurro
-                "Perso (Scaduto)": "#FF9999"  # Rosso/Rosa
+                "Ordine Chiuso": "#4E944F", 
+                "Ordine Aperto": "#B4E197", 
+                "In Attesa": "#A2D2FF", 
+                "Perso": "#FF9999"
             }
         )
         st.plotly_chart(fig_pie, use_container_width=True)
 
-    with col_right:
-        # Funnel (Logica Preventivi -> Convertiti -> Chiusi)
-        n_prev_tot = len(preventivi)
-        n_vinti = len(preventivi[preventivi['Stato_Analisi'] == "Vinto"])
+    with col_r:
+        # Funnel Chart
+        n_tot = len(preventivi)
+        n_vinti = len(preventivi[preventivi['Stato'].str.contains("Ordine")])
+        n_chiusi = len(preventivi[preventivi['Stato'] == "Ordine Chiuso"])
         
-        # Per il funnel cerchiamo nel df originale quanti di quei vinti sono 'Ordine'
-        match_chiusi = merged[
-            (merged['diff_giorni'] >= 0) & 
-            (merged['diff_giorni'] <= finestra) & 
-            (merged['Tipo Doc._ord'] == "Ordine")
-        ].drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev'])
-        n_chiusi = len(match_chiusi)
-
         fig_funnel = go.Figure(go.Funnel(
-            y=["Emessi", "Vinti", "Chiusi"],
-            x=[n_prev_tot, n_vinti, n_chiusi],
+            y=["Emessi", "Accettati", "Chiusi"],
+            x=[n_tot, n_vinti, n_chiusi],
             textinfo="value+percent initial",
             marker={"color": ["#A2D2FF", "#B4E197", "#4E944F"]}
         ))
-        fig_funnel.update_layout(title="Conversione Reale", height=450)
+        fig_funnel.update_layout(title="Imbuto di Conversione", height=400)
         st.plotly_chart(fig_funnel, use_container_width=True)
 
-    # Tabella di controllo
-    with st.expander("🔍 Analisi dettagliata stati preventivi"):
-        st.dataframe(
-            preventivi[['Data', 'Cliente', 'Oggetto', 'Totale', 'Stato_Analisi']]
-            .sort_values('Data', ascending=False),
-            use_container_width=True, hide_index=True
-        )
+    # --- TABELLA FINALE ---
+    st.divider()
+    st.write("**📋 Registro Dettagliato Preventivi**")
+
+    # Formattazione e Riordino Colonne
+    df_finale = preventivi[['Data', 'Cliente', 'Oggetto', 'Totale', 'Stato', 'Durata']].copy()
+    df_finale = df_finale.rename(columns={'Data': 'Data Preventivo', 'Oggetto': 'Articolo'})
+    df_finale = df_finale.sort_values('Data Preventivo', ascending=False)
+
+    st.dataframe(
+        df_finale.style.format({
+            'Data Preventivo': lambda x: x.strftime('%d/%m/%Y'),
+            'Totale': '{:,.2f} €',
+            'Durata': '{:.0f} gg'
+        }).applymap(
+            lambda x: 'color: #4E944F; font-weight: bold' if x in ['Ordine Chiuso', 'Ordine Aperto'] 
+            else ('color: #FF9999' if x == 'Perso' else 'color: #A2D2FF'), 
+            subset=['Stato']
+        ),
+        use_container_width=True,
+        hide_index=True
+    )
 
 
 

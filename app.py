@@ -530,14 +530,62 @@ if df_orders is not None:
         """)
         plot_distribuzione_ordini(df_orders)
         
-        
+       
     # ***********************
     #  PANORAMICA - ARTICOLI
     # ***********************
 
-    with st.expander("📊 Panoramica Articoli", expanded=True):
-        panoramica_articoli(df_orders)
+    with st.expander("📊 Panoramica Articoli Venduti", expanded=True):
 
+        # Filtriamo gli ordini presi ("Ordine Aperto" e "Ordine")
+        df_ordini_vinti = df_orders[df_orders['Tipo Doc.'].isin(["Ordine Aperto", "Ordine"])].copy()
+    
+        if not df_ordini.empty:
+            
+            st.subheader("📊 Analisi Top 5 Articoli (Ordini + Ordini Aperti)")
+    
+            # Raggruppamento per Oggetto (Articolo)
+            # Conteggio = numero di righe; Totale = somma del fatturato
+            df_stats = df_ordini.groupby('Oggetto').agg(
+                Conteggio=('Oggetto', 'count'),
+                Fatturato=('Totale', 'sum')
+            ).reset_index()
+    
+            # Top 5
+            top_5_count = df_stats.nlargest(5, 'Conteggio')
+            top_5_revenue = df_stats.nlargest(5, 'Fatturato')
+    
+            # Grafici a torta
+            col1, col2 = st.columns(2)
+    
+            with col1:
+                st.write("**Top 5 per Numero di Ordini**")
+                render_grafico_torta(
+                    data=top_5_count, 
+                    values_col='Conteggio', 
+                    names_col='Articolo', 
+                    titolo="Top 5 per Numero Ordini",
+                    tipo="numerico"
+                )
+    
+            with col2:
+                st.write("**Top 5 per Volume d'Affari (€)**")
+                fig_rev = px.pie(top_5_revenue, values='Fatturato', names='Oggetto', 
+                                 hole=0.3, color_discrete_sequence=px.colors.sequential.Blues_r)
+                st.plotly_chart(fig_rev, use_container_width=True)
+    
+            # Tabella riassuntiva totale (tutti gli articoli)
+            
+            df_stats_sorted = df_stats.sort_values(by='Fatturato', ascending=False)
+            
+            # Formattazione per la visualizzazione
+            st.dataframe(
+                df_stats_sorted.style.format({'Fatturato': '{:.2f} €'}),
+                use_container_width=True,
+                hide_index=True
+            )
+        else:
+            st.warning("Nessun dato trovato per 'Ordine' o 'Ordine Aperto'.")
 
 
         

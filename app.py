@@ -536,7 +536,7 @@ if df_orders is not None:
                     '% Ordini': '{:.1f}%',
                     'Fatturato': '{:,.2f} €',
                     '% Fatturato': '{:.1f}%',
-                    'Mediana_Fatturato': '{:.2f} €'
+                    'Mediana_Fatturato': '{:,.2f} €'
                 }),
                 use_container_width=True,
                 hide_index=True

@@ -400,13 +400,22 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         st.plotly_chart(fig_f_v, use_container_width=True)
 
     # --- DATI DI RIEPILOGO ---
+    preventivi_scadenza = preventivi[preventivi['Stato'] == "In Scadenza"]
+    n_scadenza = len(preventivi_scadenza)
+    val_scadenza = preventivi_scadenza['Totale'].sum()
+    
     st.divider()
     st.subheader("📝 Riepilogo Performance")
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Totale Emesso", f"€ {val_tot:,.2f}", f"{n_tot} Doc")
-    m2.metric("Totale Vinto (A+C)", f"€ {val_vinti:,.2f}", f"{n_vinti} Doc")
+    m1.metric("Totale Preventivi", f"€ {val_tot:,.2f}", f"{n_tot} articoli")
+    m2.metric("Totale Vinto (A+C)", f"€ {val_vinti:,.2f}", f"{n_vinti} articoli")
     m3.metric("Tasso Conversione", f"{tasso_conv:.1f}%")
-    m4.metric("In Scadenza", len(preventivi[preventivi['Stato']=="In Scadenza"]), delta_color="inverse")
+    m4.metric(
+        label="In Scadenza", 
+        value=f"{n_scadenza} Doc", 
+        delta=f"€ {val_scadenza:,.2f}", 
+        delta_color="inverse"
+    )
 
     # --- REGISTRO FINALE ---
     with st.expander("📋 Registro Dettagliato Preventivi", expanded=True):

@@ -559,14 +559,9 @@ if df_orders is not None:
             col1, col2 = st.columns(2)
     
             with col1:
-                st.write("**Top 5 per Numero di Ordini**")
-                render_grafico_torta(
-                    data=top_5_count, 
-                    values_col='Conteggio', 
-                    names_col='Articolo', 
-                    titolo="Top 5 per Numero Ordini",
-                    tipo="numerico"
-                )
+                fig_cnt = px.pie(top_5_count, values='Ordini', names='Oggetto', 
+                                 hole=0.3, color_discrete_sequence=px.colors.sequential.Blues_r)
+                st.plotly_chart(fig_cnt, use_container_width=True)
     
             with col2:
                 st.write("**Top 5 per Volume d'Affari (€)**")

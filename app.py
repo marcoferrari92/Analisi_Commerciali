@@ -445,13 +445,13 @@ if df_orders is not None:
     
     # 1. Filtriamo il dataframe sui tre stadi: 
     # preventivo, ordine aperto e ordine chiuso
-    stadi_target  = ["Preventivo", "Ordine Aperto", "Ordine"]
-    df_target     = df_orders[df_orders['Tipo Doc.'].isin(stadi_target)]
+   # stadi_target  = ["Preventivo", "Ordine Aperto", "Ordine"]
+    #df_target     = df_orders[df_orders['Tipo Doc.'].isin(stadi_target)]
     
     # 2. Aggregazione quantità e volumi
-    conteggio_qty         = df_target['Tipo Doc.'].value_counts().reset_index()
+    conteggio_qty         = df_orders['Tipo Doc.'].value_counts().reset_index()
     conteggio_qty.columns = ['Tipo Doc.', 'Conteggio'] 
-    conteggio_vol         = df_target.groupby('Tipo Doc.')['Totale'].sum().reset_index()
+    conteggio_vol         = df_orders.groupby('Tipo Doc.')['Totale'].sum().reset_index()
     
     with st.expander("📊 Panoramica Quantità e Volumi", expanded=True):
         

@@ -352,7 +352,6 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     preventivi[['Stato', 'Durata']] = preventivi.apply(calcola_riga_stato, axis=1)
 
     # --- GRAFICI ---
-    st.subheader("🎯 Dashboard Conversioni e Scadenze")
     col_l, col_r = st.columns(2)
     
     with col_l:
@@ -669,7 +668,10 @@ if df_orders is not None:
             )
 
 
-    with st.expander("Analisi Conversione Preventivi", expanded=True):
+    with st.expander("🎯 Analisi Conversione Preventivi", expanded=True):
+        st.write("")
+        st.write("")
+        
         # Creiamo due colonne per i parametri
         c1, c2, c3, c4, c5 = st.columns([0.2, 1, 0.3, 1, 0.2])
         
@@ -688,9 +690,15 @@ if df_orders is not None:
             )
         
         # Chiamata alla funzione aggiornata
+        st.write("")
+        st.write("")
         analisi_conversione_preventivi(df_orders, finestra, scadenza)
     
-        
+
+
+
+
+
 
 if uploaded_file_events:
     df_events = carica_dati_commerciali(uploaded_file_events)

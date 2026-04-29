@@ -478,61 +478,58 @@ if df_orders is not None:
         df_ordini_vinti = df_orders[df_orders['Tipo Doc.'].isin(["Ordine Aperto", "Ordine"])].copy()
     
         if not df_ordini_vinti.empty:
-            st.subheader("📊 Analisi Avanzata Articoli (Ordini + Ordini Aperti)")
-        
-            # 1. Raggruppamento e Calcoli
+            
+            # Raggruppamento per articolo venduto
             df_stats = df_ordini_vinti.groupby('Oggetto').agg(
                 Ordini=('Oggetto', 'count'),
                 Fatturato=('Totale', 'sum'),
                 Mediana_Fatturato=('Totale', 'median')
             ).reset_index()
         
-            # 2. Calcolo delle Percentuali
+            # Calcolo percentuali per la tabella
             tot_n = df_stats['Ordini'].sum()
             tot_val = df_stats['Fatturato'].sum()
-        
             df_stats['% Ordini'] = (df_stats['Ordini'] / tot_n) * 100
             df_stats['% Fatturato'] = (df_stats['Fatturato'] / tot_val) * 100
         
-            # 3. Riordino Colonne (come da tua richiesta)
-            # Specifichiamo l'ordine esatto delle colonne
-            ordine_colonne = [
-                'Oggetto', 
-                'Ordini', 
-                '% Ordini', 
-                'Fatturato', 
-                '% Fatturato', 
-                'Mediana_Fatturato'
-            ]
-            df_visualizzazione = df_stats[ordine_colonne].sort_values(by='Fatturato', ascending=False)
+            # --- FUNZIONE INTERNA PER CREARE I TOP 5 + ALTRO ---
+            def prepara_top5_con_altro(df, col_valore):
+                top5 = df.nlargest(5, col_valore).copy()
+                altri_df = df[~df['Oggetto'].isin(top5['Oggetto'])]
+                
+                if not altri_df.empty:
+                    riga_altro = pd.DataFrame({
+                        'Oggetto': ['Altro'],
+                        'Ordini': [altri_df['Ordini'].sum()],
+                        'Fatturato': [altri_df['Fatturato'].sum()]
+                    })
+                    return pd.concat([top5, riga_altro], ignore_index=True)
+                return top5
         
-            # 4. Visualizzazione Grafici (Top 5)
-            top_5_count = df_stats.nlargest(5, 'Ordini')
-            top_5_revenue = df_stats.nlargest(5, 'Fatturato')
+            # Prepariamo i dati per i grafici
+            chart_data_count = prepara_top5_con_altro(df_stats, 'Ordini')
+            chart_data_revenue = prepara_top5_con_altro(df_stats, 'Fatturato')
         
-            # 4. Visualizzazione Grafici (usando la tua funzione render_grafico_torta)
+            # 2. Visualizzazione Grafici
             col1, col2 = st.columns(2)
-        
             with col1:
                 st.write("**Top 5 per Numero di Ordini**")
-                fig_count = px.pie(top_5_count, values='Ordini', names='Oggetto', 
+                fig_count = px.pie(chart_data_count, values='Ordini', names='Oggetto', 
                                    hole=0.3, color_discrete_sequence=px.colors.sequential.RdBu)
                 st.plotly_chart(fig_count, use_container_width=True)
     
             with col2:
                 st.write("**Top 5 per Volume d'Affari (€)**")
-                fig_rev = px.pie(top_5_revenue, values='Fatturato', names='Oggetto', 
+                fig_rev = px.pie(chart_data_revenue, values='Fatturato', names='Oggetto', 
                                  hole=0.3, color_discrete_sequence=px.colors.sequential.Blues_r)
                 st.plotly_chart(fig_rev, use_container_width=True)
         
-            # 5. Tabella riassuntiva
+            # 3. Tabella riassuntiva (rimane con tutti i dettagli, ordinata come richiesto)
+            st.divider()
+            ordine_colonne = ['Oggetto', 'Ordini', '% Ordini', 'Fatturato', '% Fatturato', 'Mediana_Fatturato']
+            df_visualizzazione = df_stats[ordine_colonne].sort_values(by='Fatturato', ascending=False)
             
             st.write("**Dettaglio Completo per Articolo**")
-            
-            # Ordiniamo per Fatturato Totale
-            df_visualizzazione = df_stats.sort_values(by='Fatturato', ascending=False)
-            
-            # Formattazione tabella
             st.dataframe(
                 df_visualizzazione.style.format({
                     'Ordini': '{:,.0f}',

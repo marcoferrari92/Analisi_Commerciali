@@ -298,19 +298,20 @@ def plot_distribuzione_ordini(df_target):
 
 
 
-def analisi_conversione_preventivi(df, finestra):
+def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
+    
     # 1. Preparazione Dataframe
     preventivi = df[df['Tipo Doc.'] == "Preventivo"].copy()
     ordini = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
 
     if preventivi.empty:
-        st.warning("Nessun preventivo trovato per l'analisi.")
+        st.warning("Nessun preventivo trovato.")
         return
 
     # Data di riferimento (l'ultima data disponibile nel dataset)
     data_riferimento = df['Data'].max()
 
-    # 2. Matching per identificare i "Vinti" e recuperare i dettagli dell'ordine
+    # 2. Matching per identificare i "Vinti"
     merged = pd.merge(
         preventivi, 
         ordini, 
@@ -319,14 +320,13 @@ def analisi_conversione_preventivi(df, finestra):
     )
     merged['diff_giorni'] = (merged['Data_ord'] - merged['Data_prev']).dt.days
     
-    # Teniamo solo i match che rientrano nella finestra e sono cronologicamente corretti
     vinti_effettivi = merged[
         (merged['diff_giorni'] >= 0) & (merged['diff_giorni'] <= finestra)
     ].sort_values('diff_giorni').drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev'])
 
-    # 3. Costruzione della Tabella Finale
+    # 3. Nuova Logica di Stato con "In Scadenza"
     def calcola_riga_stato(row):
-        # Cerchiamo se questo preventivo specifico ha un match tra i vinti
+        # Cerchiamo se è vinto
         match = vinti_effettivi[
             (vinti_effettivi['Cliente'] == row['Cliente']) & 
             (vinti_effettivi['Oggetto'] == row['Oggetto']) & 
@@ -336,42 +336,43 @@ def analisi_conversione_preventivi(df, finestra):
         if not match.empty:
             tipo_ordine = match.iloc[0]['Tipo Doc._ord']
             durata = match.iloc[0]['diff_giorni']
-            stato = "Ordine Chiuso" if tipo_ordine == "Ordine" else "Ordine Aperto"
-            return pd.Series([stato, durata])
+            return pd.Series(["Ordine Chiuso" if tipo_ordine == "Ordine" else "Ordine Aperto", durata])
         
-        # Se non è vinto, verifichiamo se è scaduto o in attesa
-        giorni_da_emissione = (data_riferimento - row['Data']).days
-        if giorni_da_emissione > finestra:
-            return pd.Series(["Perso", giorni_da_emissione])
-        else:
-            return pd.Series(["In Attesa", giorni_da_emissione])
+        # Se non è vinto, calcoliamo quanto tempo è passato
+        giorni_passati = (data_riferimento - row['Data']).days
+        giorni_rimanenti = finestra - giorni_passati
 
-    # Applichiamo la logica riga per riga
+        if giorni_rimanenti < 0:
+            return pd.Series(["Perso", giorni_passati])
+        elif giorni_rimanenti <= giorni_scadenza:
+            return pd.Series(["In Scadenza", giorni_passati])
+        else:
+            return pd.Series(["In Attesa", giorni_passati])
+
     preventivi[['Stato', 'Durata']] = preventivi.apply(calcola_riga_stato, axis=1)
 
-    # --- PARTE GRAFICA (Affiancata) ---
-    st.subheader("🎯 Dashboard Conversioni")
-    
+    # --- GRAFICI ---
+    st.subheader("🎯 Dashboard Conversioni e Scadenze")
     col_l, col_r = st.columns(2)
     
     with col_l:
-        # Grafico a Torta (Aggregato per il nuovo Stato)
         stats_pie = preventivi['Stato'].value_counts().reset_index()
         fig_pie = px.pie(
             stats_pie, values='count', names='Stato', 
-            title="Distribuzione Esiti", hole=0.4,
+            title="Dettaglio Stati", hole=0.4,
             color='Stato',
             color_discrete_map={
-                "Ordine Chiuso": "#4E944F", 
-                "Ordine Aperto": "#B4E197", 
-                "In Attesa": "#A2D2FF", 
-                "Perso": "#FF9999"
+                "Ordine Chiuso": "#4E944F", # Verde
+                "Ordine Aperto": "#B4E197", # Verde chiaro
+                "In Scadenza": "#FFD700",   # GIALLO GOLD
+                "In Attesa": "#A2D2FF",     # Azzurro
+                "Perso": "#FF9999"          # Rosso
             }
         )
         st.plotly_chart(fig_pie, use_container_width=True)
 
     with col_r:
-        # Funnel Chart
+        # Funnel (Emessi -> Accettati -> Chiusi)
         n_tot = len(preventivi)
         n_vinti = len(preventivi[preventivi['Stato'].str.contains("Ordine")])
         n_chiusi = len(preventivi[preventivi['Stato'] == "Ordine Chiuso"])
@@ -382,38 +383,32 @@ def analisi_conversione_preventivi(df, finestra):
             textinfo="value+percent initial",
             marker={"color": ["#A2D2FF", "#B4E197", "#4E944F"]}
         ))
-        fig_funnel.update_layout(title="Imbuto di Conversione", height=400)
         st.plotly_chart(fig_funnel, use_container_width=True)
 
-    # --- TABELLA FINALE CORRETTA ---
+    # --- TABELLA FINALE ---
     st.divider()
-    st.write("**📋 Registro Dettagliato Preventivi**")
+    st.write(f"**📋 Registro Preventivi (Finestra: {finestra}gg, Avviso Scadenza: {giorni_scadenza}gg)**")
 
-    # Formattazione e Riordino Colonne
     df_finale = preventivi[['Data', 'Cliente', 'Oggetto', 'Totale', 'Stato', 'Durata']].copy()
     df_finale = df_finale.rename(columns={'Data': 'Data Preventivo', 'Oggetto': 'Articolo'})
-    df_finale = df_finale.sort_values('Data Preventivo', ascending=False)
+    df_finale = df_finale.sort_values(['Stato', 'Data Preventivo'], ascending=[True, False])
 
-    # Definiamo la funzione di stile per le celle dello stato
     def colora_stato(val):
-        if val in ['Ordine Chiuso', 'Ordine Aperto']:
-            return 'color: #4E944F; font-weight: bold'
-        elif val == 'Perso':
-            return 'color: #FF9999'
-        elif val == 'In Attesa':
-            return 'color: #A2D2FF'
-        return ''
+        if val in ['Ordine Chiuso', 'Ordine Aperto']: return 'color: #4E944F; font-weight: bold'
+        if val == 'In Scadenza': return 'color: #CCAA00; font-weight: bold' # Giallo scuro per leggibilità su bianco
+        if val == 'Perso': return 'color: #FF9999'
+        return 'color: #A2D2FF'
 
-    # Applichiamo lo stile usando la nuova sintassi .map() per lo Styler
     st.dataframe(
         df_finale.style.format({
-            'Data Preventivo': lambda x: x.strftime('%d/%m/%Y') if pd.notnull(x) else "",
+            'Data Preventivo': lambda x: x.strftime('%d/%m/%Y'),
             'Totale': '{:,.2f} €',
             'Durata': '{:.0f} gg'
-        }).map(colora_stato, subset=['Stato']), # <--- Cambiato applymap in map
+        }).map(colora_stato, subset=['Stato']),
         use_container_width=True,
         hide_index=True
     )
+
 
 
 
@@ -675,12 +670,25 @@ if df_orders is not None:
 
 
     with st.expander("Analisi Conversione Preventivi", expanded=True):
+        # Creiamo due colonne per i parametri
+        c1, c2 = st.columns(2)
         
-        finestra = st.slider(
-            "Finestra temporale validità preventivi (giorni):", 
-            min_value=1, max_value=180, value=30, help="Entro quanti giorni un preventivo deve diventare ordine per essere considerato 'convertito'?"
-        )
-        analisi_conversione_preventivi(df_orders, finestra)
+        with c1:
+            finestra = st.slider(
+                "Validità preventivi (giorni):", 
+                min_value=1, max_value=180, value=30, 
+                help="Giorni massimi per convertire un preventivo in ordine."
+            )
+        
+        with c2:
+            scadenza = st.number_input(
+                "Pre-avviso 'In Scadenza' (giorni):", 
+                min_value=1, max_value=30, value=7,
+                help="Giorni prima della scadenza per attivare l'avviso GIALLO."
+            )
+        
+        # Chiamata alla funzione aggiornata
+        analisi_conversione_preventivi(df_orders, finestra, scadenza)
     
         
 

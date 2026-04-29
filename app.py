@@ -480,21 +480,22 @@ if df_orders is not None:
         if not df_ordini_vinti.empty:
             st.subheader("📊 Analisi Avanzata Articoli (Ordini + Ordini Aperti)")
         
-            # 1. Raggruppamento con aggiunta della Mediana
-            # Usiamo 'Totale' per calcolare Somma e Mediana del fatturato per ogni Oggetto
+            # 1. Raggruppamento e Calcoli
             df_stats = df_ordini_vinti.groupby('Oggetto').agg(
                 Ordini=('Oggetto', 'count'),
-                Fatturato_Totale=('Totale', 'sum'),
+                Fatturato=('Totale', 'sum'),
                 Mediana_Fatturato=('Totale', 'median')
             ).reset_index()
         
-            # 2. Calcolo delle Percentuali sul totale generale
-            totale_ordini_n = df_stats['Ordini'].sum()
-            totale_fatturato_val = df_stats['Fatturato_Totale'].sum()
+            # 2. Calcolo delle Percentuali
+            tot_n = df_stats['Ordini'].sum()
+            tot_val = df_stats['Fatturato'].sum()
         
-            df_stats['% Su Tot. Ordini'] = (df_stats['Ordini'] / totale_ordini_n) * 100
-            df_stats['% Su Tot. Fatturato'] = (df_stats['Fatturato_Totale'] / totale_fatturato_val) * 100
-
+            df_stats['% Ordini'] = (df_stats['Ordini'] / tot_n) * 100
+            df_stats['% Fatturato'] = (df_stats['Fatturato'] / tot_val) * 100
+        
+            # 3. Riordino Colonne (come da tua richiesta)
+            # Specifichiamo l'ordine esatto delle colonne
             ordine_colonne = [
                 'Oggetto', 
                 'Ordini', 
@@ -505,9 +506,9 @@ if df_orders is not None:
             ]
             df_visualizzazione = df_stats[ordine_colonne].sort_values(by='Fatturato', ascending=False)
         
-            # 3. Preparazione Top 5 per i grafici
+            # 4. Visualizzazione Grafici (Top 5)
             top_5_count = df_stats.nlargest(5, 'Ordini')
-            top_5_revenue = df_stats.nlargest(5, 'Fatturato_Totale')
+            top_5_revenue = df_stats.nlargest(5, 'Fatturato')
         
             # 4. Visualizzazione Grafici (usando la tua funzione render_grafico_torta)
             col1, col2 = st.columns(2)

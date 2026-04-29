@@ -494,6 +494,16 @@ if df_orders is not None:
         
             df_stats['% Su Tot. Ordini'] = (df_stats['Ordini'] / totale_ordini_n) * 100
             df_stats['% Su Tot. Fatturato'] = (df_stats['Fatturato_Totale'] / totale_fatturato_val) * 100
+
+            ordine_colonne = [
+                'Oggetto', 
+                'Ordini', 
+                '% Ordini', 
+                'Fatturato', 
+                '% Fatturato', 
+                'Mediana_Fatturato'
+            ]
+            df_visualizzazione = df_stats[ordine_colonne].sort_values(by='Fatturato', ascending=False)
         
             # 3. Preparazione Top 5 per i grafici
             top_5_count = df_stats.nlargest(5, 'Ordini')
@@ -524,10 +534,11 @@ if df_orders is not None:
             # Formattazione tabella
             st.dataframe(
                 df_visualizzazione.style.format({
-                    'Fatturato_Totale': '{:.2f} €',
-                    'Mediana_Fatturato': '{:.2f} €',
-                    '% Su Tot. Ordini': '{:.1f}%',
-                    '% Su Tot. Fatturato': '{:.1f}%'
+                    'Ordini': '{:,.0f}',
+                    '% Ordini': '{:.1f}%',
+                    'Fatturato': '{:.2f} €',
+                    '% Fatturato': '{:.1f}%',
+                    'Mediana_Fatturato': '{:.2f} €'
                 }),
                 use_container_width=True,
                 hide_index=True

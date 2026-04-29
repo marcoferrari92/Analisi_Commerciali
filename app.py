@@ -403,13 +403,19 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     preventivi_scadenza = preventivi[preventivi['Stato'] == "In Scadenza"]
     n_scadenza = len(preventivi_scadenza)
     val_scadenza = preventivi_scadenza['Totale'].sum()
+    tasso_conv_valore = (val_vinti / val_tot * 100) if val_tot > 0 else 0
     
     st.divider()
     st.subheader("📝 Riepilogo Performance")
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Totale Preventivi", f"€ {val_tot:,.2f}", f"{n_tot} Articoli")
     m2.metric("Totale Vinto (A+C)", f"€ {val_vinti:,.2f}", f"{n_vinti} Articoli")
-    m3.metric("Tasso Conversione", f"{tasso_conv:.1f}%")
+    m3.metric(
+        label="Tasso Conversione", 
+        value=f"{tasso_conv:.1f}% (N.)", 
+        delta=f"{tasso_conv_valore:.1f}% (Valore)",
+        delta_color="normal" # "normal" lo mette verde se positivo
+    )
     m4.metric(
         label="In Scadenza", 
         value=f"{n_scadenza} Preventivi", 

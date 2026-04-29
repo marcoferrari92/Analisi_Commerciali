@@ -540,7 +540,7 @@ if df_orders is not None:
         # Filtriamo gli ordini presi ("Ordine Aperto" e "Ordine")
         df_ordini_vinti = df_orders[df_orders['Tipo Doc.'].isin(["Ordine Aperto", "Ordine"])].copy()
     
-        if not df_ordini.empty:
+        if not df_ordini_vinti.empty:
             
             st.subheader("📊 Analisi Top 5 Articoli (Ordini + Ordini Aperti)")
     

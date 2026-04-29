@@ -300,17 +300,18 @@ def plot_distribuzione_ordini(df_target):
 
 def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
-    # 1. Preparazione Dataframe
+    # 1. Separa il dataframe df in due per Preventivi e Ordini (Aperti e Chiusi)
     preventivi = df[df['Tipo Doc.'] == "Preventivo"].copy()
-    ordini = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
+    ordini     = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
 
     if preventivi.empty:
-        st.warning("Nessun preventivo trovato per l'analisi.")
+        st.warning("⚠️ Nessun preventivo trovato per l'analisi!")
         return
 
     data_riferimento = df['Data'].max()
 
     # 2. Matching per identificare i "Vinti"
+    # Confronta i match per 
     merged = pd.merge(
         preventivi, 
         ordini, 
@@ -333,12 +334,12 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         
         if not match.empty:
             tipo_ordine = match.iloc[0]['Tipo Doc._ord']
-            durata = match.iloc[0]['diff_giorni']
-            stato = "Ordini Chiusi" if tipo_ordine == "Ordine" else "Ordini Aperti"
+            durata      = match.iloc[0]['diff_giorni']
+            stato       = "Ordini Chiusi" if tipo_ordine == "Ordine" else "Ordini Aperti"
             return pd.Series([stato, durata])
-        
-        giorni_passati = (data_riferimento - row['Data']).days
-        giorni_rimanenti = finestra - giorni_passati
+
+        giorni_passati     = (data_riferimento - row['Data']).days
+        giorni_rimanenti   = finestra - giorni_passati
 
         if giorni_rimanenti < 0:
             return pd.Series(["Persi", giorni_passati])
@@ -348,7 +349,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             return pd.Series(["In Attesa", giorni_passati])
 
     preventivi[['Stato', 'Durata']] = preventivi.apply(calcola_riga_stato, axis=1)
-
+    
     # 4. Creazione colonna specifica per i GRAFICI A TORTA (Raggruppamento Aggiudicati)
     preventivi['Stato_Torta'] = preventivi['Stato'].replace({
         "Ordini Chiusi": "Aggiudicati",
@@ -356,15 +357,13 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     })
 
     # --- CALCOLI PER FUNNEL ---
-    df_conclusi = preventivi[preventivi['Stato'].isin(["Ordini Chiusi", "Ordini Aperti", "Persi"])]
-    n_conclusi = len(df_conclusi)
-    val_conclusi = df_conclusi['Totale'].sum()
-    
-    n_aperti = len(preventivi[preventivi['Stato'] == "Ordini Aperti"])
-    val_aperti = preventivi[preventivi['Stato'] == "Ordini Aperti"]['Totale'].sum()
-    
-    n_chiusi = len(preventivi[preventivi['Stato'] == "Ordini Chiusi"])
-    val_chiusi = preventivi[preventivi['Stato'] == "Ordini Chiusi"]['Totale'].sum()
+    df_conclusi    = preventivi[preventivi['Stato'].isin(["Ordini Chiusi", "Ordini Aperti", "Persi"])]
+    n_conclusi     = len(df_conclusi)
+    val_conclusi   = df_conclusi['Totale'].sum()
+    n_aperti       = len(preventivi[preventivi['Stato'] == "Ordini Aperti"])
+    val_aperti     = preventivi[preventivi['Stato'] == "Ordini Aperti"]['Totale'].sum()
+    n_chiusi       = len(preventivi[preventivi['Stato'] == "Ordini Chiusi"])
+    val_chiusi     = preventivi[preventivi['Stato'] == "Ordini Chiusi"]['Totale'].sum()
 
     # --- LAYOUT RIGA 1: GRAFICI A TORTA (Aggiudicati, In Attesa, In Scadenza, Persi) ---
     st.subheader("📊 Distribuzione Stati Preventivi")

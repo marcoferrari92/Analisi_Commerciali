@@ -299,6 +299,83 @@ def plot_distribuzione_ordini(df_target):
 
 
 
+def analisi_conversione_preventivi(df, finestra):
+
+    # Assicuriamoci che la data sia in formato datetime
+    #df['Data'] = pd.to_datetime(df['Data'])
+
+    # 2. Separazione Preventivi e Ordini
+    preventivi = df[df['Tipo Doc.'] == "Preventivo"].copy()
+    ordini = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
+
+    if preventivi.empty or ordini.empty:
+        st.warning("Dati insufficienti per calcolare la conversione (mancano preventivi o ordini).")
+        return
+
+    # 3. Logica di Matching
+    # Uniamo i preventivi agli ordini basandoci su Cliente e Oggetto
+    merged = pd.merge(
+        preventivi, 
+        ordini, 
+        on=['Cliente', 'Oggetto'], 
+        suffixes=('_prev', '_ord')
+    )
+
+    # Calcoliamo la differenza di giorni tra preventivo e ordine
+    merged['diff_giorni'] = (merged['Data_ord'] - merged['Data_prev']).dt.days
+
+    # Filtriamo solo i match validi: l'ordine deve essere successivo al preventivo 
+    # e rientrare nella finestra temporale
+    match_validi = merged[
+        (merged['diff_giorni'] >= 0) & 
+        (merged['diff_giorni'] <= finestra)
+    ]
+
+    # Identifichiamo i preventivi unici convertiti (evitiamo doppi conteggi)
+    # Usiamo l'indice originale per marcare chi è stato convertito
+    #id_preventivi_vinti = match_validi['Data_prev'].index.unique() # O un ID univoco se presente
+    
+    # In alternativa, contiamo quanti preventivi unici (per riga) hanno trovato almeno un match
+    n_preventivi_totali = len(preventivi)
+    n_preventivi_vinti = match_validi.drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev']).shape[0]
+    n_persi = n_preventivi_totali - n_preventivi_vinti
+    tasso_conversione = (n_preventivi_vinti / n_preventivi_totali) * 100
+
+    # 4. Visualizzazione KPI
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Preventivi Totali", n_preventivi_totali)
+    col2.metric("Preventivi Convertiti", n_preventivi_vinti)
+    col3.metric("Tasso di Conversione", f"{tasso_conversione:.1f}%")
+
+    # 5. Grafico a torta della conversione
+    df_pie = pd.DataFrame({
+        "Stato": ["Vinti", "Persi/In attesa"],
+        "Conteggio": [n_preventivi_vinti, n_persi]
+    })
+    
+    # Riutilizzo la tua funzione render_grafico_torta se disponibile, 
+    # o ne creo uno semplice qui
+    fig_conv = px.pie(
+        df_pie, values='Conteggio', names='Stato', 
+        title="Successo Preventivi",
+        color='Stato',
+        color_discrete_map={"Vinti": "#4E944F", "Persi/In attesa": "#FF9999"},
+        hole=0.4
+    )
+    st.plotly_chart(fig_conv, use_container_width=True)
+
+    # 6. Tabella dei Preventivi Vinti
+    if not match_validi.empty:
+        with st.expander("Dettaglio Preventivi Convertiti"):
+            tabella_vinti = match_validi[[
+                'Cliente', 'Oggetto', 'Data_prev', 'Data_ord', 'diff_giorni', 'Totale_ord'
+            ]].rename(columns={
+                'Data_prev': 'Data Preventivo',
+                'Data_ord': 'Data Ordine',
+                'Totale_ord': 'Valore Ordine (€)',
+                'diff_giorni': 'Giorni impiegati'
+            })
+            st.dataframe(tabella_vinti.style.format({'Valore Ordine (€)': '{:,.2f}'}), use_container_width=True)
 
 
 
@@ -559,6 +636,13 @@ if df_orders is not None:
             )
 
 
+    with st.expander("📈 Analisi Conversione Preventivi in Ordini):
+        
+        finestra = st.slider(
+            "Finestra temporale validità preventivi (giorni):", 
+            min_value=1, max_value=180, value=30, help="Entro quanti giorni un preventivo deve diventare ordine per essere considerato 'convertito'?"
+        )
+    
         
 
 if uploaded_file_events:

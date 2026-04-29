@@ -510,7 +510,7 @@ if df_orders is not None:
     
             with col2:
                 st.write("**Top 5 per Volume d'Affari (€)**")
-                fig_rev = px.pie(top_5_revenue, values='Fatturato', names='Oggetto', 
+                fig_rev = px.pie(top_5_revenue, values='Fatturato_Totale', names='Oggetto', 
                                  hole=0.3, color_discrete_sequence=px.colors.sequential.Blues_r)
                 st.plotly_chart(fig_rev, use_container_width=True)
         

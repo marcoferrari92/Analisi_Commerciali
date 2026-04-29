@@ -224,15 +224,17 @@ def plot_distribuzione_ordini(df_target):
         rows=2, cols=1, 
         shared_xaxes=True, 
         vertical_spacing=0.03, 
-        row_heights=[0.3, 0.7]
+        row_heights=[0.5, 0.5]
     )
 
     colori = {"Preventivo": "#A2D2FF", "Ordine Aperto": "#B4E197", "Ordine": "#4E944F"}
     stadi = ["Preventivo", "Ordine Aperto", "Ordine"]
 
     for stadio in stadi:
+        
         # Filtriamo il dataframe per lo stadio attuale
         df_stadio = df_plot[df_plot['Tipo Doc.'] == stadio]
+        
         if df_stadio.empty: continue
 
         vals = df_stadio['Totale']
@@ -251,7 +253,7 @@ def plot_distribuzione_ordini(df_target):
             row=2, col=1
         )
 
-        # BOXPLOT (Row 1) con Hover personalizzato
+        # BOXPLOT (Row 1)
         fig.add_trace(
             go.Box(
                 x=vals,
@@ -279,7 +281,7 @@ def plot_distribuzione_ordini(df_target):
         )
 
     fig.update_layout(
-        height=800,
+        height=1000,
         barmode='overlay',
         margin=dict(t=50, b=50, l=50, r=50),
         legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center"),

@@ -536,7 +536,7 @@ if df_orders is not None:
     # ***********************
 
     with st.expander("📊 Panoramica Articoli", expanded=True):
-        panoramica_articoli(df_orders):
+        panoramica_articoli(df_orders)
 
 
 

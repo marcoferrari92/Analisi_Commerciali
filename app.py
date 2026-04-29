@@ -546,7 +546,7 @@ if df_orders is not None:
     
             # Raggruppamento per Oggetto (Articolo)
             # Conteggio = numero di righe; Totale = somma del fatturato
-            df_stats = df_ordini.groupby('Oggetto').agg(
+            df_stats = df_ordini_vinti.groupby('Oggetto').agg(
                 Conteggio=('Oggetto', 'count'),
                 Fatturato=('Totale', 'sum')
             ).reset_index()

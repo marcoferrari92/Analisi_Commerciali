@@ -213,6 +213,13 @@ def plot_distribuzione_ordini(df_target):
 
     df_plot = df_target.copy()
 
+    # Creiamo la stringa data PRIMA di ogni altra operazione
+    if 'Data' in df_plot.columns:
+        # Convertiamo in datetime se non lo è, poi in stringa
+        df_plot['Data_Str'] = pd.to_datetime(df_plot['Data']).dt.strftime('%d/%m/%Y')
+    else:
+        df_plot['Data_Str'] = "N.D."
+
     fig = make_subplots(
         rows=2, cols=1, 
         shared_xaxes=True, 

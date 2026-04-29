@@ -385,7 +385,7 @@ def analisi_conversione_preventivi(df, finestra):
         fig_funnel.update_layout(title="Imbuto di Conversione", height=400)
         st.plotly_chart(fig_funnel, use_container_width=True)
 
-    # --- TABELLA FINALE ---
+    # --- TABELLA FINALE CORRETTA ---
     st.divider()
     st.write("**📋 Registro Dettagliato Preventivi**")
 
@@ -394,16 +394,23 @@ def analisi_conversione_preventivi(df, finestra):
     df_finale = df_finale.rename(columns={'Data': 'Data Preventivo', 'Oggetto': 'Articolo'})
     df_finale = df_finale.sort_values('Data Preventivo', ascending=False)
 
+    # Definiamo la funzione di stile per le celle dello stato
+    def colora_stato(val):
+        if val in ['Ordine Chiuso', 'Ordine Aperto']:
+            return 'color: #4E944F; font-weight: bold'
+        elif val == 'Perso':
+            return 'color: #FF9999'
+        elif val == 'In Attesa':
+            return 'color: #A2D2FF'
+        return ''
+
+    # Applichiamo lo stile usando la nuova sintassi .map() per lo Styler
     st.dataframe(
         df_finale.style.format({
-            'Data Preventivo': lambda x: x.strftime('%d/%m/%Y'),
+            'Data Preventivo': lambda x: x.strftime('%d/%m/%Y') if pd.notnull(x) else "",
             'Totale': '{:,.2f} €',
             'Durata': '{:.0f} gg'
-        }).applymap(
-            lambda x: 'color: #4E944F; font-weight: bold' if x in ['Ordine Chiuso', 'Ordine Aperto'] 
-            else ('color: #FF9999' if x == 'Perso' else 'color: #A2D2FF'), 
-            subset=['Stato']
-        ),
+        }).map(colora_stato, subset=['Stato']), # <--- Cambiato applymap in map
         use_container_width=True,
         hide_index=True
     )

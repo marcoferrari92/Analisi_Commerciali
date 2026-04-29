@@ -385,28 +385,29 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         st.plotly_chart(fig_funnel, use_container_width=True)
 
     # --- TABELLA FINALE ---
-    st.divider()
-    st.write(f"**📋 Registro Preventivi (Finestra: {finestra}gg, Avviso Scadenza: {giorni_scadenza}gg)**")
+    st.write("")
+    st.write("")
+    st.expander(f"**📋 Registro**"):
 
-    df_finale = preventivi[['Data', 'Cliente', 'Oggetto', 'Totale', 'Stato', 'Durata']].copy()
-    df_finale = df_finale.rename(columns={'Data': 'Data Preventivo', 'Oggetto': 'Articolo'})
-    df_finale = df_finale.sort_values(['Stato', 'Data Preventivo'], ascending=[True, False])
-
-    def colora_stato(val):
-        if val in ['Ordine Chiuso', 'Ordine Aperto']: return 'color: #4E944F; font-weight: bold'
-        if val == 'In Scadenza': return 'color: #CCAA00; font-weight: bold' # Giallo scuro per leggibilità su bianco
-        if val == 'Perso': return 'color: #FF9999'
-        return 'color: #A2D2FF'
-
-    st.dataframe(
-        df_finale.style.format({
-            'Data Preventivo': lambda x: x.strftime('%d/%m/%Y'),
-            'Totale': '{:,.2f} €',
-            'Durata': '{:.0f} gg'
-        }).map(colora_stato, subset=['Stato']),
-        use_container_width=True,
-        hide_index=True
-    )
+        df_finale = preventivi[['Data', 'Cliente', 'Oggetto', 'Totale', 'Stato', 'Durata']].copy()
+        df_finale = df_finale.rename(columns={'Data': 'Data Preventivo', 'Oggetto': 'Articolo'})
+        df_finale = df_finale.sort_values(['Stato', 'Data Preventivo'], ascending=[True, False])
+    
+        def colora_stato(val):
+            if val in ['Ordine Chiuso', 'Ordine Aperto']: return 'color: #4E944F; font-weight: bold'
+            if val == 'In Scadenza': return 'color: #CCAA00; font-weight: bold' # Giallo scuro per leggibilità su bianco
+            if val == 'Perso': return 'color: #FF9999'
+            return 'color: #A2D2FF'
+    
+        st.dataframe(
+            df_finale.style.format({
+                'Data Preventivo': lambda x: x.strftime('%d/%m/%Y'),
+                'Totale': '{:,.2f} €',
+                'Durata': '{:.0f} gg'
+            }).map(colora_stato, subset=['Stato']),
+            use_container_width=True,
+            hide_index=True
+        )
 
 
 

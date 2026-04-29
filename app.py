@@ -642,6 +642,7 @@ if df_orders is not None:
             "Finestra temporale validità preventivi (giorni):", 
             min_value=1, max_value=180, value=30, help="Entro quanti giorni un preventivo deve diventare ordine per essere considerato 'convertito'?"
         )
+        analisi_conversione_preventivi(df_orders, finestra)
     
         
 

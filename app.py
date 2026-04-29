@@ -311,7 +311,6 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     data_riferimento = df['Data'].max()
 
     # 2. Matching per identificare i "Vinti"
-    # Eseguiamo un merge completo senza rimuovere i duplicati per analizzare le anomalie
     merged_full = pd.merge(
         preventivi, 
         ordini, 
@@ -320,27 +319,25 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     )
     merged_full['diff_giorni'] = (merged_full['Data_ord'] - merged_full['Data_prev']).dt.days
     
-    # Filtro validità temporale
-    valid_matches = merged_full[
-        (merged_full['diff_giorni'] >= 0) & (merged_full['diff_giorni'] <= finestra)
-    ]
-
     # --- ANALISI ANOMALIE ---
-    # A. Ordini Orfani (Ordini che non hanno un preventivo corrispondente nella finestra)
-    ordini_matchati_ids = valid_matches[['Cliente', 'Oggetto', 'Data_ord']].drop_duplicates()
+    
+    # A. Ordini Orfani (Senza alcun match nel sistema)
+    ordini_matchati_totali = merged_full[merged_full['diff_giorni'] >= 0][['Cliente', 'Oggetto', 'Data_ord']].drop_duplicates()
     ordini_orfani = ordini.merge(
-        ordini_matchati_ids, 
-        on=['Cliente', 'Oggetto'], 
-        how='left', 
-        indicator=True
+        ordini_matchati_totali, on=['Cliente', 'Oggetto'], how='left', indicator=True
     ).query('_merge == "left_only"').drop(columns='_merge')
 
-    # B. Preventivi con Ordini Multipli
+    # B. Preventivi con Ordini Multipli (nella finestra valida)
+    valid_matches = merged_full[(merged_full['diff_giorni'] >= 0) & (merged_full['diff_giorni'] <= finestra)]
     counts = valid_matches.groupby(['Cliente', 'Oggetto', 'Data_prev']).size().reset_index(name='n_ordini')
     preventivi_multipli = counts[counts['n_ordini'] > 1]
 
+    # C. NUOVO: Ordini Fuori Finestra (Match trovati oltre il limite impostato)
+    ordini_fuori_tempo = merged_full[merged_full['diff_giorni'] > finestra].copy()
+    # Puliamo per non mostrare lo stesso ordine più volte se ha match multipli
+    ordini_fuori_tempo = ordini_fuori_tempo.sort_values('diff_giorni').drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_ord'])
+
     # --- LOGICA DI STATO PULITA ---
-    # Per l'analisi standard, usiamo il match più vicino nel tempo
     vinti_effettivi = valid_matches.sort_values('diff_giorni').drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev'])
 
     def calcola_riga_stato(row):
@@ -349,43 +346,39 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             (vinti_effettivi['Oggetto'] == row['Oggetto']) & 
             (vinti_effettivi['Data_prev'] == row['Data'])
         ]
-        
         if not match.empty:
             tipo_ordine = match.iloc[0]['Tipo Doc._ord']
             durata      = match.iloc[0]['diff_giorni']
-            stato       = "Ordini Chiusi" if tipo_ordine == "Ordine" else "Ordini Aperti"
-            return pd.Series([stato, durata])
+            return pd.Series(["Ordini Chiusi" if tipo_ordine == "Ordine" else "Ordini Aperti", durata])
 
         giorni_passati     = (data_riferimento - row['Data']).days
         giorni_rimanenti   = finestra - giorni_passati
-
-        if giorni_rimanenti < 0:
-            return pd.Series(["Persi", giorni_passati])
-        elif giorni_rimanenti <= giorni_scadenza:
-            return pd.Series(["In Scadenza", giorni_passati])
-        else:
-            return pd.Series(["In Attesa", giorni_passati])
+        if giorni_rimanenti < 0: return pd.Series(["Persi", giorni_passati])
+        elif giorni_rimanenti <= giorni_scadenza: return pd.Series(["In Scadenza", giorni_passati])
+        else: return pd.Series(["In Attesa", giorni_passati])
 
     preventivi[['Stato', 'Durata']] = preventivi.apply(calcola_riga_stato, axis=1)
-    
-    # 3. Grafici a Torta (Raggruppamento Aggiudicati)
-    preventivi['Stato_Torta'] = preventivi['Stato'].replace({
-        "Ordini Chiusi": "Aggiudicati",
-        "Ordini Aperti": "Aggiudicati"
-    })
+    preventivi['Stato_Torta'] = preventivi['Stato'].replace({"Ordini Chiusi": "Aggiudicati", "Ordini Aperti": "Aggiudicati"})
 
-    # --- SEZIONE AVVISI ANOMALIE ---
-    if not preventivi_multipli.empty or not ordini_orfani.empty:
+    # --- SEZIONE AVVISI ANOMALIE (3 COLONNE) ---
+    if not preventivi_multipli.empty or not ordini_orfani.empty or not ordini_fuori_tempo.empty:
         st.error("⚠️ Rilevate anomalie nel flusso documenti")
-        col_an1, col_an2 = st.columns(2)
-        with col_an1:
+        an1, an2, an3 = st.columns(3)
+        with an1:
             if not preventivi_multipli.empty:
-                with st.expander(f"🚩 {len(preventivi_multipli)} Preventivi con Ordini Multipli"):
+                with st.expander(f"🚩 {len(preventivi_multipli)} Ordini Multipli"):
                     st.dataframe(preventivi_multipli, use_container_width=True, hide_index=True)
-        with col_an2:
+        with an2:
             if not ordini_orfani.empty:
-                with st.expander(f"❓ {len(ordini_orfani)} Ordini Orfani (Senza Preventivo)"):
+                with st.expander(f"❓ {len(ordini_orfani)} Ordini Orfani"):
                     st.dataframe(ordini_orfani[['Data', 'Cliente', 'Oggetto', 'Totale']], use_container_width=True, hide_index=True)
+        with an3:
+            if not ordini_fuori_tempo.empty:
+                with st.expander(f"⏰ {len(ordini_fuori_tempo)} Ordini Fuori Tempo"):
+                    # Mostriamo anche i giorni di ritardo
+                    df_ft = ordini_fuori_tempo[['Data_ord', 'Cliente', 'Oggetto', 'diff_giorni']].rename(columns={'Data_ord': 'Data Ordine', 'diff_giorni': 'Giorni dopo Prev.'})
+                    st.dataframe(df_ft, use_container_width=True, hide_index=True)
+                    st.caption(f"Ordini arrivati oltre i {finestra}gg di validità.")
 
     # --- CALCOLI PER FUNNEL ---
     df_conclusi    = preventivi[preventivi['Stato'].isin(["Ordini Chiusi", "Ordini Aperti", "Persi"])]

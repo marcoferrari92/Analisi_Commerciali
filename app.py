@@ -280,69 +280,6 @@ def plot_distribuzione_ordini(df_target):
     st.plotly_chart(fig, use_container_width=True)
     
 
-def panoramica_articoli(df):
-    """
-    Grafico a torta Top 5 + Tabella completa con valori assoluti e percentuali.
-    """
-
-    if 'Oggetto' not in df.columns:
-        st.error("Colonna 'Oggetto' non trovata.")
-        return
-
-    # 1. Preparazione Dati Completi (per la tabella)
-    conteggio_totale = df['Oggetto'].value_counts().reset_index()
-    conteggio_totale.columns = ['Oggetto', 'Assoluto']
-    
-    # Percentuali sul totale
-    totale_pezzi = conteggio_totale['Assoluto'].sum()
-    conteggio_totale['Percentuale'] = (conteggio_totale['Assoluto'] / totale_pezzi * 100).round(2)
-    conteggio_totale['%'] = conteggio_totale['Percentuale'].astype(str) + '%'
-
-    # 2. Grafico (Top 5 + Altro)
-    if len(conteggio_totale) > 5:
-        df_top = conteggio_totale.head(5).copy()
-        somma_altri = conteggio_totale.iloc[5:]['Assoluto'].sum()
-        riga_altro = pd.DataFrame({'Oggetto': ['RESTANTI'], 'Assoluto': [somma_altri]})
-        df_plot = pd.concat([df_top, riga_altro], ignore_index=True)
-    else:
-        df_plot = conteggio_totale
-
-    # 3. Output
-    col1, col2 = st.columns([1.8, 1.2])
-
-    with col1:
-        fig_pie = px.pie(
-            df_plot, 
-            values='Assoluto', 
-            names='Oggetto',
-            title="Top 5 Oggetti e Incidenza",
-            hole=0.4,
-            color_discrete_sequence=px.colors.qualitative.Bold
-        )
-        
-        fig_pie.update_traces(textinfo='percent+label')
-        
-        # Legenda orizzontale in alto
-        fig_pie.update_layout(
-            legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.5),
-            margin=dict(t=100, b=0, l=0, r=0)
-        )
-        
-        st.plotly_chart(fig_pie, use_container_width=True)
-
-    with col2:
-        st.write("#### Analisi Dettagliata")
-        # Mostriamo la tabella completa (voci univoche totali)
-        # Selezioniamo solo le colonne che ci interessano per la tabella
-        tabella_display = conteggio_totale[['Oggetto', 'Assoluto', '%']]
-        
-        st.dataframe(
-            tabella_display, 
-            hide_index=True, 
-            use_container_width=True,
-            height=400 # Altezza fissa con scrollbar se i dati sono molti
-        )
-        st.caption(f"Totale voci univoche rilevate: {len(conteggio_totale)}")
 
 
 
@@ -537,7 +474,7 @@ if df_orders is not None:
 
     with st.expander("📊 Panoramica Articoli Venduti", expanded=True):
 
-        # Filtriamo gli ordini presi ("Ordine Aperto" e "Ordine")
+        # Filtriamo gli ordini vinti ("Ordine Aperto" e "Ordine")
         df_ordini_vinti = df_orders[df_orders['Tipo Doc.'].isin(["Ordine Aperto", "Ordine"])].copy()
     
         if not df_ordini_vinti.empty:
@@ -552,7 +489,7 @@ if df_orders is not None:
             ).reset_index()
     
             # Top 5
-            top_5_count = df_stats.nlargest(5, 'Conteggio')
+            top_5_count = df_stats.nlargest(5, 'Ordini')
             top_5_revenue = df_stats.nlargest(5, 'Fatturato')
     
             # Grafici a torta
@@ -560,7 +497,7 @@ if df_orders is not None:
     
             with col1:
                 st.write("**Top 5 per Numero di Ordini**")
-                fig_count = px.pie(top_5_count, values='Conteggio', names='Oggetto', 
+                fig_count = px.pie(top_5_count, values='Ordini', names='Oggetto', 
                                hole=0.3, color_discrete_sequence=px.colors.sequential.RdBu)
                 st.plotly_chart(fig_count, use_container_width=True)
     
@@ -571,10 +508,7 @@ if df_orders is not None:
                 st.plotly_chart(fig_rev, use_container_width=True)
     
             # Tabella riassuntiva totale (tutti gli articoli)
-            
             df_stats_sorted = df_stats.sort_values(by='Fatturato', ascending=False)
-            
-            # Formattazione per la visualizzazione
             st.dataframe(
                 df_stats_sorted.style.format({'Fatturato': '{:.2f} €'}),
                 use_container_width=True,

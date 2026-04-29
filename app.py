@@ -527,13 +527,14 @@ if df_orders is not None:
         
         st.divider()
         st.write("#### Distribuzione Ordini e Preventivi")
-        plot_distribuzione_ordini(df_target)
-        
         st.info("""
         **Come leggere questo grafico:**
-        * **Istogramma (Sotto):** Indica dove si concentrano i tuoi volumi (es. molti ordini tra 500€ e 1000€).
-        * **Box Plot (Sopra):** La linea centrale è la **Mediana**. I punti isolati sono gli **Outliers** (ordini eccezionalmente grandi).
+        * **Istogramma:** Indica le fasce di prezzo dove si concentrano i tuoi volumi.
+        * **Box Plot:** La linea centrale è la **Mediana**. I punti isolati sono gli **Outliers** (⚠️ ordini eccezionalmente grandi -> verificare).
         """)
+        plot_distribuzione_ordini(df_target)
+        
+        
 
 
 

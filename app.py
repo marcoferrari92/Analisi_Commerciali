@@ -636,7 +636,7 @@ if df_orders is not None:
             )
 
 
-    with st.expander("📈 Analisi Conversione Preventivi in Ordini):
+    with st.expander("Analisi Conversione Preventivi", expanded=True):
         
         finestra = st.slider(
             "Finestra temporale validità preventivi (giorni):", 

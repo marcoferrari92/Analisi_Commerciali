@@ -504,7 +504,7 @@ if df_orders is not None:
         
             with col1:
                 st.write("**Top 5 per Numero di Ordini**")
-                fig_count = px.pie(top_5_count, values='Conteggio', names='Oggetto', 
+                fig_count = px.pie(top_5_count, values='Ordini', names='Oggetto', 
                                    hole=0.3, color_discrete_sequence=px.colors.sequential.RdBu)
                 st.plotly_chart(fig_count, use_container_width=True)
     

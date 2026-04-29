@@ -308,7 +308,6 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         st.warning("Nessun preventivo trovato.")
         return
 
-    # Data di riferimento (l'ultima data disponibile nel dataset)
     data_riferimento = df['Data'].max()
 
     # 2. Matching per identificare i "Vinti"
@@ -324,9 +323,8 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         (merged['diff_giorni'] >= 0) & (merged['diff_giorni'] <= finestra)
     ].sort_values('diff_giorni').drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev'])
 
-    # 3. Nuova Logica di Stato con "In Scadenza"
+    # 3. Logica di Stato con "In Scadenza"
     def calcola_riga_stato(row):
-        # Cerchiamo se è vinto
         match = vinti_effettivi[
             (vinti_effettivi['Cliente'] == row['Cliente']) & 
             (vinti_effettivi['Oggetto'] == row['Oggetto']) & 
@@ -338,7 +336,6 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             durata = match.iloc[0]['diff_giorni']
             return pd.Series(["Ordine Chiuso" if tipo_ordine == "Ordine" else "Ordine Aperto", durata])
         
-        # Se non è vinto, calcoliamo quanto tempo è passato
         giorni_passati = (data_riferimento - row['Data']).days
         giorni_rimanenti = finestra - giorni_passati
 
@@ -351,26 +348,43 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     preventivi[['Stato', 'Durata']] = preventivi.apply(calcola_riga_stato, axis=1)
 
-    # --- GRAFICI ---
-    col_l, col_r = st.columns(2)
-    
-    with col_l:
-        stats_pie = preventivi['Stato'].value_counts().reset_index()
-        fig_pie = px.pie(
-            stats_pie, values='count', names='Stato', 
-            title="Dettaglio Stati", hole=0.4,
-            color='Stato',
-            color_discrete_map={
-                "Ordine Chiuso": "#4E944F", # Verde
-                "Ordine Aperto": "#B4E197", # Verde chiaro
-                "In Scadenza": "#FFD700",   # GIALLO GOLD
-                "In Attesa": "#A2D2FF",     # Azzurro
-                "Perso": "#FF9999"          # Rosso
-            }
-        )
-        st.plotly_chart(fig_pie, use_container_width=True)
+    # --- DEFINIZIONE COLORI (Coerente per tutti i grafici) ---
+    color_map = {
+        "Ordine Chiuso": "#4E944F", 
+        "Ordine Aperto": "#B4E197", 
+        "In Scadenza": "#FFD700",   
+        "In Attesa": "#A2D2FF",     
+        "Perso": "#FF9999"          
+    }
 
-    with col_r:
+    # --- PRIMA RIGA: DUE GRAFICI A TORTA ---
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Torta 1: Conteggio (N. Preventivi)
+        stats_n = preventivi['Stato'].value_counts().reset_index()
+        fig_pie_n = px.pie(
+            stats_n, values='count', names='Stato', 
+            title="Esito Preventivi (Quantità)", hole=0.4,
+            color='Stato', color_discrete_map=color_map
+        )
+        st.plotly_chart(fig_pie_n, use_container_width=True)
+
+    with col2:
+        # Torta 2: Fatturato (Somma Totale €)
+        stats_val = preventivi.groupby('Stato')['Totale'].sum().reset_index()
+        fig_pie_val = px.pie(
+            stats_val, values='Totale', names='Stato', 
+            title="Esito Preventivi (Valore €)", hole=0.4,
+            color='Stato', color_discrete_map=color_map
+        )
+        fig_pie_val.update_traces(textinfo='percent+label', hovertemplate='Stato: %{label}<br>Totale: %{value:,.2f} €')
+        st.plotly_chart(fig_pie_val, use_container_width=True)
+
+    # --- SECONDA RIGA: FUNNEL A SINISTRA ---
+    col3, col4 = st.columns(2)
+    
+    with col3:
         # Funnel (Emessi -> Accettati -> Chiusi)
         n_tot = len(preventivi)
         n_vinti = len(preventivi[preventivi['Stato'].str.contains("Ordine")])
@@ -382,12 +396,12 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             textinfo="value+percent initial",
             marker={"color": ["#D3D3D3", "#B4E197", "#4E944F"]}
         ))
+        fig_funnel.update_layout(title="Imbuto di Conversione (Quantità)", height=400)
         st.plotly_chart(fig_funnel, use_container_width=True)
 
     # --- TABELLA FINALE ---
     st.write("")
-    st.write("")
-    with st.expander("📋 Registro", expanded=True):
+    with st.expander("📋 Registro Dettagliato", expanded=True):
 
         df_finale = preventivi[['Data', 'Cliente', 'Oggetto', 'Totale', 'Stato', 'Durata']].copy()
         df_finale = df_finale.rename(columns={'Data': 'Data Preventivo', 'Oggetto': 'Articolo'})
@@ -395,7 +409,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
         def colora_stato(val):
             if val in ['Ordine Chiuso', 'Ordine Aperto']: return 'color: #4E944F; font-weight: bold'
-            if val == 'In Scadenza': return 'color: #CCAA00; font-weight: bold' # Giallo scuro per leggibilità su bianco
+            if val == 'In Scadenza': return 'color: #CCAA00; font-weight: bold' 
             if val == 'Perso': return 'color: #FF9999'
             return 'color: #A2D2FF'
     

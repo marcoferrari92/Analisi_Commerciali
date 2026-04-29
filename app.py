@@ -299,17 +299,22 @@ def plot_distribuzione_ordini(df_target):
 
 
 
+
 def analisi_conversione_preventivi(df, finestra):
-    
+    """
+    Analizza la conversione dei preventivi seguendo il loro ciclo di vita.
+    Il funnel mostra: Preventivi -> Convertiti (Aperti/Chiusi) -> Chiusi definitivi.
+    """
     # 1. Separazione Preventivi e Ordini
     preventivi = df[df['Tipo Doc.'] == "Preventivo"].copy()
-    ordini     = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
+    ordini = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
 
     if preventivi.empty:
-        st.warning("⚠️ Nessun preventivo trovato nei dati!")
+        st.warning("Nessun preventivo trovato nei dati filtrati per l'analisi di conversione.")
         return
 
-    # 2. Logica di Matching per Tasso di Conversione
+    # 2. Logica di Matching (Il "ponte" tra preventivo e ordine)
+    # Uniamo per Cliente e Oggetto
     merged = pd.merge(
         preventivi, 
         ordini, 
@@ -317,65 +322,71 @@ def analisi_conversione_preventivi(df, finestra):
         suffixes=('_prev', '_ord')
     )
 
-    # Calcoliamo la differenza di giorni tra preventivo e ordine
+    # Calcolo differenza giorni
     merged['diff_giorni'] = (merged['Data_ord'] - merged['Data_prev']).dt.days
 
-    # Filtro temporale: ordine deve essere successivo al preventivo entro la finestra
+    # Filtro: l'ordine deve essere successivo al preventivo entro la finestra scelta
     match_validi = merged[
         (merged['diff_giorni'] >= 0) & 
         (merged['diff_giorni'] <= finestra)
     ].copy()
 
-    # Conteggi per KPI
-    n_preventivi_totali = len(preventivi)
-    n_preventivi_vinti = match_validi.drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev']).shape[0]
-    n_persi = n_preventivi_totali - n_preventivi_vinti
-    tasso_conversione = (n_preventivi_vinti / n_preventivi_totali) * 100 if n_preventivi_totali > 0 else 0
-
-    # 3. Calcolo Volumi per il Funnel Chart
-    n_aperti = len(df[df['Tipo Doc.'] == "Ordine Aperto"])
-    n_chiusi = len(df[df['Tipo Doc.'] == "Ordine"])
+    # --- CALCOLO DATI PER FUNNEL (BASATO SUI PREVENTIVI) ---
     
-    val_prev = preventivi['Totale'].sum()
-    val_aperti = df[df['Tipo Doc.'] == "Ordine Aperto"]['Totale'].sum()
-    val_chiusi = df[df['Tipo Doc.'] == "Ordine"]['Totale'].sum()
+    # Step 1: Preventivi Totali
+    n_prev_tot = len(preventivi)
+    val_prev_tot = preventivi['Totale'].sum()
+
+    # Step 2: Preventivi che hanno generato ALMENO un ordine (Aperto o Chiuso)
+    # Rimuoviamo i duplicati per contare il preventivo una sola volta anche se ha più match
+    vinti_df = match_validi.drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev'])
+    n_vinti = len(vinti_df)
+    val_vinti = vinti_df['Totale_prev'].sum()
+
+    # Step 3: Preventivi che sono diventati specificamente "Ordine" (Chiusi)
+    chiusi_def_df = match_validi[match_validi['Tipo Doc._ord'] == "Ordine"].drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev'])
+    n_chiusi = len(chiusi_def_df)
+    val_chiusi = chiusi_def_df['Totale_prev'].sum()
+
+    # Calcolo Tasso Conversione Finale
+    tasso_conv = (n_vinti / n_prev_tot * 100) if n_prev_tot > 0 else 0
+    n_persi = n_prev_tot - n_vinti
 
     # --- VISUALIZZAZIONE ---
+    st.subheader("🎯 Analisi Efficacia Preventivi")
+    
+    # Metriche principali
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Preventivi Emessi", n_prev_tot)
+    m2.metric("Preventivi Vinti", n_vinti)
+    m3.metric("Tasso Conversione", f"{tasso_conv:.1f}%")
 
-    # KPI in alto
-    st.subheader("🎯 Performance Conversioni")
-    kpi1, kpi2, kpi3 = st.columns(3)
-    kpi1.metric("Preventivi Totali", n_preventivi_totali)
-    kpi2.metric("Preventivi Convertiti", n_preventivi_vinti)
-    kpi3.metric("Tasso di Conversione", f"{tasso_conversione:.1f}%")
-
-    # Layout a due colonne per i grafici
     col_left, col_right = st.columns(2)
 
     with col_left:
-        # 4. Grafico a Torta Successo Preventivi
+        # Grafico a Torta: Successo vs Perdita
         df_pie = pd.DataFrame({
-            "Stato": ["Vinti", "Persi/In attesa"],
-            "Conteggio": [n_preventivi_vinti, n_persi]
+            "Stato": ["Vinti", "Persi / In attesa"],
+            "Conteggio": [n_vinti, n_persi]
         })
         fig_pie = px.pie(
             df_pie, values='Conteggio', names='Stato', 
             title="Successo Preventivi (%)",
             hole=0.4,
             color='Stato',
-            color_discrete_map={"Vinti": "#4E944F", "Persi/In attesa": "#FF9999"}
+            color_discrete_map={"Vinti": "#4E944F", "Persi / In attesa": "#FF9999"}
         )
-        fig_pie.update_layout(height=450, margin=dict(t=50, b=0, l=0, r=0))
+        fig_pie.update_layout(height=450)
         st.plotly_chart(fig_pie, use_container_width=True)
 
     with col_right:
-        # 5. Grafico Funnel
-        fasi = ["Preventivi", "Ordini Aperti", "Ordini"]
-        valori_n = [n_preventivi_totali, n_aperti, n_chiusi]
-        valori_euro = [val_prev, val_aperti, val_chiusi]
+        # Grafico Funnel: Ciclo di vita del preventivo
+        fasi_funnel = ["Preventivi Emessi", "Portati a Ordine", "Di cui Chiusi Def."]
+        valori_n = [n_prev_tot, n_vinti, n_chiusi]
+        valori_euro = [val_prev_tot, val_vinti, val_chiusi]
 
         fig_funnel = go.Figure(go.Funnel(
-            y=fasi,
+            y=fasi_funnel,
             x=valori_n,
             textinfo="value+percent initial",
             marker={
@@ -384,26 +395,32 @@ def analisi_conversione_preventivi(df, finestra):
             },
             connector={"line": {"color": "gray", "width": 1, "dash": "dot"}},
             customdata=valori_euro,
-            hovertemplate="<b>%{y}</b><br>N. Doc: %{value}<br>Volume: €%{customdata:,.2f}<extra></extra>"
+            hovertemplate="<b>%{y}</b><br>N. Preventivi: %{value}<br>Valore Orig.: €%{customdata:,.2f}<extra></extra>"
         ))
+        
         fig_funnel.update_layout(
-            title="Funnel Documenti (N.)",
-            height=450, 
-            margin=dict(t=50, b=0, l=0, r=0)
+            title="Percorso di Conversione (N.)",
+            height=450,
+            margin=dict(l=150) # Spazio per le etichette a sinistra
         )
         st.plotly_chart(fig_funnel, use_container_width=True)
 
-    # 6. Tabella di dettaglio
+    # Tabella di dettaglio
     if not match_validi.empty:
-        with st.expander("🔍 Dettaglio Preventivi Convertiti (Vinti)"):
+        with st.expander("🔍 Dettaglio Preventivi Convertiti"):
             tabella_vinti = match_validi[[
-                'Cliente', 'Oggetto', 'Data_prev', 'Data_ord', 'diff_giorni', 'Totale_ord'
+                'Cliente', 'Oggetto', 'Data_prev', 'Data_ord', 'Tipo Doc._ord', 'diff_giorni', 'Totale_ord'
             ]].rename(columns={
-                'Data_prev': 'Data Preventivo',
-                'Data_ord': 'Data Ordine',
+                'Data_prev': 'Data Prev.',
+                'Data_ord': 'Data Ord.',
+                'Tipo Doc._ord': 'Stato Finale',
                 'Totale_ord': 'Valore Ordine (€)',
-                'diff_giorni': 'Giorni impiegati'
+                'diff_giorni': 'Giorni'
             })
+            
+            # Ordiniamo per i più recenti
+            tabella_vinti = tabella_vinti.sort_values(by='Data Ord.', ascending=False)
+            
             st.dataframe(
                 tabella_vinti.style.format({'Valore Ordine (€)': '{:,.2f}'}), 
                 use_container_width=True, 

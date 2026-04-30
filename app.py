@@ -317,10 +317,16 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     e senza considerare finestre di tempo. 
     Crea un nuovo dataframe "merged_full" con i match.
     
-        Struttura dataframe: 
-        se il Cliente A ha 3 preventivi per l'Oggetto X 
-        e ha fatto 2 ordini per l'Oggetto X, merged_full 
+    Struttura dataframe "merged_full": 
+        se il Cliente X ha 3 preventivi per l'Oggetto Y 
+        e ha fatto 2 ordini per l'Oggetto Y, "merged_full"
         conterrà 6 righe (tutte le combinazioni possibili).
+        Poi aggiunge la colonna "diff_giorni" che è la differenza
+        tra la data dell'ordine e quella del preventivo per ogni 
+        combinazione possibile (ogni match). 
+        Ammette anche differenze negative (Es: ordine 1 Maggio
+        e preventivo 5 Maggio, diff_giorni = -4). 
+        Questo serve per identificare le anomalie
     """
     merged_full = pd.merge(
         preventivi, 
@@ -328,8 +334,9 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         on=['Cliente', 'Oggetto'], 
         suffixes=('_prev', '_ord')
     )
-    # Aggiunge 
     merged_full['diff_giorni'] = (merged_full['Data_ord'] - merged_full['Data_prev']).dt.days
+
+    
     ordini_matchati_totali     = merged_full[merged_full['diff_giorni'] >= 0][['Cliente', 'Oggetto', 'Data_ord']].drop_duplicates()
     
     # --- ANALISI ANOMALIE ---

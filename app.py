@@ -107,56 +107,73 @@ def validazione_importi(df):
     # Creiamo una copia per evitare SettingWithCopyWarning
     df = df.copy()
 
-    # --- 1. PULIZIA E CALCOLO DEL TOTALE ---
-    # Definiamo le colonne necessarie per il calcolo (ora in MAIUSCOLO)
-    colonne_calcolo = ['QT', 'PREZZO', 'IVA']
+    # --- 1. IDENTIFICAZIONE DINAMICA COLONNA TIPO DOC ---
+    # Cerchiamo qualsiasi variante (con punto, senza punto, ecc.) 
+    # ma in uscita useremo solo "TIPOLOGIA DOC"
+    possibili_col_tipo = [
+        'TIPOLOGIA DOC.', 'TIPOLOGIA DOC', 'TIPO EVENTO', 
+        'TIPO DOC.', 'TIPO DOC', 'TIPO DOCUMENTO'
+    ]
     
+    # Trova la prima colonna esistente tra quelle in elenco
+    col_tipo_originale = next((c for c in possibili_col_tipo if c in df.columns), None)
+    
+    if not col_tipo_originale:
+        # Ricerca di emergenza se nessuna delle precedenti esiste
+        col_tipo_originale = next((c for c in df.columns if 'TIPO' in c or 'DOC' in c), None)
+
+    if not col_tipo_originale:
+        st.error(f"Impossibile trovare la colonna del Tipo Documento. Colonne rilevate: {list(df.columns)}")
+        return None, None
+
+    # --- 2. PULIZIA E CALCOLO DEL TOTALE ---
+    colonne_calcolo = ['QT', 'PREZZO', 'IVA']
     for col in colonne_calcolo:
         if col in df.columns:
-            # Pulizia stringhe: toglie spazi, cambia virgole in punti
             df[col] = df[col].astype(str).str.replace(' ', '').str.replace(',', '.')
-            # Conversione numerica forzata (i valori non validi diventano NaN)
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
         else:
-            # Se manca una colonna vitale, la inizializziamo a 0 per evitare crash
             df[col] = 0.0
 
     # Calcolo del TOTALE: (Prezzo * Quantità) + IVA
-    # Nota: Assumiamo che IVA sia l'aliquota (es. 22). Se è già valore monetario, togli '/ 100'
-    df['TOTALE_CALCOLATO'] = (df['PREZZO'] * df['QT']) * (1 + (df.get('IVA', 0) / 100))
+    df['TOTALE_CALCOLATO'] = (df['PREZZO'] * df['QT']) * (1 + (df['IVA'] / 100))
 
-    # --- 2. VALIDAZIONE TIPO DOC ---
-    # Poiché abbiamo rinominato la colonna nel caricamento, cerchiamo 'Tipo Evento'
-    # Se non lo trovi, usa il nome che preferisci, ma coerente con carica_dati_commerciali
-    col_tipo = 'Tipo Evento' if 'Tipo Evento' in df.columns else 'TIPOLOGIA DOC.'
-    
+    # --- 3. VALIDAZIONE TIPO DOC ---
     tipi_ammessi = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
     
-    # Maschera per Tipo Doc (Case-insensitive per sicurezza col .upper())
-    mask_tipo_errato = ~df[col_tipo].astype(str).str.upper().isin(tipi_ammessi)
+    # Puliamo il contenuto della colonna (rimuove punti, rende maiuscolo)
+    # Creiamo una colonna temporanea pulita
+    df['TIPO_TEMP'] = df[col_tipo_originale].astype(str).apply(
+        lambda x: re.sub(r'[^a-zA-Z\s]', '', x).strip().upper()
+    )
+    
+    mask_tipo_errato = ~df['TIPO_TEMP'].isin(tipi_ammessi)
 
-    # --- 3. CREAZIONE MASCHERE FINALI ---
-    # Un errore è tale se il totale calcolato è <= 0 o NaN
-    # OPPURE se il Tipo Doc è errato
+    # --- 4. CREAZIONE MASCHERE FINALI ---
     mask_errori = (df['TOTALE_CALCOLATO'].isna()) | (df['TOTALE_CALCOLATO'] <= 0) | mask_tipo_errato
 
     df_errori = df[mask_errori].copy()
     df_pulito = df[~mask_errori].copy()
     
-    # Assegniamo il totale calcolato alla colonna definitiva 'Totale' (standard per il resto del codice)
+    # --- 5. STANDARDIZZAZIONE FINALE (L'output che userai ovunque) ---
     df_pulito['Totale'] = df_pulito['TOTALE_CALCOLATO']
+    df_pulito['TIPOLOGIA DOC'] = df_pulito['TIPO_TEMP']
     
-    # Rimuoviamo la colonna temporanea
-    df_pulito = df_pulito.drop(columns=['TOTALE_CALCOLATO'])
-    if 'TOTALE_CALCOLATO' in df_errori.columns:
-        df_errori = df_errori.drop(columns=['TOTALE_CALCOLATO'])
+    # Pulizia colonne tecniche dai DataFrame in uscita
+    cols_to_drop = ['TOTALE_CALCOLATO', 'TIPO_TEMP']
+    df_pulito = df_pulito.drop(columns=[c for c in cols_to_drop if c in df_pulito.columns])
+    df_errori = df_errori.drop(columns=[c for c in cols_to_drop if c in df_errori.columns])
+
+    # Se vuoi visualizzare gli errori con il nome standardizzato
+    if 'TIPO_TEMP' in df_errori.columns:
+        df_errori = df_errori.rename(columns={'TIPO_TEMP': 'TIPOLOGIA DOC'})
 
     # --- DEBUG E OUTPUT ---
     st.write(f"✅ Analisi completata: {len(df)} righe elaborate.")
     
     if len(df_errori) > 0:
-        with st.expander("⚠️ RIGHE SCARTATE O ANOMALE", expanded=False):
-            st.error(f"Trovate {len(df_errori)} righe non valide (Importo <= 0 o Tipo Doc non ammesso).")
+        with st.expander(f"⚠️ {len(df_errori)} RIGHE SCARTATE", expanded=False):
+            st.error("Documenti con importo non valido o tipologia non ammessa.")
             st.dataframe(df_errori, use_container_width=True)
     else:
         st.success("Tutti i documenti sono risultati validi.")

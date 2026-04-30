@@ -123,39 +123,42 @@ def validazione_importi(df):
     df = df.copy()
 
     # --- 1. PULIZIA E CALCOLO DEL TOTALE ---
-    # Funzione interna per pulire e convertire i valori numerici (QT, PREZZO, IVA)
+    # Funzione aggiornata per trattare migliaia (.) e decimali (,)
     def converti_valore(val):
         try:
             if pd.isna(val): return 0.0
-            # Rimuove spazi e converte la virgola in punto
-            pulito = str(val).replace(' ', '').replace(',', '.')
-            # Estrae solo numeri, punto e segno meno
+            
+            # Trasformiamo in stringa e puliamo gli spazi
+            val_str = str(val).strip().replace(' ', '')
+            
+            # GESTIONE FORMATO EUROPEO:
+            # 1. Rimuoviamo il punto delle migliaia (es: 1.250,50 -> 1250,50)
+            # 2. Sostituiamo la virgola con il punto per i decimali (es: 1250,50 -> 1250.50)
+            pulito = val_str.replace('.', '').replace(',', '.')
+            
+            # Estrae solo numeri, punto decimale e segno meno
             pulito = re.sub(r'[^0-9.-]', '', pulito)
+            
             return float(pulito) if pulito else 0.0
         except:
             return 0.0
 
-    # Applichiamo la pulizia alle colonne necessarie
+    # Applichiamo la pulizia alle colonne numeriche necessarie
     for col in ['QT', 'PREZZO', 'IVA']:
         if col in df.columns:
             df[f'{col}_pulito'] = df[col].apply(converti_valore)
         else:
             df[f'{col}_pulito'] = 0.0
 
-    # Calcolo del Totale: (Prezzo * Quantità) + IVA
-    # Nota: Assumiamo IVA come percentuale (es. 22). Formula: (P * Q) * (1 + IVA/100)
+    # Calcolo del Totale: (Prezzo * Quantità) + IVA (%)
+    # Formula: (P * Q) * (1 + IVA/100)
     df['Totale_TMP'] = (df['PREZZO_pulito'] * df['QT_pulito']) * (1 + (df['IVA_pulito'] / 100))
 
     # --- 2. VALIDAZIONE TIPO DOC ---
-    # Definiamo le tipologie ammesse (devono corrispondere a quelle standardizzate nel caricamento)
     tipi_ammessi = ["Preventivo", "Ordine Aperto", "Ordine"]
-    
-    # Maschera per Tipo Doc: True se il tipo NON è tra quelli ammessi
     mask_tipo_errato = ~df['Tipo Doc.'].astype(str).isin(tipi_ammessi)
 
     # --- 3. CREAZIONE MASCHERE FINALI ---
-    # Un errore è tale se l'importo calcolato è <= 0 (o NaN)
-    # OPPURE se il Tipo Doc è errato
     mask_errori = (df['Totale_TMP'] <= 0) | (df['Totale_TMP'].isna()) | mask_tipo_errato
 
     df_errori = df[mask_errori].copy()
@@ -165,7 +168,6 @@ def validazione_importi(df):
     df_pulito['Totale'] = df_pulito['Totale_TMP']
     
     # --- 4. PULIZIA FINALE ---
-    # Rimuoviamo le colonne temporanee utilizzate per il calcolo
     cols_da_rimuovere = ['QT_pulito', 'PREZZO_pulito', 'IVA_pulito', 'Totale_TMP']
     df_pulito = df_pulito.drop(columns=cols_da_rimuovere)
     df_errori = df_errori.drop(columns=cols_da_rimuovere)
@@ -178,7 +180,7 @@ def validazione_importi(df):
             st.error(f"Trovate {len(df_errori)} righe scartate (Importo non valido o Tipo Doc non ammesso)!")
             st.dataframe(df_errori)
     else:
-        st.success("Nessun errore rilevato (Tutti i calcoli e i tipi documento sono validi).")
+        st.success("Nessun errore rilevato (Tutti i calcoli sono validi).")
 
     return df_pulito, df_errori
     

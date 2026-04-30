@@ -402,74 +402,75 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     counts                = valid_matches.groupby(['Cliente', 'Oggetto', 'Data_prev']).size().reset_index(name='n_ordini')
     preventivi_multipli   = counts[counts['n_ordini'] > 1]
 
-    """
-    C. ORDINI FUORI TEMPO
     
-        L'obiettivo è isolare gli ordini che hanno un preventivo "padre", ma sono arrivati
-        oltre il limite di giorni (finestra) stabilito per l'analisi.
-        1. Filtro Temporale (> finestra):
-           - Estrae dal dataframe 'merged_full' tutte le combinazioni in cui l'ordine
-             è avvenuto dopo la scadenza della validità del preventivo.
-           - .copy(): Crea una copia autonoma del dataframe per le successive manipolazioni.
-        2. Ordinamento Cronologico (sort_values):
-           - Ordina i match per 'diff_giorni' in modo crescente. Questo mette in cima 
-             il match più "vicino" alla scadenza della finestra (il primo preventivo utile).
-        3. Pulizia dei Duplicati (drop_duplicates):
-           - Poiché un ordine potrebbe avere più preventivi vecchi alle spalle, 
-             usiamo 'subset' su Cliente, Oggetto e Data dell'ordine per assicurarci 
-             che ogni ordine ritardatario compaia una sola volta nella lista.
-           - Questo evita di sovrastimare l'anomalia se ci sono stati molti preventivi 
-             tutti scaduti per lo stesso articolo (è stato proposto più volte al 
-             cliente che non ha mai accettato)
-    """
+    # C. ORDINI FUORI TEMPO
+    #     
+    #     L'obiettivo è isolare gli ordini che hanno un preventivo "padre", ma sono arrivati
+    #     oltre il limite di giorni (finestra) stabilito per l'analisi.
+    #     1. Filtro Temporale (> finestra):
+    #        - Estrae dal dataframe 'merged_full' tutte le combinazioni in cui l'ordine
+    #          è avvenuto dopo la scadenza della validità del preventivo.
+    #        - .copy(): Crea una copia autonoma del dataframe per le successive manipolazioni.
+    #     2. Ordinamento Cronologico (sort_values):
+    #        - Ordina i match per 'diff_giorni' in modo crescente. Questo mette in cima 
+    #          il match più "vicino" alla scadenza della finestra (il primo preventivo utile).
+    #     3. Pulizia dei Duplicati (drop_duplicates):
+    #        - Poiché un ordine potrebbe avere più preventivi vecchi alle spalle, 
+    #          usiamo 'subset' su Cliente, Oggetto e Data dell'ordine per assicurarci 
+    #          che ogni ordine ritardatario compaia una sola volta nella lista.
+    #        - Questo evita di sovrastimare l'anomalia se ci sono stati molti preventivi 
+    #          tutti scaduti per lo stesso articolo (è stato proposto più volte al 
+    #          cliente che non ha mai accettato)
+    
     ordini_fuori_tempo = merged_full[merged_full['diff_giorni'] > finestra].copy()
     ordini_fuori_tempo = ordini_fuori_tempo.sort_values('diff_giorni').drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_ord'])
 
-    """
-    D. CHECK INTEGRITA (Stesso giorno/cliente/articolo)'
-        L'obiettivo è individuare se esistono più ordini distinti per lo stesso Cliente 
-        e lo stesso Articolo avvenuti nella medesima Data. Poiché l'analisi usa la 
-        Data come chiave temporale, questi casi verrebbero accorpati.
-        1. Raggruppamento sul dataframe originale (groupby):
-           - Si raggruppa il datafrae "ordini" per Cliente, Oggetto e Data, 
-             ovvero i parametri usati per identificare un evento di vendita.
-           - .size(): Conta quante righe effettive esistono per ogni combinazione.
-           - .reset_index(name='n_righe'): Crea una tabella riassuntiva con il 
-             conteggio delle transazioni per ogni triade (Chi, Cosa, Quando).
-        2. Identificazione dei casi critici (n_righe > 1):
-           - Filtra solo le combinazioni che compaiono più di una volta nello stesso giorno.
-           - Questi 'casi_critici' rappresentano ordini che il sistema "appiattirà" 
-             in un unico match, causando una potenziale sottostima nel conteggio (N.) 
-             dei documenti vinti, anche se il valore economico totale (Somma €) 
-             rimarrà corretto.
-    """
+    
+    # D. CHECK INTEGRITA (Stesso giorno/cliente/articolo)
+    #     
+    #     L'obiettivo è individuare se esistono più ordini distinti per lo stesso Cliente 
+    #     e lo stesso Articolo avvenuti nella medesima Data. Poiché l'analisi usa la 
+    #     Data come chiave temporale, questi casi verrebbero accorpati.
+    #     1. Raggruppamento sul dataframe originale (groupby):
+    #        - Si raggruppa il dataframe "ordini" per Cliente, Oggetto e Data, 
+    #          ovvero i parametri usati per identificare un evento di vendita.
+    #        - .size(): Conta quante righe effettive esistono per ogni combinazione.
+    #        - .reset_index(name='n_righe'): Crea una tabella riassuntiva con il 
+    #          conteggio delle transazioni per ogni triade (Chi, Cosa, Quando).
+    #     2. Identificazione dei casi critici (n_righe > 1):
+    #        - Filtra solo le combinazioni che compaiono più di una volta nello stesso giorno.
+    #        - Questi 'casi_critici' rappresentano ordini che il sistema "appiattirà" 
+    #          in un unico match, causando una potenziale sottostima nel conteggio (N.) 
+    #          dei documenti vinti, anche se il valore economico totale (Somma €) 
+    #          rimarrà corretto.
+    
     check_integrita = ordini.groupby(['Cliente', 'Oggetto', 'Data']).size().reset_index(name='n_righe')
     casi_critici = check_integrita[check_integrita['n_righe'] > 1]
 
     
-    """
-    ** PREVENTIVI AGGIUDICATI EFFETTIVI **
-    In questa fase avviene la "scelta" definitiva: per ogni preventivo, identifichiamo 
-    quale ordine lo ha effettivamente chiuso, applicando criteri di priorità cronologica.
     
-    1. Ordinamento per Prossimità Temporale (.sort_values):
-       - Viene ordinato il dataframe 'valid_matches' in base a 'diff_giorni' (dal valore minore al maggiore).
-       - Questo garantisce che, per ogni preventivo, l'ordine avvenuto più a ridosso 
-         della data dell'offerta finisca in cima alla lista.
+    # ** PREVENTIVI AGGIUDICATI EFFETTIVI **
+    # In questa fase avviene la "scelta" definitiva: per ogni preventivo, identifichiamo 
+    # quale ordine lo ha effettivamente chiuso, applicando criteri di priorità cronologica.
+    # 
+    # 1. Ordinamento per Prossimità Temporale (.sort_values):
+    #    - Viene ordinato il dataframe 'valid_matches' in base a 'diff_giorni' (dal valore minore al maggiore).
+    #    - Questo garantisce che, per ogni preventivo, l'ordine avvenuto più a ridosso 
+    #      della data dell'offerta finisca in cima alla lista.
+    # 
+    # 2. Selezione dell'Ordine "Vincitore" (.drop_duplicates):
+    #    - subset=['Cliente', 'Oggetto', 'Data_prev']: Il sistema isola ogni singolo preventivo 
+    #      univoco (chi, cosa, quando è stata fatta l'offerta).
+    #    - Poiché Pandas, durante il 'drop_duplicates', mantiene solo la PRIMA riga che incontra 
+    #      e scarta le successive, e dato che abbiamo ordinato per giorni crescenti, 
+    #      verrà conservato solo l'ordine più vicino nel tempo.
+    # 
+    # 3. Risultato:
+    #    - Il dataframe 'vinti_effettivi' conterrà una riga per ogni preventivo trasformato 
+    #      in vendita, collegato esclusivamente al suo primo ordine cronologico. 
+    #      Tutte le altre combinazioni (es. secondi o terzi ordini dello stesso cliente) 
+    #      vengono rimosse per non duplicare le statistiche di conversione.
     
-    2. Selezione dell'Ordine "Vincitore" (.drop_duplicates):
-       - subset=['Cliente', 'Oggetto', 'Data_prev']: Il sistema isola ogni singolo preventivo 
-         univoco (chi, cosa, quando è stata fatta l'offerta).
-       - Poiché Pandas, durante il 'drop_duplicates', mantiene solo la PRIMA riga che incontra 
-         e scarta le successive, e dato che abbiamo ordinato per giorni crescenti, 
-         verrà conservato solo l'ordine più vicino nel tempo.
-    
-    3. Risultato:
-       - Il dataframe 'vinti_effettivi' conterrà una riga per ogni preventivo trasformato 
-         in vendita, collegato esclusivamente al suo primo ordine cronologico. 
-         Tutte le altre combinazioni (es. secondi o terzi ordini dello stesso cliente) 
-         vengono rimosse per non duplicare le statistiche di conversione.
-    """
     vinti_effettivi = valid_matches.sort_values('diff_giorni').drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev'])
 
     def calcola_riga_stato(row):

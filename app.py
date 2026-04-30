@@ -494,7 +494,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     preventivi['Stato_Torta'] = preventivi['Stato'].replace({"Ordini Chiusi": "Aggiudicati", "Ordini Aperti": "Aggiudicati"})
 
 
-    # --- SEZIONE AVVISI ANOMALIE (AGGIORNATA A 4 CATEGORIE) ---
+    # --- SEZIONE AVVISI ANOMALIE (LAYOUT VERTICALE) ---
 
     # Verifichiamo se esiste almeno un'anomalia tra le 4 categorie identificate
     if not (preventivi_multipli.empty and ordini_orfani.empty and 
@@ -502,40 +502,33 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         
         st.error("⚠️ Rilevate anomalie nel flusso documenti")
         
-        # Creiamo 4 colonne per distribuire i vari expander
-        an1, an2, an3, an4 = st.columns(4)
-        
-        with an1:
-            # A. PREVENTIVI MULTIPLI: Un preventivo ha generato più ordini in date diverse
-            if not preventivi_multipli.empty:
-                with st.expander(f"🚩 {len(preventivi_multipli)} Prev. Multipli"):
-                    st.write("Preventivi che hanno generato più ordini (anche in date diverse).")
-                    st.dataframe(preventivi_multipli, use_container_width=True, hide_index=True)
+        # A. PREVENTIVI MULTIPLI
+        if not preventivi_multipli.empty:
+            with st.expander(f"🚩 {len(preventivi_multipli)} Preventivi con Ordini Multipli"):
+                st.write("Questi preventivi hanno generato più di un ordine (o righe d'ordine distinte) nel periodo di validità.")
+                st.dataframe(preventivi_multipli, use_container_width=True, hide_index=True)
     
-        with an2:
-            # B. ORDINI ORFANI: Ordini senza alcun preventivo trovato nel dataset
-            if not ordini_orfani.empty:
-                with st.expander(f"❓ {len(ordini_orfani)} Ordini Orfani"):
-                    st.write("Ordini inseriti direttamente senza un'offerta commerciale precedente.")
-                    st.dataframe(ordini_orfani[['Data', 'Cliente', 'Oggetto', 'Totale']], use_container_width=True, hide_index=True)
+        # B. ORDINI ORFANI
+        if not ordini_orfani.empty:
+            with st.expander(f"❓ {len(ordini_orfani)} Ordini Orfani (Senza Preventivo)"):
+                st.write("Ordini per i quali non è stato trovato alcun preventivo antecedente nel database.")
+                st.dataframe(ordini_orfani[['Data', 'Cliente', 'Oggetto', 'Totale']], use_container_width=True, hide_index=True)
     
-        with an3:
-            # C. ORDINI FUORI TEMPO: Match trovati oltre la finestra di validità
-            if not ordini_fuori_tempo.empty:
-                with st.expander(f"⏰ {len(ordini_fuori_tempo)} Fuori Tempo"):
-                    df_ft = ordini_fuori_tempo[['Data_ord', 'Cliente', 'Oggetto', 'diff_giorni']].rename(
-                        columns={'Data_ord': 'Data Ordine', 'diff_giorni': 'GG dopo Prev.'}
-                    )
-                    st.write(f"Ordini arrivati oltre i {finestra}gg di validità.")
-                    st.dataframe(df_ft, use_container_width=True, hide_index=True)
+        # C. ORDINI FUORI TEMPO
+        if not ordini_fuori_tempo.empty:
+            with st.expander(f"⏰ {len(ordini_fuori_tempo)} Ordini arrivati Fuori Tempo"):
+                df_ft = ordini_fuori_tempo[['Data_ord', 'Cliente', 'Oggetto', 'diff_giorni']].rename(
+                    columns={'Data_ord': 'Data Ordine', 'diff_giorni': 'GG dopo Prev.'}
+                )
+                st.write(f"Ordini che hanno un preventivo nel database, ma sono stati chiusi oltre i {finestra}gg stabiliti.")
+                st.dataframe(df_ft, use_container_width=True, hide_index=True)
     
-        with an4:
-            # D. CASI CRITICI (INTEGRITÀ): Più ordini identici nello stesso giorno (possibili accorpamenti)
-            if not casi_critici.empty:
-                with st.expander(f"⚠️ {len(casi_critici)} Casi Critici"):
-                    st.write("Più ordini per lo stesso articolo/cliente nello stesso giorno.")
-                    st.caption("Questi casi vengono accorpati forzatamente dall'analisi.")
-                    st.dataframe(casi_critici, use_container_width=True, hide_index=True)
+        # D. CASI CRITICI (INTEGRITÀ)
+        if not casi_critici.empty:
+            with st.expander(f"⚠️ {len(casi_critici)} Casi Critici (Potenziali Accorpamenti)"):
+                st.write("Rilevati più ordini per lo stesso cliente/articolo nella medesima data.")
+                st.info("Nota tecnica: A causa della mancanza di un ID ordine univoco, questi record vengono conteggiati come singola vendita.")
+                st.dataframe(casi_critici, use_container_width=True, hide_index=True)
                 
     # --- CALCOLI PER FUNNEL ---
     df_conclusi    = preventivi[preventivi['Stato'].isin(["Ordini Chiusi", "Ordini Aperti", "Persi"])]

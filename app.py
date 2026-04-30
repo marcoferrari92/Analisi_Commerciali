@@ -29,7 +29,7 @@ def carica_dati_commerciali(file):
         mappa_standard = {
             'CLIENTE': 'Cliente',
             'ARTICOLO': 'Oggetto',
-            'AGENTE': 'Agente',
+            'COMMERCIALE': 'Agente',
             'OGGETTO': 'Oggetto',
             'DATA': 'Data',
             'DATA EVENTO': 'Data',

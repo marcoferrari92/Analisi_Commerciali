@@ -300,10 +300,9 @@ def plot_distribuzione_ordini(df_target):
 
 def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
-    """
-    ** SEPARAZIONE DATAFRAME **
-    Separa il dataframe df in due per Preventivi e Ordini (Aperti e Chiusi)
-    """
+    # ** SEPARAZIONE DATAFRAME **
+    # Separa il dataframe df in due per Preventivi e Ordini (Aperti e Chiusi)
+    
     preventivi = df[df['Tipo Doc.'] == "Preventivo"].copy()
     ordini     = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
 
@@ -314,26 +313,25 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     data_riferimento = df['Data'].max()
 
     
-    """
-    ** Matching per identificare i preventivi aggiudicati **
+    # ** Matching per identificare i preventivi aggiudicati **
+    # 
+    # Cerchiamo i match tra i dataframe di preventivi e ordini, 
+    # basandosi sul nome del Cliente e l'Articolo venduto
+    # e senza considerare finestre di tempo. 
+    # Crea un nuovo dataframe "merged_full" con i match.
+    # 
+    # Struttura di "merged_full": 
+    #     se il Cliente X ha 3 preventivi per l'Oggetto Y 
+    #     e ha fatto 2 ordini per l'Oggetto Y, "merged_full"
+    #     conterrà 6 righe (tutte le combinazioni possibili).
+    #     Poi aggiunge la colonna "diff_giorni" che è la differenza
+    #     tra la data dell'ordine e quella del preventivo per ogni 
+    #     combinazione possibile. 
+    #     Ammette anche differenze negative (Es: ordine 1 Maggio
+    #     e preventivo 5 Maggio, diff_giorni = -4). 
+    #     Mantenere tutte le combinazioni e ammettere diff_giorni 
+    #     negative serve per identificare eventuali anomalie.
     
-    Cerchiamo i match tra i dataframe di preventivi e ordini, 
-    basandosi sul nome del Cliente e l'Articolo venduto
-    e senza considerare finestre di tempo. 
-    Crea un nuovo dataframe "merged_full" con i match.
-    
-    Struttura di "merged_full": 
-        se il Cliente X ha 3 preventivi per l'Oggetto Y 
-        e ha fatto 2 ordini per l'Oggetto Y, "merged_full"
-        conterrà 6 righe (tutte le combinazioni possibili).
-        Poi aggiunge la colonna "diff_giorni" che è la differenza
-        tra la data dell'ordine e quella del preventivo per ogni 
-        combinazione possibile. 
-        Ammette anche differenze negative (Es: ordine 1 Maggio
-        e preventivo 5 Maggio, diff_giorni = -4). 
-        Mantenere tutte le combinazioni e ammettere diff_giorni 
-        negative serve per identificare eventuali anomalie. 
-    """
     merged_full = pd.merge(
         preventivi, 
         ordini, 
@@ -343,65 +341,63 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     merged_full['diff_giorni'] = (merged_full['Data_ord'] - merged_full['Data_prev']).dt.days
 
     
-    """
-    ** ORDINI TRACCIABILI **
+    # ** ORDINI TRACCIABILI **
+    # 
+    # Diff_giorni viene usata per verificare gli ordini "tracciabili",
+    # ovvero ordini di cui è presente un preventivo nel dataset 
+    # antecedente all'ordine. 
+    # Di tutte le combinazioni vengono conservate quelle dove l'ordine 
+    # è avvenuto lo stesso giorno (o dopo) il preventivo. 
+    # Di queste ne viene mantenuta una e droppate le altre.
+    # A questo stadio non stiamo ancora dicendo che "l'ordine X appartiene 
+    # al preventivo Y", ma stiamo verificando che "l'ordine X ha almeno 
+    # un padre nel database, quindi non è un orfano
     
-    Diff_giorni viene usata per verificare gli ordini "tracciabili",
-    ovvero ordini di cui è presente un preventivo nel dataset 
-    antecedente all'ordine. 
-    Di tutte le combinazioni vengono conservate quelle dove l'ordine 
-    è avvenuto lo stesso giorno (o dopo) il preventivo. 
-    Di queste ne viene mantenuta una e droppate le altre.
-    A questo stadio non stiamo ancora dicendo che "l'ordine X appartiene 
-    al preventivo Y", ma stiamo verificando che "l'ordine X ha almeno 
-    un padre nel database, quindi non è un orfano"
-    """
     ordini_matchati_totali = merged_full[merged_full['diff_giorni'] >= 0][['Cliente', 'Oggetto', 'Data_ord']].drop_duplicates()
-    
-    """
-    ** ANALISI ANOMALIE **
 
-    A. ORDINI ORFANI
     
-        L'obiettivo è isolare gli ordini che non hanno alcun preventivo associato nel dataset.
-        1. Il Merge (how='left'):
-            - Prende la tabella di tutti gli ordini (dataframe 'ordini').
-            - Tenta di affiancare gli 'ordini_matchati_totali' per Cliente e Oggetto.
-            - how='left': se non trova match, i campi della tabella destra saranno riempiti con NaN.
-            - indicator=True: Crea la colonna '_merge' che funge da 'verdetto':
-            - 'both': l'ordine ha un preventivo (è tracciabile).
-            - 'left_only': l'ordine non ha trovato corrispondenze (è un orfano).
-        2. Il Filtro (.query):
-            - Seleziona solo le righe marcate come 'left_only', isolando gli ordini 
-              che non hanno un'offerta commerciale alle spalle.
-        3. La Pulizia (.drop):
-            - Rimuove la colonna tecnica '_merge' per restituire un DataFrame pulito
-    """
+    # ** ANALISI ANOMALIE **
+    
+    # A. ORDINI ORFANI
+    # 
+    #     L'obiettivo è isolare gli ordini che non hanno alcun preventivo associato nel dataset.
+    #     1. Il Merge (how='left'):
+    #        - Prende la tabella di tutti gli ordini (dataframe 'ordini').
+    #        - Tenta di affiancare gli 'ordini_matchati_totali' per Cliente e Oggetto.
+    #        - how='left': se non trova match, i campi della tabella destra saranno riempiti con NaN.
+    #        - indicator=True: Crea la colonna '_merge' che funge da 'verdetto':
+    #        - 'both': l'ordine ha un preventivo (è tracciabile).
+    #        - 'left_only': l'ordine non ha trovato corrispondenze (è un orfano).
+    #     2. Il Filtro (.query):
+    #        - Seleziona solo le righe marcate come 'left_only', isolando gli ordini 
+    #          che non hanno un'offerta commerciale alle spalle.
+    #     3. La Pulizia (.drop):
+    #        - Rimuove la colonna tecnica '_merge' per restituire un DataFrame pulito
     
     ordini_orfani = ordini.merge(
         ordini_matchati_totali, on=['Cliente', 'Oggetto'], how='left', indicator=True
     ).query('_merge == "left_only"').drop(columns='_merge')
 
-    """
-    B. PREVENTIVI CON ORDINI MULTIPLO
-    
-        L'obiettivo è identificare i preventivi che hanno generato più di un ordine 
-        all'interno della finestra temporale di validità.
-        1. Definizione dei match validi (valid_matches):
-           - Filtra il dataframe 'merged_full' per tenere solo le combinazioni 
-             cronologicamente corrette (diff_giorni >= 0) e che rientrano 
-             nella 'finestra' di giorni stabilita.
-        2. Conteggio degli ordini per preventivo (groupby):
-           - Raggruppa i dati per l'identità univoca del preventivo: 
-             Cliente, Oggetto (Articolo) e Data del preventivo.
-           - .size(): Conta quante volte ogni preventivo appare nel set dei match validi.
-           - .reset_index(name='n_ordini'): Trasforma il risultato in un DataFrame 
-             nominando 'n_ordini' la colonna con il numero di occorrenze trovate.
-        3. Filtro Anomalie (counts > 1):
-           - Isola solo i casi in cui 'n_ordini' è maggiore di 1. 
-           - Questi sono i preventivi "prolifici" che hanno agganciato più ordini 
-             o che presentano potenziali duplicati nel sistema gestionale.
-    """
+
+    # B. PREVENTIVI CON ORDINI MULTIPLI
+    #     
+    #     L'obiettivo è identificare i preventivi che hanno generato più di un ordine 
+    #     all'interno della finestra temporale di validità.
+    #     1. Definizione dei match validi (valid_matches):
+    #        - Filtra il dataframe 'merged_full' per tenere solo le combinazioni 
+    #          cronologicamente corrette (diff_giorni >= 0) e che rientrano 
+    #          nella 'finestra' di giorni stabilita.
+    #     2. Conteggio degli ordini per preventivo (groupby):
+    #        - Raggruppa i dati per l'identità univoca del preventivo: 
+    #          Cliente, Oggetto (Articolo) e Data del preventivo.
+    #        - .size(): Conta quante volte ogni preventivo appare nel set dei match validi.
+    #        - .reset_index(name='n_ordini'): Trasforma il risultato in un DataFrame 
+    #          nominando 'n_ordini' la colonna con il numero di occorrenze trovate.
+    #     3. Filtro Anomalie (counts > 1):
+    #        - Isola solo i casi in cui 'n_ordini' è maggiore di 1. 
+    #        - Questi sono i preventivi "prolifici" che hanno agganciato più ordini 
+    #          o che presentano potenziali duplicati nel sistema gestionale.
+
     valid_matches         = merged_full[(merged_full['diff_giorni'] >= 0) & (merged_full['diff_giorni'] <= finestra)]
     counts                = valid_matches.groupby(['Cliente', 'Oggetto', 'Data_prev']).size().reset_index(name='n_ordini')
     preventivi_multipli   = counts[counts['n_ordini'] > 1]

@@ -46,7 +46,7 @@ def carica_dati_commerciali(file):
         # 4. Pulizia Tipo Evento (Cerca il nome in MAIUSCOLO)
         possibili_nomi_evento = [
             'TIPO EVENTO', 'TIPO_EVENTO', 'EVENTO', 
-            'TIPOLOGIA DOC.', 'TIPOLOGIA DOC', 'TIPO DOCUMENTO'
+            'TIPOLOGIA DOC', 'TIPOLOGIA DOC', 'TIPO DOCUMENTO'
         ]
         colonna_evento = next((c for c in possibili_nomi_evento if c in df.columns), None)
 
@@ -249,7 +249,7 @@ def plot_distribuzione_ordini(df_target):
     for stadio in stadi:
         
         # Filtriamo il dataframe per lo stadio attuale
-        df_stadio = df_plot[df_plot['TIPOLOGIA DOC.'] == stadio]
+        df_stadio = df_plot[df_plot['TIPOLOGIA DOC'] == stadio]
         
         if df_stadio.empty: continue
 
@@ -319,8 +319,8 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # ** SEPARAZIONE DATAFRAME **
     # Separa il dataframe df in due per Preventivi e Ordini (Aperti e Chiusi)
     
-    preventivi = df[df['TIPOLOGIA DOC.'] == "Preventivo"].copy()
-    ordini     = df[df['TIPOLOGIA DOC.'].isin(["Ordine", "Ordine Aperto"])].copy()
+    preventivi = df[df['TIPOLOGIA DOC'] == "Preventivo"].copy()
+    ordini     = df[df['TIPOLOGIA DOC'].isin(["Ordine", "Ordine Aperto"])].copy()
 
     if preventivi.empty:
         st.warning("⚠️ Nessun preventivo trovato per l'analisi!")
@@ -496,7 +496,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             (vinti_effettivi['Data_prev'] == row['Data'])
         ]
         if not match.empty:
-            tipo_ordine = match.iloc[0]['TIPOLOGIA DOC._ord']
+            tipo_ordine = match.iloc[0]['TIPOLOGIA DOC_ord']
             durata      = match.iloc[0]['diff_giorni']
             return pd.Series(["Ordini Chiusi" if tipo_ordine == "Ordine" else "Ordini Aperti", durata])
 
@@ -733,9 +733,9 @@ if df_orders is not None:
     # ************
     
     # Aggregazione quantità e volumi
-    conteggio_qty             = df_orders['TIPOLOGIA DOC.'].value_counts().reset_index()
-    conteggio_qty.columns     = ['TIPOLOGIA DOC.', 'Conteggio'] 
-    conteggio_vol             = df_orders.groupby('TIPOLOGIA DOC.')['Totale'].sum().reset_index()
+    conteggio_qty             = df_orders['TIPOLOGIA DOC'].value_counts().reset_index()
+    conteggio_qty.columns     = ['TIPOLOGIA DOC', 'Conteggio'] 
+    conteggio_vol             = df_orders.groupby('TIPOLOGIA DOC')['Totale'].sum().reset_index()
     
     with st.expander("📊 Panoramica Quantità e Volumi", expanded=True):
         
@@ -747,7 +747,7 @@ if df_orders is not None:
                 render_grafico_torta(
                     data=conteggio_qty, 
                     values_col='Conteggio', 
-                    names_col='TIPOLOGIA DOC.', 
+                    names_col='TIPOLOGIA DOC', 
                     titolo="Volume per Numero Articoli",
                     tipo="numerico"
                 )
@@ -756,7 +756,7 @@ if df_orders is not None:
                 render_grafico_torta(
                     data=conteggio_vol, 
                     values_col='Totale', 
-                    names_col='TIPOLOGIA DOC.', 
+                    names_col='TIPOLOGIA DOC', 
                     titolo="Volume per Valore Economico",
                     tipo="soldi"
                 )
@@ -766,12 +766,12 @@ if df_orders is not None:
         
 
         # 1. Mediana
-        mediane = df_orders.groupby('TIPOLOGIA DOC.')['Totale'].median().reset_index()
-        mediane.columns = ['TIPOLOGIA DOC.', 'Mediana (€)']
+        mediane = df_orders.groupby('TIPOLOGIA DOC')['Totale'].median().reset_index()
+        mediane.columns = ['TIPOLOGIA DOC', 'Mediana (€)']
         
         # 2. Uniamo i dati: Quantità + Volumi + Mediane
-        df_riepilogo = pd.merge(conteggio_qty, conteggio_vol, on='TIPOLOGIA DOC.')
-        df_riepilogo = pd.merge(df_riepilogo, mediane, on='TIPOLOGIA DOC.')
+        df_riepilogo = pd.merge(conteggio_qty, conteggio_vol, on='TIPOLOGIA DOC')
+        df_riepilogo = pd.merge(df_riepilogo, mediane, on='TIPOLOGIA DOC')
         
         # 3. Calcolo Percentuali sul totale
         tot_qty = df_riepilogo['Conteggio'].sum()
@@ -784,12 +784,12 @@ if df_orders is not None:
         
         # 5. Ordinamento e Selezione Colonne per una lettura logica
         ordine_fisso = ["Preventivo", "Ordine Aperto", "Ordine"]
-        df_riepilogo['TIPOLOGIA DOC.'] = pd.Categorical(df_riepilogo['TIPOLOGIA DOC.'], categories=ordine_fisso, ordered=True)
-        df_riepilogo = df_riepilogo.sort_values('TIPOLOGIA DOC.')
+        df_riepilogo['TIPOLOGIA DOC'] = pd.Categorical(df_riepilogo['TIPOLOGIA DOC'], categories=ordine_fisso, ordered=True)
+        df_riepilogo = df_riepilogo.sort_values('TIPOLOGIA DOC')
         
         # 6. Organizziamo le colonne in modo che la tabella sia facile da leggere
         colonne_finali = [
-            'TIPOLOGIA DOC.', 
+            'TIPOLOGIA DOC', 
             'Conteggio', '% Qty',      # Gruppo Quantità
             'Totale', '% Vol',         # Gruppo Valore Economico
             'Media (€)', 'Mediana (€)' # Indicatori di performance
@@ -827,7 +827,7 @@ if df_orders is not None:
     with st.expander("📊 Panoramica Articoli Venduti", expanded=True):
 
         # Filtriamo gli ordini vinti ("Ordine Aperto" e "Ordine")
-        df_ordini_vinti = df_orders[df_orders['TIPOLOGIA DOC.'].isin(["Ordine Aperto", "Ordine"])].copy()
+        df_ordini_vinti = df_orders[df_orders['TIPOLOGIA DOC'].isin(["Ordine Aperto", "Ordine"])].copy()
     
         if not df_ordini_vinti.empty:
             

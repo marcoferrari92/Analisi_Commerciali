@@ -300,7 +300,7 @@ def plot_distribuzione_ordini(df_target):
 
 def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
-    # 1. Separa il dataframe df in due per Preventivi e Ordini
+    # 1. Separa il dataframe df in due per Preventivi e Ordini (Aperti e Chiusi)
     preventivi = df[df['Tipo Doc.'] == "Preventivo"].copy()
     ordini     = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
 
@@ -310,24 +310,38 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     data_riferimento = df['Data'].max()
 
-    # 2. Matching per identificare i "Vinti"
+    # 2. Matching per identificare i preventivi aggiudicati
+    """
+    Cerca match tra i dataframe di preventivi e ordini, 
+    basandosi sul nome del Cliente e l'Articolo venduto
+    e senza considerare finestre di tempo. 
+    Crea un nuovo dataframe "merged_full" con i match.
+    
+        Struttura dataframe: 
+        se il Cliente A ha 3 preventivi per l'Oggetto X 
+        e ha fatto 2 ordini per l'Oggetto X, merged_full 
+        conterrà 6 righe (tutte le combinazioni possibili).
+    """
     merged_full = pd.merge(
         preventivi, 
         ordini, 
         on=['Cliente', 'Oggetto'], 
         suffixes=('_prev', '_ord')
     )
+    # Aggiunge 
     merged_full['diff_giorni'] = (merged_full['Data_ord'] - merged_full['Data_prev']).dt.days
+    ordini_matchati_totali     = merged_full[merged_full['diff_giorni'] >= 0][['Cliente', 'Oggetto', 'Data_ord']].drop_duplicates()
     
     # --- ANALISI ANOMALIE ---
     
-    # A. Ordini Orfani (Senza alcun match nel sistema)
-    ordini_matchati_totali = merged_full[merged_full['diff_giorni'] >= 0][['Cliente', 'Oggetto', 'Data_ord']].drop_duplicates()
+    # A. Ordini Orfani 
+    # Ordini senza un preventivo (probabilmente antecedente al set dati analizzato)
+    
     ordini_orfani = ordini.merge(
         ordini_matchati_totali, on=['Cliente', 'Oggetto'], how='left', indicator=True
     ).query('_merge == "left_only"').drop(columns='_merge')
 
-    # B. Preventivi con Ordini Multipli (nella finestra valida)
+    # B. Preventivi con ordini multipli (nella finestra valida)
     valid_matches = merged_full[(merged_full['diff_giorni'] >= 0) & (merged_full['diff_giorni'] <= finestra)]
     counts = valid_matches.groupby(['Cliente', 'Oggetto', 'Data_prev']).size().reset_index(name='n_ordini')
     preventivi_multipli = counts[counts['n_ordini'] > 1]

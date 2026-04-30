@@ -11,54 +11,68 @@ st.set_page_config(layout="wide")
 @st.cache_data
 def carica_dati_commerciali(file):
     try:
-        # 1. Lettura file con gestione separatore
+        # 1. Lettura file
         df = pd.read_csv(file, sep=';', encoding='utf-8-sig')
         if df.shape[1] <= 1:
             file.seek(0)
             df = pd.read_csv(file, sep=',', encoding='utf-8-sig')
 
-        # 2. UNIFORMAZIONE COLONNE (Tutto in MAIUSCOLO)
-        # Pulizia base (rimozione spazi e caratteri invisibili)
+        # 2. Pulizia preliminare spazi e caratteri invisibili
         df.columns = df.columns.str.strip().str.replace('ï»¿', '', regex=False)
+
+        # --- LOGICA DI MAPPATURA INTELLIGENTE ---
+        # Creiamo un dizionario temporaneo {NOME_IN_MAIUSCOLO: Nome_Originale}
+        # Questo ci permette di trovare "CLIENTE" anche se nel file è "cliente" o "Cliente"
+        col_map_raw = {c.upper(): c for c in df.columns}
+
+        # Definiamo cosa cerchiamo (Sinistra) e come lo vogliamo nel codice (Destra)
+        mappa_standard = {
+            'CLIENTE': 'Cliente',
+            'ARTICOLO': 'Oggetto',
+            'OGGETTO': 'Oggetto',
+            'DATA': 'Data',
+            'DATA EVENTO': 'Data',
+            'TIPOLOGIA DOC.': 'Tipo Doc.',
+            'TIPOLOGIA DOC': 'Tipo Doc.',
+            'TIPO DOC.': 'Tipo Doc.',
+            'TIPO EVENTO': 'Tipo Doc.'
+        }
+
+        # Costruiamo il dizionario finale di rinomina per Pandas
+        rinomina_finale = {}
+        for alias_maiuscolo, nome_standard in mappa_standard.items():
+            if alias_maiuscolo in col_map_raw:
+                nome_reale_nel_file = col_map_raw[alias_maiuscolo]
+                rinomina_finale[nome_reale_nel_file] = nome_standard
+
+        # Rinominiamo le colonne
+        df = df.rename(columns=rinomina_finale)
+        # ----------------------------------------
+
+        # 3. Controllo colonne obbligatorie
+        colonne_necessarie = ['Data', 'Cliente', 'Oggetto', 'Tipo Doc.']
+        mancanti = [c for c in colonne_necessarie if c not in df.columns]
         
-        # Trasforma tutte le intestazioni in MAIUSCOLO
-        df.columns = df.columns.str.upper()
-
-        # 3. Gestione Data (Cerca il nome in MAIUSCOLO)
-        # Nota: Anche se il file ha "data evento", ora è diventato "DATA EVENTO"
-        possibili_nomi_data = ['DATA EVENTO', 'DATA', 'DATA_EVENTO', 'DATE']
-        colonna_data = next((c for c in possibili_nomi_data if c in df.columns), None)
-
-        if colonna_data:
-            df[colonna_data] = pd.to_datetime(df[colonna_data], dayfirst=True, errors='coerce')
-            righe_nulle = df[colonna_data].isna().sum()
-            
-            # Rinominiamo in "Data" (o "DATA") per il resto dello script
-            df = df.rename(columns={colonna_data: 'Data'})
-            df = df.dropna(subset=['Data'])
-            
-            if righe_nulle > 0:
-                st.warning(f"⚠️ Attenzione: {righe_nulle} righe rimosse per data non valida.")
-        else:
-            st.error(f"Colonna date non trovata! Colonne rilevate: {list(df.columns)}")
+        if mancanti:
+            st.error(f"Mancano colonne fondamentali: {mancanti}")
+            st.info(f"Colonne rilevate nel file: {list(df.columns)}")
             return None
 
-        # 4. Pulizia Tipo Evento (Cerca il nome in MAIUSCOLO)
-        possibili_nomi_evento = [
-            'TIPO EVENTO', 'TIPO_EVENTO', 'EVENTO', 
-            'TIPOLOGIA DOC', 'TIPOLOGIA DOC', 'TIPO DOCUMENTO'
-        ]
-        colonna_evento = next((c for c in possibili_nomi_evento if c in df.columns), None)
+        # 4. Gestione specifica della Data
+        df['Data'] = pd.to_datetime(df['Data'], dayfirst=True, errors='coerce')
+        righe_nulle = df['Data'].isna().sum()
+        df = df.dropna(subset=['Data'])
+        
+        if righe_nulle > 0:
+            st.warning(f"⚠️ Rimosse {righe_nulle} righe con data non valida.")
 
-        if colonna_evento:
-            # Rinominiamo nel nome standard che usi nel codice
-            df = df.rename(columns={colonna_evento: 'Tipo Evento'})
-            
-            # Pulizia del contenuto
-            df['Tipo Evento'] = df['Tipo Evento'].apply(
-                lambda x: re.sub(r'[^a-zA-Z\s]', '', str(x)).strip().upper() if pd.notnull(x) else x
-            )
-            
+        # 5. Pulizia testuale Tipo Doc. (per match nel resto del codice)
+        df['Tipo Doc.'] = df['Tipo Doc.'].apply(
+            lambda x: re.sub(r'[^a-zA-Z\s]', '', str(x)).strip().title() if pd.notnull(x) else x
+        )
+        # Nota: uso .title() così "ORDINE" diventa "Ordine", "PREVENTIVO" diventa "Preventivo"
+        # coerentemente con i tuoi if/filtri successivi.
+
         return df
 
     except Exception as e:
@@ -104,79 +118,54 @@ def validazione_importi(df):
         st.error("Dataframe assente o vuoto!")
         return None, None
 
-    # Creiamo una copia per evitare SettingWithCopyWarning
-    df = df.copy()
+    # --- VALIDAZIONE IMPORTI ---
+    df['Totale_TMP'] = df['Totale'].astype(str).str.replace(' ', '').str.replace(',', '.')
 
-    # --- 1. IDENTIFICAZIONE DINAMICA COLONNA TIPO DOC ---
-    # Cerchiamo qualsiasi variante (con punto, senza punto, ecc.) 
-    # ma in uscita useremo solo "TIPOLOGIA DOC"
-    possibili_col_tipo = [
-        'TIPOLOGIA DOC.', 'TIPOLOGIA DOC', 'TIPO EVENTO', 
-        'TIPO DOC.', 'TIPO DOC', 'TIPO DOCUMENTO'
-    ]
+    def valida_puro(valore_str):
+        try:
+            pulito = re.sub(r'[^0-9.-]', '', valore_str)
+            if not pulito: return None
+            num = float(pulito)
+            if num > 0:
+                return num
+            return None
+        except:
+            return None
+
+    serie_validata = df['Totale_TMP'].apply(valida_puro)
     
-    # Trova la prima colonna esistente tra quelle in elenco
-    col_tipo_originale = next((c for c in possibili_col_tipo if c in df.columns), None)
+    # --- VALIDAZIONE TIPO DOC ---
+    # Definiamo le tipologie di articoli validi
+    tipi_ammessi = ["Preventivo", "Ordine Aperto", "Ordine"]
     
-    if not col_tipo_originale:
-        # Ricerca di emergenza se nessuna delle precedenti esiste
-        col_tipo_originale = next((c for c in df.columns if 'TIPO' in c or 'DOC' in c), None)
+    # Maschera per Tipo Doc: True se il tipo NON è tra quelli ammessi
+    # Nota: usiamo .fillna('') per gestire eventuali celle vuote senza crashare
+    mask_tipo_errato = ~df['Tipo Doc.'].astype(str).isin(tipi_ammessi)
 
-    if not col_tipo_originale:
-        st.error(f"Impossibile trovare la colonna del Tipo Documento. Colonne rilevate: {list(df.columns)}")
-        return None, None
-
-    # --- 2. PULIZIA E CALCOLO DEL TOTALE ---
-    colonne_calcolo = ['QT', 'PREZZO', 'IVA']
-    for col in colonne_calcolo:
-        if col in df.columns:
-            df[col] = df[col].astype(str).str.replace(' ', '').str.replace(',', '.')
-            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
-        else:
-            df[col] = 0.0
-
-    # Calcolo del TOTALE: (Prezzo * Quantità) + IVA
-    df['TOTALE_CALCOLATO'] = (df['PREZZO'] * df['QT']) * (1 + (df['IVA'] / 100))
-
-    # --- 3. VALIDAZIONE TIPO DOC ---
-    tipi_ammessi = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
-    
-    # Puliamo il contenuto della colonna (rimuove punti, rende maiuscolo)
-    # Creiamo una colonna temporanea pulita
-    df['TIPO_TEMP'] = df[col_tipo_originale].astype(str).apply(
-        lambda x: re.sub(r'[^a-zA-Z\s]', '', x).strip().upper()
-    )
-    
-    mask_tipo_errato = ~df['TIPO_TEMP'].isin(tipi_ammessi)
-
-    # --- 4. CREAZIONE MASCHERE FINALI ---
-    mask_errori = (df['TOTALE_CALCOLATO'].isna()) | (df['TOTALE_CALCOLATO'] <= 0) | mask_tipo_errato
+    # --- CREAZIONE MASCHERE FINALI ---
+    # Un errore è tale se l'importo è nullo, NaN o negativo
+    # OPPURE se il Tipo Doc è errato (mask_tipo_errato)
+    mask_errori = serie_validata.isna() | mask_tipo_errato
 
     df_errori = df[mask_errori].copy()
     df_pulito = df[~mask_errori].copy()
     
-    # --- 5. STANDARDIZZAZIONE FINALE (L'output che userai ovunque) ---
-    df_pulito['Totale'] = df_pulito['TOTALE_CALCOLATO']
-    df_pulito['TIPOLOGIA DOC'] = df_pulito['TIPO_TEMP']
+    # Assegniamo i valori numerici puliti al df_pulito
+    df_pulito['Totale'] = serie_validata[~mask_errori]
     
-    # Pulizia colonne tecniche dai DataFrame in uscita
-    cols_to_drop = ['TOTALE_CALCOLATO', 'TIPO_TEMP']
-    df_pulito = df_pulito.drop(columns=[c for c in cols_to_drop if c in df_pulito.columns])
-    df_errori = df_errori.drop(columns=[c for c in cols_to_drop if c in df_errori.columns])
+    # Pulizia colonne temporanee
+    df_pulito = df_pulito.drop(columns=['Totale_TMP'])
+    df_errori = df_errori.drop(columns=['Totale_TMP'])
 
-    # Se vuoi visualizzare gli errori con il nome standardizzato
-    if 'TIPO_TEMP' in df_errori.columns:
-        df_errori = df_errori.rename(columns={'TIPO_TEMP': 'TIPOLOGIA DOC'})
-
-    # --- DEBUG E OUTPUT ---
-    st.write(f"✅ Analisi completata: {len(df)} righe elaborate.")
+    # --- DEBUG FORZATO ---
+    st.write(f"✅ File caricato: {len(df)} righe totali rilevate.")
     
     if len(df_errori) > 0:
-        with st.expander(f"⚠️ {len(df_errori)} RIGHE SCARTATE", expanded=False):
-            st.error("Documenti con importo non valido o tipologia non ammessa.")
-            st.dataframe(df_errori, use_container_width=True)
+        with st.expander("⚠️ ERRORI RILEVATI", expanded=True):
+            st.error(f"Trovate {len(df_errori)} righe scartate (Importo non valido o Tipo Doc non ammesso)!")
+            st.dataframe(df_errori)
     else:
-        st.success("Tutti i documenti sono risultati validi.")
+        st.success("Nessun errore rilevato (Tutti gli importi e i tipi documento sono validi).")
 
     return df_pulito, df_errori
     
@@ -266,7 +255,7 @@ def plot_distribuzione_ordini(df_target):
     for stadio in stadi:
         
         # Filtriamo il dataframe per lo stadio attuale
-        df_stadio = df_plot[df_plot['TIPOLOGIA DOC'] == stadio]
+        df_stadio = df_plot[df_plot['Tipo Doc.'] == stadio]
         
         if df_stadio.empty: continue
 
@@ -299,13 +288,13 @@ def plot_distribuzione_ordini(df_target):
                 showlegend=False,
                 orientation='h',
                 # Passiamo i dati extra qui
-                customdata=df_stadio[['Data_Str', 'ARTICOLO', 'CLIENTE', 'Agente']],
+                customdata=df_stadio[['Data_Str', 'Oggetto', 'Cliente', 'Agente']],
                 # Definiamo cosa appare al passaggio del mouse
                 hovertemplate=(
                     "<b>Importo:</b> €%{x:,.2f}<br>" +
                     "<b>Data:</b> %{customdata[0]}<br>" +
-                    "<b>Articolo:</b> %{customdata[1]}<br>" +
-                    "<b>CLIENTE:</b> %{customdata[2]}<br>" +
+                    "<b>Oggetto:</b> %{customdata[1]}<br>" +
+                    "<b>Cliente:</b> %{customdata[2]}<br>" +
                     "<b>Agente:</b> %{customdata[3]}<br>" +
                     "<extra></extra>" # Rimuove la scritta "trace name" a lato
                 )
@@ -336,8 +325,8 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # ** SEPARAZIONE DATAFRAME **
     # Separa il dataframe df in due per Preventivi e Ordini (Aperti e Chiusi)
     
-    preventivi = df[df['TIPOLOGIA DOC'] == "Preventivo"].copy()
-    ordini     = df[df['TIPOLOGIA DOC'].isin(["Ordine", "Ordine Aperto"])].copy()
+    preventivi = df[df['Tipo Doc.'] == "Preventivo"].copy()
+    ordini     = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
 
     if preventivi.empty:
         st.warning("⚠️ Nessun preventivo trovato per l'analisi!")
@@ -349,13 +338,13 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # ** Matching per identificare i preventivi aggiudicati **
     # 
     # Cerchiamo i match tra i dataframe di preventivi e ordini, 
-    # basandosi sul nome del CLIENTE e l'Articolo venduto
+    # basandosi sul nome del Cliente e l'Articolo venduto
     # e senza considerare finestre di tempo. 
     # Crea un nuovo dataframe "merged_full" con i match.
     # 
     # Struttura di "merged_full": 
-    #     se il CLIENTE X ha 3 preventivi per l'ARTICOLO Y 
-    #     e ha fatto 2 ordini per l'ARTICOLO Y, "merged_full"
+    #     se il Cliente X ha 3 preventivi per l'Oggetto Y 
+    #     e ha fatto 2 ordini per l'Oggetto Y, "merged_full"
     #     conterrà 6 righe (tutte le combinazioni possibili).
     #     Poi aggiunge la colonna "diff_giorni" che è la differenza
     #     tra la data dell'ordine e quella del preventivo per ogni 
@@ -368,7 +357,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     merged_full = pd.merge(
         preventivi, 
         ordini, 
-        on=['CLIENTE', 'ARTICOLO'], 
+        on=['Cliente', 'Oggetto'], 
         suffixes=('_prev', '_ord')
     )
     merged_full['diff_giorni'] = (merged_full['Data_ord'] - merged_full['Data_prev']).dt.days
@@ -386,7 +375,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # al preventivo Y", ma stiamo verificando che "l'ordine X ha almeno 
     # un padre nel database, quindi non è un orfano
     
-    ordini_matchati_totali = merged_full[merged_full['diff_giorni'] >= 0][['CLIENTE', 'ARTICOLO', 'Data_ord']].drop_duplicates()
+    ordini_matchati_totali = merged_full[merged_full['diff_giorni'] >= 0][['Cliente', 'Oggetto', 'Data_ord']].drop_duplicates()
 
     
     # ** ANALISI ANOMALIE **
@@ -396,7 +385,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     #     L'obiettivo è isolare gli ordini che non hanno alcun preventivo associato nel dataset.
     #     1. Il Merge (how='left'):
     #        - Prende la tabella di tutti gli ordini (dataframe 'ordini').
-    #        - Tenta di affiancare gli 'ordini_matchati_totali' per CLIENTE e ARTICOLO.
+    #        - Tenta di affiancare gli 'ordini_matchati_totali' per Cliente e Oggetto.
     #        - how='left': se non trova match, i campi della tabella destra saranno riempiti con NaN.
     #        - indicator=True: Crea la colonna '_merge' che funge da 'verdetto':
     #        - 'both': l'ordine ha un preventivo (è tracciabile).
@@ -408,7 +397,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     #        - Rimuove la colonna tecnica '_merge' per restituire un DataFrame pulito
     
     ordini_orfani = ordini.merge(
-        ordini_matchati_totali, on=['CLIENTE', 'ARTICOLO'], how='left', indicator=True
+        ordini_matchati_totali, on=['Cliente', 'Oggetto'], how='left', indicator=True
     ).query('_merge == "left_only"').drop(columns='_merge')
 
 
@@ -422,7 +411,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     #          nella 'finestra' di giorni stabilita.
     #     2. Conteggio degli ordini per preventivo (groupby):
     #        - Raggruppa i dati per l'identità univoca del preventivo: 
-    #          CLIENTE, ARTICOLO (Articolo) e Data del preventivo.
+    #          Cliente, Oggetto (Articolo) e Data del preventivo.
     #        - .size(): Conta quante volte ogni preventivo appare nel set dei match validi.
     #        - .reset_index(name='n_ordini'): Trasforma il risultato in un DataFrame 
     #          nominando 'n_ordini' la colonna con il numero di occorrenze trovate.
@@ -432,7 +421,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     #          o che presentano potenziali duplicati nel sistema gestionale.
 
     valid_matches         = merged_full[(merged_full['diff_giorni'] >= 0) & (merged_full['diff_giorni'] <= finestra)]
-    counts                = valid_matches.groupby(['CLIENTE', 'ARTICOLO', 'Data_prev']).size().reset_index(name='n_ordini')
+    counts                = valid_matches.groupby(['Cliente', 'Oggetto', 'Data_prev']).size().reset_index(name='n_ordini')
     preventivi_multipli   = counts[counts['n_ordini'] > 1]
 
     
@@ -449,23 +438,23 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     #          il match più "vicino" alla scadenza della finestra (il primo preventivo utile).
     #     3. Pulizia dei Duplicati (drop_duplicates):
     #        - Poiché un ordine potrebbe avere più preventivi vecchi alle spalle, 
-    #          usiamo 'subset' su CLIENTE, ARTICOLO e Data dell'ordine per assicurarci 
+    #          usiamo 'subset' su Cliente, Oggetto e Data dell'ordine per assicurarci 
     #          che ogni ordine ritardatario compaia una sola volta nella lista.
     #        - Questo evita di sovrastimare l'anomalia se ci sono stati molti preventivi 
     #          tutti scaduti per lo stesso articolo (è stato proposto più volte al 
-    #          CLIENTE che non ha mai accettato)
+    #          cliente che non ha mai accettato)
     
     ordini_fuori_tempo = merged_full[merged_full['diff_giorni'] > finestra].copy()
-    ordini_fuori_tempo = ordini_fuori_tempo.sort_values('diff_giorni').drop_duplicates(subset=['CLIENTE', 'ARTICOLO', 'Data_ord'])
+    ordini_fuori_tempo = ordini_fuori_tempo.sort_values('diff_giorni').drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_ord'])
 
     
-    # D. CHECK INTEGRITA (Stesso giorno/CLIENTE/articolo)
+    # D. CHECK INTEGRITA (Stesso giorno/cliente/articolo)
     #     
-    #     L'obiettivo è individuare se esistono più ordini distinti per lo stesso CLIENTE 
+    #     L'obiettivo è individuare se esistono più ordini distinti per lo stesso Cliente 
     #     e lo stesso Articolo avvenuti nella medesima Data. Poiché l'analisi usa la 
     #     Data come chiave temporale, questi casi verrebbero accorpati.
     #     1. Raggruppamento sul dataframe originale (groupby):
-    #        - Si raggruppa il dataframe "ordini" per CLIENTE, ARTICOLO e Data, 
+    #        - Si raggruppa il dataframe "ordini" per Cliente, Oggetto e Data, 
     #          ovvero i parametri usati per identificare un evento di vendita.
     #        - .size(): Conta quante righe effettive esistono per ogni combinazione.
     #        - .reset_index(name='n_righe'): Crea una tabella riassuntiva con il 
@@ -477,7 +466,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     #          dei documenti vinti, anche se il valore economico totale (Somma €) 
     #          rimarrà corretto.
     
-    check_integrita = ordini.groupby(['CLIENTE', 'ARTICOLO', 'Data']).size().reset_index(name='n_righe')
+    check_integrita = ordini.groupby(['Cliente', 'Oggetto', 'Data']).size().reset_index(name='n_righe')
     casi_critici = check_integrita[check_integrita['n_righe'] > 1]
 
     
@@ -492,7 +481,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     #      della data dell'offerta finisca in cima alla lista.
     # 
     # 2. Selezione dell'Ordine "Vincitore" (.drop_duplicates):
-    #    - subset=['CLIENTE', 'ARTICOLO', 'Data_prev']: Il sistema isola ogni singolo preventivo 
+    #    - subset=['Cliente', 'Oggetto', 'Data_prev']: Il sistema isola ogni singolo preventivo 
     #      univoco (chi, cosa, quando è stata fatta l'offerta).
     #    - Poiché Pandas, durante il 'drop_duplicates', mantiene solo la PRIMA riga che incontra 
     #      e scarta le successive, e dato che abbiamo ordinato per giorni crescenti, 
@@ -501,19 +490,19 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # 3. Risultato:
     #    - Il dataframe 'vinti_effettivi' conterrà una riga per ogni preventivo trasformato 
     #      in vendita, collegato esclusivamente al suo primo ordine cronologico. 
-    #      Tutte le altre combinazioni (es. secondi o terzi ordini dello stesso CLIENTE) 
+    #      Tutte le altre combinazioni (es. secondi o terzi ordini dello stesso cliente) 
     #      vengono rimosse per non duplicare le statistiche di conversione.
     
-    vinti_effettivi = valid_matches.sort_values('diff_giorni').drop_duplicates(subset=['CLIENTE', 'ARTICOLO', 'Data_prev'])
+    vinti_effettivi = valid_matches.sort_values('diff_giorni').drop_duplicates(subset=['Cliente', 'Oggetto', 'Data_prev'])
 
     def calcola_riga_stato(row):
         match = vinti_effettivi[
-            (vinti_effettivi['CLIENTE'] == row['CLIENTE']) & 
-            (vinti_effettivi['ARTICOLO'] == row['ARTICOLO']) & 
+            (vinti_effettivi['Cliente'] == row['Cliente']) & 
+            (vinti_effettivi['Oggetto'] == row['Oggetto']) & 
             (vinti_effettivi['Data_prev'] == row['Data'])
         ]
         if not match.empty:
-            tipo_ordine = match.iloc[0]['TIPOLOGIA DOC_ord']
+            tipo_ordine = match.iloc[0]['Tipo Doc._ord']
             durata      = match.iloc[0]['diff_giorni']
             return pd.Series(["Ordini Chiusi" if tipo_ordine == "Ordine" else "Ordini Aperti", durata])
 
@@ -545,12 +534,12 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         if not ordini_orfani.empty:
             with st.expander(f"❓ {len(ordini_orfani)} Ordini Orfani (Senza Preventivo)"):
                 st.write("Ordini per i quali non è stato trovato alcun preventivo antecedente nel database.")
-                st.dataframe(ordini_orfani[['Data', 'CLIENTE', 'ARTICOLO', 'Totale']], use_container_width=True, hide_index=True)
+                st.dataframe(ordini_orfani[['Data', 'Cliente', 'Oggetto', 'Totale']], use_container_width=True, hide_index=True)
     
         # C. ORDINI FUORI TEMPO
         if not ordini_fuori_tempo.empty:
             with st.expander(f"⏰ {len(ordini_fuori_tempo)} Ordini arrivati Fuori Tempo"):
-                df_ft = ordini_fuori_tempo[['Data_ord', 'CLIENTE', 'ARTICOLO', 'diff_giorni']].rename(
+                df_ft = ordini_fuori_tempo[['Data_ord', 'Cliente', 'Oggetto', 'diff_giorni']].rename(
                     columns={'Data_ord': 'Data Ordine', 'diff_giorni': 'GG dopo Prev.'}
                 )
                 st.write(f"Ordini che hanno un preventivo nel database, ma sono stati chiusi oltre i {finestra}gg stabiliti.")
@@ -559,7 +548,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         # D. CASI CRITICI (INTEGRITÀ)
         if not casi_critici.empty:
             with st.expander(f"⚠️ {len(casi_critici)} Casi Critici (Potenziali Accorpamenti)"):
-                st.write("Rilevati più ordini per lo stesso CLIENTE/articolo nella medesima data.")
+                st.write("Rilevati più ordini per lo stesso cliente/articolo nella medesima data.")
                 st.info("Nota tecnica: A causa della mancanza di un ID ordine univoco, questi record vengono conteggiati come singola vendita.")
                 st.dataframe(casi_critici, use_container_width=True, hide_index=True)
                 
@@ -630,8 +619,8 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     # --- REGISTRO FINALE ---
     with st.expander("📋 Registro Dettagliato Preventivi", expanded=True):
-        df_f = preventivi[['Data', 'CLIENTE', 'ARTICOLO', 'Totale', 'Stato', 'Durata']].copy()
-        df_f = df_f.rename(columns={'Data': 'Data Preventivo', 'ARTICOLO': 'Articolo'})
+        df_f = preventivi[['Data', 'Cliente', 'Oggetto', 'Totale', 'Stato', 'Durata']].copy()
+        df_f = df_f.rename(columns={'Data': 'Data Preventivo', 'Oggetto': 'Articolo'})
         
         prio = {"In Scadenza": 0, "Ordini Aperti": 1, "Ordini Chiusi": 2, "In Attesa": 3, "Persi": 4}
         df_f['p'] = df_f['Stato'].map(prio)
@@ -750,9 +739,9 @@ if df_orders is not None:
     # ************
     
     # Aggregazione quantità e volumi
-    conteggio_qty             = df_orders['TIPOLOGIA DOC'].value_counts().reset_index()
-    conteggio_qty.columns     = ['TIPOLOGIA DOC', 'Conteggio'] 
-    conteggio_vol             = df_orders.groupby('TIPOLOGIA DOC')['Totale'].sum().reset_index()
+    conteggio_qty             = df_orders['Tipo Doc.'].value_counts().reset_index()
+    conteggio_qty.columns     = ['Tipo Doc.', 'Conteggio'] 
+    conteggio_vol             = df_orders.groupby('Tipo Doc.')['Totale'].sum().reset_index()
     
     with st.expander("📊 Panoramica Quantità e Volumi", expanded=True):
         
@@ -764,7 +753,7 @@ if df_orders is not None:
                 render_grafico_torta(
                     data=conteggio_qty, 
                     values_col='Conteggio', 
-                    names_col='TIPOLOGIA DOC', 
+                    names_col='Tipo Doc.', 
                     titolo="Volume per Numero Articoli",
                     tipo="numerico"
                 )
@@ -773,7 +762,7 @@ if df_orders is not None:
                 render_grafico_torta(
                     data=conteggio_vol, 
                     values_col='Totale', 
-                    names_col='TIPOLOGIA DOC', 
+                    names_col='Tipo Doc.', 
                     titolo="Volume per Valore Economico",
                     tipo="soldi"
                 )
@@ -783,12 +772,12 @@ if df_orders is not None:
         
 
         # 1. Mediana
-        mediane = df_orders.groupby('TIPOLOGIA DOC')['Totale'].median().reset_index()
-        mediane.columns = ['TIPOLOGIA DOC', 'Mediana (€)']
+        mediane = df_orders.groupby('Tipo Doc.')['Totale'].median().reset_index()
+        mediane.columns = ['Tipo Doc.', 'Mediana (€)']
         
         # 2. Uniamo i dati: Quantità + Volumi + Mediane
-        df_riepilogo = pd.merge(conteggio_qty, conteggio_vol, on='TIPOLOGIA DOC')
-        df_riepilogo = pd.merge(df_riepilogo, mediane, on='TIPOLOGIA DOC')
+        df_riepilogo = pd.merge(conteggio_qty, conteggio_vol, on='Tipo Doc.')
+        df_riepilogo = pd.merge(df_riepilogo, mediane, on='Tipo Doc.')
         
         # 3. Calcolo Percentuali sul totale
         tot_qty = df_riepilogo['Conteggio'].sum()
@@ -801,12 +790,12 @@ if df_orders is not None:
         
         # 5. Ordinamento e Selezione Colonne per una lettura logica
         ordine_fisso = ["Preventivo", "Ordine Aperto", "Ordine"]
-        df_riepilogo['TIPOLOGIA DOC'] = pd.Categorical(df_riepilogo['TIPOLOGIA DOC'], categories=ordine_fisso, ordered=True)
-        df_riepilogo = df_riepilogo.sort_values('TIPOLOGIA DOC')
+        df_riepilogo['Tipo Doc.'] = pd.Categorical(df_riepilogo['Tipo Doc.'], categories=ordine_fisso, ordered=True)
+        df_riepilogo = df_riepilogo.sort_values('Tipo Doc.')
         
         # 6. Organizziamo le colonne in modo che la tabella sia facile da leggere
         colonne_finali = [
-            'TIPOLOGIA DOC', 
+            'Tipo Doc.', 
             'Conteggio', '% Qty',      # Gruppo Quantità
             'Totale', '% Vol',         # Gruppo Valore Economico
             'Media (€)', 'Mediana (€)' # Indicatori di performance
@@ -844,13 +833,13 @@ if df_orders is not None:
     with st.expander("📊 Panoramica Articoli Venduti", expanded=True):
 
         # Filtriamo gli ordini vinti ("Ordine Aperto" e "Ordine")
-        df_ordini_vinti = df_orders[df_orders['TIPOLOGIA DOC'].isin(["Ordine Aperto", "Ordine"])].copy()
+        df_ordini_vinti = df_orders[df_orders['Tipo Doc.'].isin(["Ordine Aperto", "Ordine"])].copy()
     
         if not df_ordini_vinti.empty:
             
             # Raggruppamento per articolo venduto
-            df_stats = df_ordini_vinti.groupby('ARTICOLO').agg(
-                Ordini=('ARTICOLO', 'count'),
+            df_stats = df_ordini_vinti.groupby('Oggetto').agg(
+                Ordini=('Oggetto', 'count'),
                 Fatturato=('Totale', 'sum'),
                 Mediana_Fatturato=('Totale', 'median')
             ).reset_index()
@@ -864,11 +853,11 @@ if df_orders is not None:
             # --- FUNZIONE INTERNA PER CREARE I TOP 5 + ALTRO ---
             def prepara_top5_con_altro(df, col_valore):
                 top5 = df.nlargest(5, col_valore).copy()
-                altri_df = df[~df['ARTICOLO'].isin(top5['ARTICOLO'])]
+                altri_df = df[~df['Oggetto'].isin(top5['Oggetto'])]
                 
                 if not altri_df.empty:
                     riga_altro = pd.DataFrame({
-                        'ARTICOLO': ['Altro'],
+                        'Oggetto': ['Altro'],
                         'Ordini': [altri_df['Ordini'].sum()],
                         'Fatturato': [altri_df['Fatturato'].sum()]
                     })
@@ -883,19 +872,19 @@ if df_orders is not None:
             col1, col2 = st.columns(2)
             with col1:
                 st.write("**Top 5 per Numero di Ordini**")
-                fig_count = px.pie(chart_data_count, values='Ordini', names='ARTICOLO', 
+                fig_count = px.pie(chart_data_count, values='Ordini', names='Oggetto', 
                                    hole=0.3, color_discrete_sequence=px.colors.sequential.RdBu)
                 st.plotly_chart(fig_count, use_container_width=True)
     
             with col2:
                 st.write("**Top 5 per Volume d'Affari (€)**")
-                fig_rev = px.pie(chart_data_revenue, values='Fatturato', names='ARTICOLO', 
+                fig_rev = px.pie(chart_data_revenue, values='Fatturato', names='Oggetto', 
                                  hole=0.3, color_discrete_sequence=px.colors.sequential.Blues_r)
                 st.plotly_chart(fig_rev, use_container_width=True)
         
             # 3. Tabella riassuntiva (rimane con tutti i dettagli, ordinata come richiesto)
             st.divider()
-            ordine_colonne = ['ARTICOLO', 'Ordini', '% Ordini', 'Fatturato', '% Fatturato', 'Mediana_Fatturato']
+            ordine_colonne = ['Oggetto', 'Ordini', '% Ordini', 'Fatturato', '% Fatturato', 'Mediana_Fatturato']
             df_visualizzazione = df_stats[ordine_colonne].sort_values(by='Fatturato', ascending=False)
             
             st.write("**Dettaglio Completo per Articolo**")

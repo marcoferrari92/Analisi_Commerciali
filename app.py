@@ -11,42 +11,50 @@ st.set_page_config(layout="wide")
 @st.cache_data
 def carica_dati_commerciali(file):
     try:
-        
+        # 1. Lettura file con gestione separatore
         df = pd.read_csv(file, sep=';', encoding='utf-8-sig')
         if df.shape[1] <= 1:
             file.seek(0)
             df = pd.read_csv(file, sep=',', encoding='utf-8-sig')
 
-        # Pulizia colonne
+        # 2. UNIFORMAZIONE COLONNE (Tutto in MAIUSCOLO)
+        # Pulizia base (rimozione spazi e caratteri invisibili)
         df.columns = df.columns.str.strip().str.replace('ï»¿', '', regex=False)
         
-        righe_iniziali = len(df)
-        
-        # 2. Gestione Generica della Data
-        possibili_nomi_data = ['Data Evento', 'Data']
+        # Trasforma tutte le intestazioni in MAIUSCOLO
+        df.columns = df.columns.str.upper()
+
+        # 3. Gestione Data (Cerca il nome in MAIUSCOLO)
+        # Nota: Anche se il file ha "data evento", ora è diventato "DATA EVENTO"
+        possibili_nomi_data = ['DATA EVENTO', 'DATA', 'DATA_EVENTO', 'DATE']
         colonna_data = next((c for c in possibili_nomi_data if c in df.columns), None)
 
         if colonna_data:
-            # Conversione a datatime
             df[colonna_data] = pd.to_datetime(df[colonna_data], dayfirst=True, errors='coerce')
-            
-            # Conta quante date non sono valide prima di droppare
             righe_nulle = df[colonna_data].isna().sum()
             
+            # Rinominiamo in "Data" (o "DATA") per il resto dello script
             df = df.rename(columns={colonna_data: 'Data'})
             df = df.dropna(subset=['Data'])
             
-            # ALERT se abbiamo perso dati
             if righe_nulle > 0:
-                st.warning(f"⚠️ Attenzione: {righe_nulle} righe sono state rimosse perché la data non era valida o era mancante.")
-                
-         # Se fallisce, mostriamo all'utente cosa ha effettivamente letto Pandas
+                st.warning(f"⚠️ Attenzione: {righe_nulle} righe rimosse per data non valida.")
         else:
             st.error(f"Colonna date non trovata! Colonne rilevate: {list(df.columns)}")
             return None
 
-        # 3. Pulizia Tipo Evento
-        if 'Tipo Evento' in df.columns:
+        # 4. Pulizia Tipo Evento (Cerca il nome in MAIUSCOLO)
+        possibili_nomi_evento = [
+            'TIPO EVENTO', 'TIPO_EVENTO', 'EVENTO', 
+            'TIPO DOC.', 'TIPOLOGIA DOC', 'TIPO DOCUMENTO'
+        ]
+        colonna_evento = next((c for c in possibili_nomi_evento if c in df.columns), None)
+
+        if colonna_evento:
+            # Rinominiamo nel nome standard che usi nel codice
+            df = df.rename(columns={colonna_evento: 'Tipo Evento'})
+            
+            # Pulizia del contenuto
             df['Tipo Evento'] = df['Tipo Evento'].apply(
                 lambda x: re.sub(r'[^a-zA-Z\s]', '', str(x)).strip().upper() if pd.notnull(x) else x
             )

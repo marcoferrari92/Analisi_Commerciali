@@ -118,54 +118,66 @@ def validazione_importi(df):
         st.error("Dataframe assente o vuoto!")
         return None, None
 
-    # --- VALIDAZIONE IMPORTI ---
-    df['Totale_TMP'] = df['Totale'].astype(str).str.replace(' ', '').str.replace(',', '.')
+    # Creiamo una copia per evitare modifiche al dataframe originale
+    df = df.copy()
 
-    def valida_puro(valore_str):
+    # --- 1. PULIZIA E CALCOLO DEL TOTALE ---
+    # Funzione interna per pulire e convertire i valori numerici (QT, PREZZO, IVA)
+    def converti_valore(val):
         try:
-            pulito = re.sub(r'[^0-9.-]', '', valore_str)
-            if not pulito: return None
-            num = float(pulito)
-            if num > 0:
-                return num
-            return None
+            if pd.isna(val): return 0.0
+            # Rimuove spazi e converte la virgola in punto
+            pulito = str(val).replace(' ', '').replace(',', '.')
+            # Estrae solo numeri, punto e segno meno
+            pulito = re.sub(r'[^0-9.-]', '', pulito)
+            return float(pulito) if pulito else 0.0
         except:
-            return None
+            return 0.0
 
-    serie_validata = df['Totale_TMP'].apply(valida_puro)
-    
-    # --- VALIDAZIONE TIPO DOC ---
-    # Definiamo le tipologie di articoli validi
+    # Applichiamo la pulizia alle colonne necessarie
+    for col in ['QT', 'PREZZO', 'IVA']:
+        if col in df.columns:
+            df[f'{col}_pulito'] = df[col].apply(converti_valore)
+        else:
+            df[f'{col}_pulito'] = 0.0
+
+    # Calcolo del Totale: (Prezzo * Quantità) + IVA
+    # Nota: Assumiamo IVA come percentuale (es. 22). Formula: (P * Q) * (1 + IVA/100)
+    df['Totale_TMP'] = (df['PREZZO_pulito'] * df['QT_pulito']) * (1 + (df['IVA_pulito'] / 100))
+
+    # --- 2. VALIDAZIONE TIPO DOC ---
+    # Definiamo le tipologie ammesse (devono corrispondere a quelle standardizzate nel caricamento)
     tipi_ammessi = ["Preventivo", "Ordine Aperto", "Ordine"]
     
     # Maschera per Tipo Doc: True se il tipo NON è tra quelli ammessi
-    # Nota: usiamo .fillna('') per gestire eventuali celle vuote senza crashare
     mask_tipo_errato = ~df['Tipo Doc.'].astype(str).isin(tipi_ammessi)
 
-    # --- CREAZIONE MASCHERE FINALI ---
-    # Un errore è tale se l'importo è nullo, NaN o negativo
-    # OPPURE se il Tipo Doc è errato (mask_tipo_errato)
-    mask_errori = serie_validata.isna() | mask_tipo_errato
+    # --- 3. CREAZIONE MASCHERE FINALI ---
+    # Un errore è tale se l'importo calcolato è <= 0 (o NaN)
+    # OPPURE se il Tipo Doc è errato
+    mask_errori = (df['Totale_TMP'] <= 0) | (df['Totale_TMP'].isna()) | mask_tipo_errato
 
     df_errori = df[mask_errori].copy()
     df_pulito = df[~mask_errori].copy()
     
-    # Assegniamo i valori numerici puliti al df_pulito
-    df_pulito['Totale'] = serie_validata[~mask_errori]
+    # Assegniamo il valore calcolato alla colonna definitiva 'Totale'
+    df_pulito['Totale'] = df_pulito['Totale_TMP']
     
-    # Pulizia colonne temporanee
-    df_pulito = df_pulito.drop(columns=['Totale_TMP'])
-    df_errori = df_errori.drop(columns=['Totale_TMP'])
+    # --- 4. PULIZIA FINALE ---
+    # Rimuoviamo le colonne temporanee utilizzate per il calcolo
+    cols_da_rimuovere = ['QT_pulito', 'PREZZO_pulito', 'IVA_pulito', 'Totale_TMP']
+    df_pulito = df_pulito.drop(columns=cols_da_rimuovere)
+    df_errori = df_errori.drop(columns=cols_da_rimuovere)
 
-    # --- DEBUG FORZATO ---
-    st.write(f"✅ File caricato: {len(df)} righe totali rilevate.")
+    # --- DEBUG E OUTPUT ---
+    st.write(f"✅ File elaborato: {len(df)} righe totali rilevate.")
     
     if len(df_errori) > 0:
-        with st.expander("⚠️ ERRORI RILEVATI", expanded=True):
+        with st.expander("⚠️ ERRORI RILEVATI", expanded=False):
             st.error(f"Trovate {len(df_errori)} righe scartate (Importo non valido o Tipo Doc non ammesso)!")
             st.dataframe(df_errori)
     else:
-        st.success("Nessun errore rilevato (Tutti gli importi e i tipi documento sono validi).")
+        st.success("Nessun errore rilevato (Tutti i calcoli e i tipi documento sono validi).")
 
     return df_pulito, df_errori
     

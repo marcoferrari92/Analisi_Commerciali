@@ -758,7 +758,7 @@ if df_orders is not None:
     conteggio_qty.columns     = ['Tipo Doc.', 'Conteggio'] 
     conteggio_vol             = df_orders.groupby('Tipo Doc.')['Totale'].sum().reset_index()
     
-    with st.expander("📊 Panoramica Quantità e Volumi", expanded=True):
+    with st.expander("📊 Panoramica Quantità e Volumi"):
         
         if not conteggio_qty.empty and not conteggio_vol.empty:
             
@@ -843,7 +843,7 @@ if df_orders is not None:
        
 
 
-    with st.expander("🎯 Analisi Conversione Preventivi", expanded=True):
+    with st.expander("🎯 Analisi Conversione Preventivi"):
         st.write("")
         st.write("")
         

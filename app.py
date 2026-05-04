@@ -695,19 +695,19 @@ with col2:
     st.write("#### Ordini")
     uploaded_file_orders = st.file_uploader("Carica file ordini e preventivi (formato CSV)", type="csv")
     
-    if uploaded_file_orders:
-        df_raw = carica_dati_commerciali(uploaded_file_orders)
-        
-        # Check importi
-        if df_raw is not None:
-            df_orders, df_errori = validazione_importi(df_raw)
-            if df_orders is not None:
-                st.write(f"✅ Validazione conclusa: {len(df_orders)} righe pulite, {len(df_errori)} scartate.")
-        else:
-            st.error("Il caricamento del file ha restituito None. Controlla il formato del CSV.")
+if uploaded_file_orders:
+    df_raw = carica_dati_commerciali(uploaded_file_orders)
+    
+    # Check importi
+    if df_raw is not None:
+        df_orders, df_errori = validazione_importi(df_raw)
+        if df_orders is not None:
+            st.write(f"✅ Validazione conclusa: {len(df_orders)} righe pulite, {len(df_errori)} scartate.")
+    else:
+        st.error("Il caricamento del file ha restituito None. Controlla il formato del CSV.")
 
-        # Range date
-        date_min, date_max = data_range(df_orders)
+    # Range date
+    date_min, date_max = data_range(df_orders)
         
 
 # ***************

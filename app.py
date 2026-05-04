@@ -265,9 +265,11 @@ def plot_distribuzione_ordini(df_target):
             min_value=10, 
             max_value=10000, 
             value=1000, 
-            step=100
+            step=100,
+            format="%d €", # Forza la visualizzazione come intero seguito da €
+            key="slider_bin_size"
         )
-    
+        
     fig = make_subplots(
         rows=2, cols=1, 
         shared_xaxes=True, 

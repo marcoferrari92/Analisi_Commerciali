@@ -329,6 +329,7 @@ def plot_distribuzione_ordini(df_target):
         )
     )
     fig.update_xaxes(title_text="Importo Articolo (€)", row=2, col=1)
+    fig.update_yaxes(type="log", row=2, col=1)
     
     st.plotly_chart(fig, use_container_width=True)
     

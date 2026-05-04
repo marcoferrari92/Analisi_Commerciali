@@ -1002,7 +1002,7 @@ if df_orders is not None:
         df_report = analisi_conversione_preventivi(df_orders, finestra, scadenza)
 
 
-    with st.expander("🎯 Analisi per Commerciale della Conversione dei Preventivi"):
+    with st.expander("🎯 Analisi Conversione dei Preventivi per Commerciale"):
         performance = analizza_performance_commerciali(df_report)
     
 

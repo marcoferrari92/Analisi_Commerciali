@@ -283,7 +283,13 @@ def plot_distribuzione_ordini(df_target):
                 name=stadio,
                 marker_color=colori[stadio],
                 opacity=0.6,
-                nbinsx=20,
+                #nbinsx=20,
+                # Sostituisci nbinsx con xbins
+                xbins=dict(
+                    start=0,      # Punto di inizio del primo bin
+                    end=100000,   # Punto di fine (opzionale)
+                    size=500      # LARGHEZZA DEL BIN (es. ogni bin copre 500€)
+                ),
                 marker_line=dict(width=1, color='white'),
                 legendgroup=stadio
             ),

@@ -841,8 +841,33 @@ if df_orders is not None:
         plot_distribuzione_ordini(df_orders)
         
        
-   
 
+
+    with st.expander("🎯 Analisi Conversione Preventivi", expanded=True):
+        st.write("")
+        st.write("")
+        
+        # Creiamo due colonne per i parametri
+        c1, c2, c3, c4, c5 = st.columns([0.2, 1, 0.3, 1, 0.2])
+        
+        with c2:
+            finestra = st.slider(
+                "Validità preventivi (giorni):", 
+                min_value=1, max_value=180, value=30, 
+                help="Giorni massimi per convertire un preventivo in ordine."
+            )
+        
+        with c4:
+            scadenza = st.number_input(
+                "Pre-avviso 'In Scadenza' (giorni):", 
+                min_value=1, max_value=30, value=7,
+                help="Giorni prima della scadenza per attivare l'avviso GIALLO."
+            )
+        
+        # Chiamata alla funzione aggiornata
+        st.write("")
+        st.write("")
+        analisi_conversione_preventivi(df_orders, finestra, scadenza)
 
 
 

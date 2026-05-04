@@ -341,7 +341,7 @@ def plot_distribuzione_ordini(df_target):
     with col2:
         bin_size = st.slider(
             "Seleziona le fasce di prezzo per l'istogramma (€)", 
-            min_value=10, 
+            min_value=100, 
             max_value=10000, 
             value=1000, 
             step=100,

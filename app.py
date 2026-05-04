@@ -258,13 +258,15 @@ def plot_distribuzione_ordini(df_target):
         df_plot['Data_Str'] = "N.D."
 
     # SLIDER FASCE DI PREZZO
-    bin_size = st.slider(
-        "Seleziona la larghezza dei bin (Euro)", 
-        min_value=10, 
-        max_value=10000, 
-        value=1000, 
-        step=50
-    )
+    col1, col2, col3 = st.columns(3)
+    with col2:
+        bin_size = st.slider(
+            "Seleziona le fasce di prezzo per l'istogramma (€)", 
+            min_value=10, 
+            max_value=10000, 
+            value=1000, 
+            step=100
+        )
     
     fig = make_subplots(
         rows=2, cols=1, 

@@ -257,18 +257,8 @@ def plot_distribuzione_ordini(df_target):
     else:
         df_plot['Data_Str'] = "N.D."
 
-    # SLIDER FASCE DI PREZZO
-    col1, col2, col3 = st.columns(3)
-    with col2:
-        bin_size = st.slider(
-            "Seleziona le fasce di prezzo per l'istogramma (€)", 
-            min_value=10, 
-            max_value=10000, 
-            value=1000, 
-            step=100,
-            format="%d €", # Forza la visualizzazione come intero seguito da €
-            key="slider_bin_size"
-        )
+    if 'bin_size' not in st.session_state:
+        st.session_state.bin_size = 1000
         
     fig = make_subplots(
         rows=2, cols=1, 
@@ -296,9 +286,7 @@ def plot_distribuzione_ordini(df_target):
                 name=stadio,
                 marker_color=colori[stadio],
                 opacity=0.6,
-                xbins=dict(
-                    size=bin_size
-                ),
+                xbins=dict(size=st.session_state.bin_size),
                 marker_line=dict(width=1, color='white'),
                 legendgroup=stadio
             ),
@@ -347,7 +335,19 @@ def plot_distribuzione_ordini(df_target):
     fig.update_yaxes(type="log", row=2, col=1)
     
     st.plotly_chart(fig, use_container_width=True)
-    
+
+    # SLIDER FASCE DI PREZZO
+    col1, col2, col3 = st.columns(3)
+    with col2:
+        bin_size = st.slider(
+            "Seleziona le fasce di prezzo per l'istogramma (€)", 
+            min_value=10, 
+            max_value=10000, 
+            value=1000, 
+            step=100,
+            format="%d €", # Forza la visualizzazione come intero seguito da €
+            key="bin_size"
+        )
 
 
 

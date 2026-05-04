@@ -710,6 +710,87 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     return report_completo
 
 
+
+def analizza_performance_commerciali(df_report):
+    """
+    Analizza il report completo per valutare l'efficienza di ogni commerciale.
+    Filtra le anomalie per calcolare tassi di conversione realistici.
+    """
+    st.header("🏆 Analisi Performance per Commerciale")
+
+    # 1. PREPARAZIONE DATI
+    # Consideriamo "In Scadenza", "In Attesa" e "Persi" come preventivi non ancora vinti
+    # Consideriamo "Aggiudicati" (Aperti + Chiusi) come successi
+    
+    # Filtriamo il dataframe per considerare solo i dati integri nei calcoli di conversione
+    df_integro = df_report[df_report['Analisi_Integrita'] == "Dato Integro"].copy()
+
+    # 2. CALCOLO METRICHE AGGREGATE
+    # Raggruppiamo per il codice gestionale dell'utente
+    performance = df_integro.groupby('CODICE GESTIONALE UTENTE').agg(
+        Nr_Preventivi=('Totale', 'count'),
+        Volume_Offerto=('Totale', 'sum'),
+        Nr_Vinti=('Stato_Torta', lambda x: (x == "Aggiudicati").sum()),
+        Volume_Vinto=('Totale', lambda x: x[df_integro.loc[x.index, 'Stato_Torta'] == "Aggiudicati"].sum())
+    ).reset_index()
+
+    # Calcolo Tassi di Conversione (Hit Rate)
+    performance['Conversion_Rate_Nr'] = (performance['Nr_Vinti'] / performance['Nr_Preventivi'] * 100).fillna(0)
+    performance['Conversion_Rate_Val'] = (performance['Volume_Vinto'] / performance['Volume_Offerto'] * 100).fillna(0)
+
+    # 3. ANALISI DISCIPLINARE (ANOMALIE)
+    # Contiamo quante anomalie ha generato ogni commerciale
+    anomalie_count = df_report[df_report['Analisi_Integrita'] != "Dato Integro"].groupby(
+        ['CODICE GESTIONALE UTENTE', 'Analisi_Integrita']
+    ).size().unstack(fill_value=0).reset_index()
+
+    # 4. VISUALIZZAZIONE STREAMLIT
+    
+    # --- Tabella Main Performance ---
+    st.subheader("📈 KPI di Conversione (Solo Dati Integri)")
+    st.write("Questa tabella mostra l'efficacia reale escludendo errori di inserimento o ordini orfani.")
+    
+    st.dataframe(
+        performance.style.format({
+            'Volume_Offerto': '€ {:,.2f}',
+            'Volume_Vinto': '€ {:,.2f}',
+            'Conversion_Rate_Nr': '{:.1f} %',
+            'Conversion_Rate_Val': '{:.1f} %'
+        }).background_gradient(subset=['Conversion_Rate_Nr'], cmap='Greens'),
+        use_container_width=True, hide_index=True
+    )
+
+    # --- Tabella Qualità Dati ---
+    st.divider()
+    st.subheader("🚩 Analisi Qualità Inserimento Dati")
+    st.write("Riepilogo delle anomalie tracciate per ogni commerciale. Alti valori qui indicano processi gestionali da rivedere.")
+    
+    if not anomalie_count.empty:
+        st.dataframe(anomalie_count, use_container_width=True, hide_index=True)
+    else:
+        st.success("✅ Nessuna anomalia rilevata per i commerciali!")
+
+    # --- Dettaglio Singolo Agente ---
+    st.divider()
+    agente_sel = st.selectbox("Seleziona un commerciale per il dettaglio righe:", df_report['CODICE GESTIONALE UTENTE'].unique())
+    
+    if agente_sel:
+        df_agente = df_report[df_report['CODICE GESTIONALE UTENTE'] == agente_sel]
+        
+        col1, col2 = st.columns(2)
+        col1.metric("Totale Righe Gestite", len(df_agente))
+        col2.metric("Di cui Integre", len(df_agente[df_agente['Analisi_Integrita'] == "Dato Integro"]))
+        
+        st.dataframe(
+            df_agente[['Data', 'Cliente', 'Oggetto', 'Totale', 'Stato', 'Analisi_Integrita']],
+            use_container_width=True, hide_index=True
+        )
+
+    return performance
+
+
+
+
 # ***********************************************************************
 #                                 MAIN APP
 # ***********************************************************************
@@ -894,7 +975,7 @@ if df_orders is not None:
        
 
 
-    with st.expander("🎯 Analisi Conversione Preventivi"):
+    with st.expander("🎯 Analisi Globale della Conversione dei Preventivi"):
         st.write("")
         st.write("")
         
@@ -918,10 +999,12 @@ if df_orders is not None:
         # Chiamata alla funzione aggiornata
         st.write("")
         st.write("")
-        analisi_conversione_preventivi(df_orders, finestra, scadenza)
+        df_report = analisi_conversione_preventivi(df_orders, finestra, scadenza)
 
 
-
+with st.expander("🎯 Analisi per Commerciale della Conversione dei Preventivi"):
+    performance = analizza_performance_commerciali(df_report)
+    
 
 
 

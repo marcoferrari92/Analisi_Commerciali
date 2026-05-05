@@ -94,13 +94,18 @@ def validazione_importi(df):
             # Trasformiamo in stringa e puliamo gli spazi
             val_str = str(val).strip().replace(' ', '')
             
-            # GESTIONE FORMATO EUROPEO:
-            # 1. Rimuoviamo il punto delle migliaia (es: 1.250,50 -> 1250,50)
-            # 2. Sostituiamo la virgola con il punto per i decimali (es: 1250,50 -> 1250.50)
-            pulito = val_str.replace('.', '').replace(',', '.')
+            # LOGICA INTELLIGENTE:
+            # Se ci sono sia punto che virgola (es: 1.250,50)
+            if '.' in val_str and ',' in val_str:
+                val_str = val_str.replace('.', '').replace(',', '.')
+            # Se c'è solo la virgola (es: 400,00)
+            elif ',' in val_str:
+                val_str = val_str.replace(',', '.')
+            # Se c'è solo il punto (es: 1.0 o 22.0)
+            # NON lo rimuoviamo, perché è quasi certamente un decimale standard
             
             # Estrae solo numeri, punto decimale e segno meno
-            pulito = re.sub(r'[^0-9.-]', '', pulito)
+            pulito = re.sub(r'[^0-9.-]', '', val_str)
             
             return float(pulito) if pulito else 0.0
         except:

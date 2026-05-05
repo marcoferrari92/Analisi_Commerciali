@@ -373,13 +373,15 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
                 primo_match['diff_giorni'], 
                 id_ord,
                 info_ordine['TOTALE'], 
-                info_ordine['TRACK ID']
+                info_ordine['TRACK ID'],
+                primo_match['DATA_ord'] # Recuperiamo la Data dell'Ordine
             ])
         
-        return pd.Series([None, None, None, 0.0, 0])
+        return pd.Series([None, None, None, 0.0, 0, pd.NaT])
 
     risultati = merged.groupby('ID DOCUMENTO_prev').apply(definisci_stato_documento).reset_index()
-    risultati.columns = ['ID PREVENTIVO_KEY', 'STATO_DETTAGLIO', 'DURATA', 'ID ORDINE', 'TOTALE ORDINE', 'NUM ART ORD']
+    risultati.columns = ['ID PREVENTIVO_KEY', 'STATO_DETTAGLIO', 'DURATA', 'ID ORDINE', 'TOTALE ORDINE', 'NUM ART ORD', 'DATA ORDINE']
+
 
     # 4. CREAZIONE REPORT FINALE
     report_prev = preventivi.groupby('ID DOCUMENTO').agg({
@@ -431,41 +433,54 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         fig_pie_val.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
         st.plotly_chart(fig_pie_val, use_container_width=True)
 
-    # --- REGISTRO FINALE ---
+    # --- REGISTRO FINALE (NUOVO ORDINE COLONNE) ---
     st.subheader("📋 Registro Conversioni")
     
+    # 1. Preparazione DataFrame con l'ordine richiesto
     df_display = report_prev[[
-        'DATA', 'CLIENTE', 'CODICE GESTIONALE UTENTE', 'TOTALE', 
-        'TOTALE ORDINE', 'STATO_FINALE', 'DURATA', 'TRACK ID', 
-        'NUM ART ORD', 'ID DOCUMENTO', 'ID ORDINE'
+        'DATA',           # Data Prev.
+        'DATA ORDINE',    # Data Ord.
+        'DURATA',         # Durata
+        'STATO_FINALE',   # Stato
+        'CLIENTE',        # Cliente
+        'CODICE GESTIONALE UTENTE', # Utente
+        'TRACK ID',       # Num. Art. Prev.
+        'NUM ART ORD',    # Num. Art. Ord.
+        'TOTALE',         # Tot. Prev.
+        'TOTALE ORDINE',  # Tot. Ord.
+        'ID DOCUMENTO',   # ID Preventivo
+        'ID ORDINE'       # ID Ordine
     ]].copy()
 
+    # 2. Ridenominazione per visualizzazione utente
     df_display.columns = [
-        'Data Preventivo', 'Cliente', 'Utente', 'Totale Preventivo', 
-        'Totale Ordine', 'Stato', 'Durata', 'Num. Articoli Preventivo', 
-        'Num. Articoli Ordine', 'ID Preventivo', 'ID Ordine'
+        'Data Prev.', 'Data Ord.', 'Durata', 'Stato', 'Cliente', 'Utente', 
+        'Num. Art. Prev.', 'Num. Art. Ord.', 'Tot. Prev.', 'Tot. Ord.', 
+        'ID Preventivo', 'ID Ordine'
     ]
 
-    # Funzione per colorare il testo della colonna Stato
+    # 3. Funzione per colorare la colonna Stato
     def colora_stato(val):
         colori = {
             "AGGIUDICATO (CHIUSO)": "color: #4E944F; font-weight: bold;",
             "AGGIUDICATO (APERTO)": "color: #B4E197; font-weight: bold;",
-            "IN SCADENZA": "color: #CCAA00; font-weight: bold;", # Giallo scuro per leggibilità
+            "IN SCADENZA": "color: #CCAA00; font-weight: bold;",
             "IN ATTESA": "color: #007BFF;",
             "PERSO": "color: #FF4B4B;"
         }
         return colori.get(val, "color: black;")
 
+    # 4. Visualizzazione con Styler
     st.dataframe(
-        df_display.sort_values('Data Preventivo', ascending=False).style.format({
-            'Data Preventivo': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y'),
-            'Totale Preventivo': '{:,.2f} €',
-            'Totale Ordine': '{:,.2f} €',
+        df_display.sort_values('Data Prev.', ascending=False).style.format({
+            'Data Prev.': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y'),
+            'Data Ord.': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y') if pd.notnull(x) else "-",
+            'Tot. Prev.': '{:,.2f} €',
+            'Tot. Ord.': '{:,.2f} €',
             'Durata': lambda x: f"{int(x)} gg" if pd.notnull(x) else "-",
-            'Num. Articoli Preventivo': '{:,.0f}',
-            'Num. Articoli Ordine': '{:,.0f}'
-        }).map(colora_stato, subset=['Stato']), # <--- Applica i colori qui
+            'Num. Art. Prev.': '{:,.0f}',
+            'Num. Art. Ord.': '{:,.0f}'
+        }).map(colora_stato, subset=['Stato']),
         use_container_width=True, 
         hide_index=True
     )

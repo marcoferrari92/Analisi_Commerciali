@@ -118,7 +118,7 @@ def validazione_importi(df):
     df['Totale_TMP'] = (df['PREZZO_pulito'] * df['QT_pulito']) * (1 + (df['IVA_pulito'] / 100))
 
     # --- 2. VALIDAZIONE TIPO DOC ---
-    tipi_ammessi = ["Preventivo", "Ordine Aperto", "Ordine"]
+    tipi_ammessi = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
     mask_tipo_errato = ~df['Tipo Doc.'].astype(str).isin(tipi_ammessi)
 
     # --- 3. CREAZIONE MASCHERE FINALI ---
@@ -128,7 +128,7 @@ def validazione_importi(df):
     df_pulito = df[~mask_errori].copy()
     
     # Assegniamo il valore calcolato alla colonna definitiva 'Totale'
-    df_pulito['Totale'] = df_pulito['Totale_TMP']
+    df_pulito['TOT'] = df_pulito['Totale_TMP']
     
     # --- 4. PULIZIA FINALE ---
     cols_da_rimuovere = ['QT_pulito', 'PREZZO_pulito', 'IVA_pulito', 'Totale_TMP']

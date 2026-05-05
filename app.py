@@ -155,9 +155,9 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
     
     # Palette Pastello
     palette = {
-        "PREVENTIVO": "#A2D2FF",    # Azzurro
-        "ORDINE APERTO": "#B4E197", # Verde chiaro
-        "ORDINE FISSO": "#4E944F"         # Verde bosco
+        "PREVENTIVO": "#A2D2FF",  
+        "ORDINE APERTO": "#B4E197", 
+        "ORDINE": "#4E944F"         
     }
 
     # Ordine desiderato in senso orario
@@ -231,11 +231,11 @@ def plot_distribuzione_ordini(df_target):
         row_heights=[0.5, 0.5]
     )
 
-    # Palette Pastello
+    # Palette
     palette = {
-        "PREVENTIVO": "#A2D2FF",    # Azzurro
-        "ORDINE APERTO": "#B4E197", # Verde chiaro
-        "ORDINE FISSO": "#4E944F"         # Verde bosco
+        "PREVENTIVO": "#A2D2FF",    
+        "ORDINE APERTO": "#B4E197", 
+        "ORDINE": "#4E944F"         
     }
     stadi = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
 
@@ -300,7 +300,7 @@ def plot_distribuzione_ordini(df_target):
             gridcolor='lightgray'
         )
     )
-    fig.update_xaxes(title_text="Importo Articolo (€)", row=2, col=1)
+    fig.update_xaxes(title_text="Importo Documento (totale articoli) (€)", row=2, col=1)
     fig.update_yaxes(type="log", row=2, col=1)
     
     st.plotly_chart(fig, use_container_width=True)

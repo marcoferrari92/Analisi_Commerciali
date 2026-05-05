@@ -335,7 +335,16 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         st.warning("⚠️ Nessun PREVENTIVO trovato!")
         return None
 
-    DATA_riferimento = df['DATA'].max()
+    DATA_riferimento = pd.to_datetime(df['DATA']).max()
+
+    # Calcolo preventivo del valore di ogni riga (QT * PREZZO + IVA)
+    df['RIGA_VALORE'] = (df['QT'] * df['PREZZO']) + df['IVA']
+    
+    # Aggregazione per calcolare i totali reali di ogni documento nel database
+    totali_database = df.groupby(['ID DOCUMENTO', 'TIPOLOGIA DOC.']).agg({
+        'RIGA_VALORE': 'sum',
+        'TRACK ID': 'count'
+    }).reset_index()
 
     # 2. MATCHING SEMPLIFICATO
     merged = pd.merge(
@@ -345,100 +354,84 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         how='left',
         suffixes=('_prev', '_ord')
     )
-    merged['diff_giorni'] = (merged['DATA_ord'] - merged['DATA_prev']).dt.days
+    merged['diff_giorni'] = (pd.to_datetime(merged['DATA_ord']) - pd.to_datetime(merged['DATA_prev'])).dt.days
 
-    # 3. DEFINIZIONE STATO PER DOCUMENTO
+    # 3. DEFINIZIONE STATO E RECUPERO DATI ORDINE
     def definisci_stato_documento(group):
         evasi = group[group['ID DOCUMENTO_ord'].notna() & (group['diff_giorni'] <= finestra)]
         if not evasi.empty:
             primo_match = evasi.sort_values('diff_giorni').iloc[0]
+            id_ord = primo_match['ID DOCUMENTO_ord']
             tipo_doc = primo_match['TIPOLOGIA DOC._ord']
             stato = "AGGIUDICATO (CHIUSO)" if tipo_doc == "ORDINE" else "AGGIUDICATO (APERTO)"
-            return pd.Series([stato, primo_match['diff_giorni'], primo_match['ID DOCUMENTO_ord']])
-        return pd.Series([None, None, None])
+            
+            # Recuperiamo i dati totali dell'ordine collegato
+            info_ordine = totali_database[totali_database['ID DOCUMENTO'] == id_ord].iloc[0]
+            
+            return pd.Series([
+                stato, 
+                primo_match['diff_giorni'], 
+                id_ord,
+                info_ordine['RIGA_VALORE'],
+                info_ordine['TRACK ID']
+            ])
+        return pd.Series([None, None, None, 0.0, 0])
 
     risultati = merged.groupby('ID DOCUMENTO_prev').apply(definisci_stato_documento).reset_index()
-    risultati.columns = ['ID PREVENTIVO', 'STATO_DETTAGLIO', 'DURATA', 'ID ORDINE']
+    risultati.columns = ['ID PREVENTIVO', 'STATO_DETTAGLIO', 'DURATA', 'ID ORDINE', 'TOTALE ORDINE', 'NUM ART ORD']
 
     # 4. CREAZIONE REPORT FINALE
     report_prev = preventivi.groupby('ID DOCUMENTO').agg({
-        'DATA': 'first', 'CLIENTE': 'first', 'TOTALE': 'sum', 'CODICE GESTIONALE UTENTE': 'first'
+        'DATA': 'first', 
+        'CLIENTE': 'first', 
+        'CODICE GESTIONALE UTENTE': 'first',
+        'TRACK ID': 'count' # Conteggio articoli preventivo
     }).reset_index()
-    report_prev = report_prev.rename(columns={'ID DOCUMENTO': 'ID PREVENTIVO'})
+    
+    # Calcolo totale preventivo
+    preventivi['RIGA_VALORE'] = (preventivi['QT'] * preventivi['PREZZO']) + preventivi['IVA']
+    tot_prev = preventivi.groupby('ID DOCUMENTO')['RIGA_VALORE'].sum().reset_index()
+    
+    report_prev = pd.merge(report_prev, tot_prev, on='ID DOCUMENTO')
+    report_prev = report_prev.rename(columns={'ID DOCUMENTO': 'ID PREVENTIVO', 'RIGA_VALORE': 'TOTALE PREVENTIVO'})
     report_prev = pd.merge(report_prev, risultati, on='ID PREVENTIVO', how='left')
 
     # 5. ASSEGNAZIONE STATI TEMPORALI
     def assegna_stato_finale(row):
         if pd.notna(row['STATO_DETTAGLIO']): return row['STATO_DETTAGLIO']
-        giorni_passati = (DATA_riferimento - row['DATA']).days
+        giorni_passati = (DATA_riferimento - pd.to_datetime(row['DATA'])).days
         if giorni_passati > finestra: return "PERSO"
         if (finestra - giorni_passati) <= giorni_scadenza: return "IN SCADENZA"
         return "IN ATTESA"
 
     report_prev['STATO'] = report_prev.apply(assegna_stato_finale, axis=1)
 
-    # --- VISUALIZZAZIONE GRAFICI ---
-    st.subheader("📊 Analisi Performance Conversioni")
-    
-    color_map_stato = {
-        "AGGIUDICATO (CHIUSO)": "#4E944F",
-        "AGGIUDICATO (APERTO)": "#B4E197",
-        "IN SCADENZA": "#FFD700",
-        "IN ATTESA": "#A2D2FF",
-        "PERSO": "#FF9999"
-    }
-
-    r1_c1, r1_c2 = st.columns(2)
-    with r1_c1:
-        stats_n = report_prev['STATO'].value_counts().reset_index()
-        fig_pie_n = px.pie(stats_n, values='count', names='STATO', 
-                          title="Esito per Numero Documenti", hole=0.4, 
-                          color='STATO', color_discrete_map=color_map_stato)
-        fig_pie_n.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
-        st.plotly_chart(fig_pie_n, use_container_width=True)
-        
-    with r1_c2:
-        stats_val = report_prev.groupby('STATO')['TOTALE'].sum().reset_index()
-        fig_pie_val = px.pie(stats_val, values='TOTALE', names='STATO', 
-                            title="Esito per Valore Economico (€)", hole=0.4, 
-                            color='STATO', color_discrete_map=color_map_stato)
-        fig_pie_val.update_traces(textinfo='percent', hovertemplate='€%{value:,.2f}')
-        fig_pie_val.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
-        st.plotly_chart(fig_pie_val, use_container_width=True)
-
-    # --- REGISTRO FINALE (ORDINE COLONNE RICHIESTO) ---
+    # --- REGISTRO FINALE ---
     st.subheader("📋 Registro Conversioni")
     
-    # 1. Preparazione DataFrame con l'ordine richiesto
+    # Selezione e ordinamento colonne
     df_display = report_prev[[
-        'DATA', 
-        'CLIENTE', 
-        'CODICE GESTIONALE UTENTE', 
-        'TOTALE', 
-        'STATO', 
-        'DURATA', 
-        'ID PREVENTIVO', 
-        'ID ORDINE'
+        'DATA', 'CLIENTE', 'CODICE GESTIONALE UTENTE', 'TOTALE PREVENTIVO', 
+        'TOTALE ORDINE', 'STATO', 'DURATA', 'TRACK ID', 'NUM ART ORD', 
+        'ID PREVENTIVO', 'ID ORDINE'
     ]].copy()
 
-    # 2. Ridenominazione per estetica
-    df_display = df_display.rename(columns={
-        'DATA': 'Data Preventivo',
-        'CODICE GESTIONALE UTENTE': 'Utente',
-        'TOTALE': 'Totale (€)',
-        'STATO': 'Stato',
-        'DURATA': 'Durata'
-    })
+    # Ridenominazione per visualizzazione
+    df_display.columns = [
+        'Data Preventivo', 'Cliente', 'Utente', 'Totale Preventivo', 
+        'Totale Ordine', 'Stato', 'Durata', 'Num. Articoli Preventivo', 
+        'Num. Articoli Ordine', 'ID Preventivo', 'ID Ordine'
+    ]
 
-    # 3. Formattazione e visualizzazione
     st.dataframe(
         df_display.sort_values('Data Preventivo', ascending=False).style.format({
-            'Data Preventivo': lambda x: x.strftime('%d/%m/%Y'),
-            'Totale (€)': '{:,.2f} €',
-            'Durata': lambda x: f"{int(x)} gg" if pd.notnull(x) else "-"
+            'Data Preventivo': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y'),
+            'Totale Preventivo': '{:,.2f} €',
+            'Totale Ordine': '{:,.2f} €',
+            'Durata': lambda x: f"{int(x)} gg" if pd.notnull(x) else "-",
+            'Num. Articoli Ordine': '{:,.0f}'
         }),
-        use_container_width=True, 
-        hide_index=True
+        use_container_width=True, hide_index=True
     )
 
     return report_prev

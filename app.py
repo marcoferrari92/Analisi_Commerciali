@@ -323,270 +323,122 @@ def plot_distribuzione_ordini(df_target):
 
 def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
-    # ** SEPARAZIONE DATAFRAME **
-    # Separa il DATAframe df in due per Preventivi e Ordini (Aperti e Chiusi)
-    
+    # 1. SEPARAZIONE DEI DATAFRAME
+    # Usiamo il TRACK ID come chiave di congiunzione
     preventivi = df[df['TIPOLOGIA DOC.'] == "PREVENTIVO"].copy()
     ordini     = df[df['TIPOLOGIA DOC.'].isin(["ORDINE", "ORDINE APERTO"])].copy()
 
     if preventivi.empty:
-        st.warning("⚠️ Nessun PREVENTIVO trovato per l'analisi!")
-        return
+        st.warning("⚠️ Nessun PREVENTIVO trovato!")
+        return None
 
     DATA_riferimento = df['DATA'].max()
 
-    
-    # ** Matching per identificare i preventivi aggiudicati **
-    # 
-    # Cerchiamo i match tra i DATAframe di preventivi e ordini, 
-    # basandosi sul nome del CLIENTE e l'Articolo venduto
-    # e senza considerare finestre di tempo. 
-    # Crea un nuovo DATAframe "merged_full" con i match.
-    # 
-    # Struttura di "merged_full": 
-    #     se il CLIENTE X ha 3 preventivi per l'ARTICOLO Y 
-    #     e ha fatto 2 ordini per l'ARTICOLO Y, "merged_full"
-    #     conterrà 6 righe (tutte le combinazioni possibili).
-    #     Poi aggiunge la colonna "diff_giorni" che è la differenza
-    #     tra la DATA dell'ORDINE e quella del PREVENTIVO per ogni 
-    #     combinazione possibile. 
-    #     Ammette anche differenze negative (Es: ORDINE 1 Maggio
-    #     e PREVENTIVO 5 Maggio, diff_giorni = -4). 
-    #     Mantenere tutte le combinazioni e ammettere diff_giorni 
-    #     negative serve per identificare eventuali anomalie.
-    
-    merged_full = pd.merge(
+    # 2. MATCHING TRAMITE TRACK ID
+    # Ogni riga di preventivo (ogni articolo) cerca la sua evoluzione 
+    # nell'ordine tramite il TRACK ID
+    merged = pd.merge(
         preventivi, 
-        ordini, 
-        on=['CLIENTE', 'ARTICOLO'], 
+        ordini[['TRACK ID', 'ID DOCUMENTO', 'DATA', 'TIPOLOGIA DOC.']], 
+        on='TRACK ID', 
+        how='left', 
         suffixes=('_prev', '_ord')
     )
-    merged_full['diff_giorni'] = (merged_full['DATA_ord'] - merged_full['DATA_prev']).dt.days
 
-    
-    # ** ORDINI TRACCIABILI **
-    # 
-    # Diff_giorni viene usata per verificare gli ordini "tracciabili",
-    # ovvero ordini di cui è presente un PREVENTIVO nel DATAset 
-    # antecedente all'ORDINE. 
-    # Di tutte le combinazioni vengono conservate quelle dove l'ORDINE 
-    # è avvenuto lo stesso giorno (o dopo) il PREVENTIVO. 
-    # Di queste ne viene mantenuta una e droppate le altre.
-    # A questo stadio non stiamo ancora dicendo che "l'ORDINE X appartiene 
-    # al PREVENTIVO Y", ma stiamo verificando che "l'ORDINE X ha almeno 
-    # un padre nel DATAbase, quindi non è un orfano
-    
-    ordini_matchati_totali = merged_full[merged_full['diff_giorni'] >= 0][['CLIENTE', 'ARTICOLO', 'DATA_ord']].drop_duplicates()
+    # Calcolo differenza giorni solo dove c'è un match
+    merged['diff_giorni'] = (merged['DATA_ord'] - merged['DATA_prev']).dt.days
 
-    
-    # ** ANALISI ANOMALIE **
-    
-    # A. ORDINI ORFANI
-    # 
-    #     L'obiettivo è isolare gli ordini che non hanno alcun PREVENTIVO associato nel DATAset.
-    #     1. Il Merge (how='left'):
-    #         - Prende la tabella di tutti gli ordini (DATAframe 'ordini').
-    #         - Tenta di affiancare gli 'ordini_matchati_totali' per CLIENTE e ARTICOLO.
-    #         - how='left': se non trova match, i campi della tabella destra saranno riempiti con NaN.
-    #         - indicator=True: Crea la colonna '_merge' che funge da 'verdetto':
-    #         - 'both': l'ORDINE ha un PREVENTIVO (è tracciabile).
-    #         - 'left_only': l'ORDINE non ha trovato corrispondenze (è un orfano).
-    #     2. Il Filtro (.query):
-    #         - Seleziona solo le righe marcate come 'left_only', isolando gli ordini 
-    #           che non hanno un'offerta commerciale alle spalle.
-    #     3. La Pulizia (.drop):
-    #         - Rimuove la colonna tecnica '_merge' per restituire un DATAFrame pulito
-    
-    ordini_orfani = ordini.merge(
-        ordini_matchati_totali, on=['CLIENTE', 'ARTICOLO'], how='left', indicator=True
-    ).query('_merge == "left_only"').drop(columns='_merge')
-
-
-    # B. PREVENTIVI CON ORDINI MULTIPLI
-    #     
-    #     L'obiettivo è identificare i preventivi che hanno generato più di un ORDINE 
-    #     all'interno della finestra temporale di validità.
-    #     1. Definizione dei match validi (valid_matches):
-    #         - Filtra il DATAframe 'merged_full' per tenere solo le combinazioni 
-    #           cronologicamente corrette (diff_giorni >= 0) e che rientrano 
-    #           nella 'finestra' di giorni stabilita.
-    #     2. Conteggio degli ordini per PREVENTIVO (groupby):
-    #         - Raggruppa i dati per l'identità univoca del PREVENTIVO: 
-    #           CLIENTE, ARTICOLO (Articolo) e DATA del PREVENTIVO.
-    #         - .size(): Conta quante volte ogni PREVENTIVO appare nel set dei match validi.
-    #         - .reset_index(name='n_ordini'): Trasforma il risultato in un DATAFrame 
-    #           nominando 'n_ordini' la colonna con il numero di occorrenze trovate.
-    #     3. Filtro Anomalie (counts > 1):
-    #         - Isola solo i casi in cui 'n_ordini' è maggiore di 1. 
-    #         - Questi sono i preventivi "prolifici" che hanno agganciato più ordini 
-    #           o che presentano potenziali duplicati nel sistema gestionale.
-
-    valid_matches         = merged_full[(merged_full['diff_giorni'] >= 0) & (merged_full['diff_giorni'] <= finestra)]
-    counts                = valid_matches.groupby(['CLIENTE', 'ARTICOLO', 'DATA_prev']).size().reset_index(name='n_ordini')
-    preventivi_multipli   = counts[counts['n_ordini'] > 1]
-
-    
-    # C. ORDINI FUORI TEMPO
-    #     
-    #     L'obiettivo è isolare gli ordini che hanno un PREVENTIVO "padre", ma sono arrivati
-    #     oltre il limite di giorni (finestra) stabilito per l'analisi.
-    #     1. Filtro Temporale (> finestra):
-    #         - Estrae dal DATAframe 'merged_full' tutte le combinazioni in cui l'ORDINE
-    #           è avvenuto dopo la scadenza della validità del PREVENTIVO.
-    #         - .copy(): Crea una copia autonoma del DATAframe per le successive manipolazioni.
-    #     2. Ordinamento Cronologico (sort_values):
-    #         - Ordina i match per 'diff_giorni' in modo crescente. Questo mette in cima 
-    #           il match più "vicino" alla scadenza della finestra (il primo PREVENTIVO utile).
-    #     3. Pulizia dei Duplicati (drop_duplicates):
-    #         - Poiché un ORDINE potrebbe avere più preventivi vecchi alle spalle, 
-    #           usiamo 'subset' su CLIENTE, ARTICOLO e DATA dell'ORDINE per assicurarci 
-    #           che ogni ORDINE ritarDATArio compaia una sola volta nella lista.
-    #         - Questo evita di sovrastimare l'anomalia se ci sono stati molti preventivi 
-    #           tutti scaduti per lo stesso articolo (è stato proposto più volte al 
-    #           CLIENTE che non ha mai accettato)
-    
-    ordini_fuori_tempo = merged_full[merged_full['diff_giorni'] > finestra].copy()
-    ordini_fuori_tempo = ordini_fuori_tempo.sort_values('diff_giorni').drop_duplicates(subset=['CLIENTE', 'ARTICOLO', 'DATA_ord'])
-
-    
-    # D. CHECK INTEGRITA (Stesso giorno/CLIENTE/articolo)
-    #     
-    #     L'obiettivo è individuare se esistono più ordini distinti per lo stesso CLIENTE 
-    #     e lo stesso Articolo avvenuti nella medesima DATA. Poiché l'analisi usa la 
-    #     DATA come chiave temporale, questi casi verrebbero accorpati.
-    #     1. Raggruppamento sul DATAframe originale (groupby):
-    #         - Si raggruppa il DATAframe "ordini" per CLIENTE, ARTICOLO e DATA, 
-    #           ovvero i parametri usati per identificare un evento di vendita.
-    #         - .size(): Conta quante righe effettive esistono per ogni combinazione.
-    #         - .reset_index(name='n_righe'): Crea una tabella riassuntiva con il 
-    #           conteggio delle transazioni per ogni triade (Chi, Cosa, Quando).
-    #     2. Identificazione dei casi critici (n_righe > 1):
-    #         - Filtra solo le combinazioni che compaiono più di una volta nello stesso giorno.
-    #         - Questi 'casi_critici' rappresentano ordini che il sistema "appiattirà" 
-    #           in un unico match, causando una potenziale sottostima nel conteggio (N.) 
-    #           dei documenti vinti, anche se il valore economico TOTALE (Somma €) 
-    #           rimarrà corretto.
-    
-    check_integrita = ordini.groupby(['CLIENTE', 'ARTICOLO', 'DATA']).size().reset_index(name='n_righe')
-    casi_critici = check_integrita[check_integrita['n_righe'] > 1]
-
-    
-    
-    # ** PREVENTIVI AGGIUDICATI EFFETTIVI **
-    # In questa fase avviene la "scelta" definitiva: per ogni PREVENTIVO, identifichiamo 
-    # quale ORDINE lo ha effettivamente chiuso, applicando criteri di priorità cronologica.
-    # 
-    # 1. Ordinamento per Prossimità Temporale (.sort_values):
-    #     - Viene ordinato il DATAframe 'valid_matches' in base a 'diff_giorni' (dal valore minore al maggiore).
-    #     - Questo garantisce che, per ogni PREVENTIVO, l'ORDINE avvenuto più a ridosso 
-    #       della DATA dell'offerta finisca in cima alla lista.
-    # 
-    # 2. Selezione dell'ORDINE "Vincitore" (.drop_duplicates):
-    #     - subset=['CLIENTE', 'ARTICOLO', 'DATA_prev']: Il sistema isola ogni singolo PREVENTIVO 
-    #       univoco (chi, cosa, quando è stata fatta l'offerta).
-    #     - Poiché Pandas, durante il 'drop_duplicates', mantiene solo la PRIMA riga che incontra 
-    #       e scarta le successive, e dato che abbiamo ordinato per giorni crescenti, 
-    #       verrà conservato solo l'ORDINE più vicino nel tempo.
-    # 
-    # 3. Risultato:
-    #     - Il DATAframe 'vinti_effettivi' conterrà una riga per ogni PREVENTIVO trasformato 
-    #       in vendita, collegato esclusivamente al suo primo ORDINE cronologico. 
-    #       Tutte le altre combinazioni (es. secondi o terzi ordini dello stesso CLIENTE) 
-    #       vengono rimosse per non duplicare le statistiche di conversione.
-    
-    vinti_effettivi = valid_matches.sort_values('diff_giorni').drop_duplicates(subset=['CLIENTE', 'ARTICOLO', 'DATA_prev'])
-
-    def calcola_riga_stato(row):
-        match = vinti_effettivi[
-            (vinti_effettivi['CLIENTE'] == row['CLIENTE']) & 
-            (vinti_effettivi['ARTICOLO'] == row['ARTICOLO']) & 
-            (vinti_effettivi['DATA_prev'] == row['DATA'])
-        ]
-        if not match.empty:
-            tipo_ORDINE = match.iloc[0]['TIPOLOGIA DOC._ord']
-            durata      = match.iloc[0]['diff_giorni']
-            return pd.Series(["Ordini Chiusi" if tipo_ORDINE == "ORDINE" else "Ordini Aperti", durata])
-
-        giorni_passati     = (DATA_riferimento - row['DATA']).days
-        giorni_rimanenti   = finestra - giorni_passati
-        if giorni_rimanenti < 0: return pd.Series(["Persi", giorni_passati])
-        elif giorni_rimanenti <= giorni_scadenza: return pd.Series(["In Scadenza", giorni_passati])
-        else: return pd.Series(["In Attesa", giorni_passati])
-
-    preventivi[['Stato', 'Durata']] = preventivi.apply(calcola_riga_stato, axis=1)
-    preventivi['Stato_Torta'] = preventivi['Stato'].replace({"Ordini Chiusi": "Aggiudicati", "Ordini Aperti": "Aggiudicati"})
-
-    # --- ETICHETTATURA INTEGRITÀ PREVENTIVI ---
-    # Inizializziamo tutti i preventivi come "OK"
-    preventivi['Analisi_Integrita'] = "OK"
-
-    # 1. Identifica i preventivi che hanno generato anomalie multiple
-    chiavi_multiple = set(preventivi_multipli.apply(lambda x: f"{x['CLIENTE']}|{x['ARTICOLO']}|{x['DATA_prev']}", axis=1))
-    
-    # 2. Identifica i preventivi che hanno ordini fuori tempo
-    chiavi_fuori_tempo = set(ordini_fuori_tempo.apply(lambda x: f"{x['CLIENTE']}|{x['ARTICOLO']}|{x['DATA_prev']}", axis=1))
-
-    # 3. Identifica i casi critici (integrità date/accorpamenti)
-    chiavi_critiche = set(casi_critici.apply(lambda x: f"{x['CLIENTE']}|{x['ARTICOLO']}|{x['DATA']}", axis=1))
-
-    def verifica_riga(row):
-        chiave = f"{row['CLIENTE']}|{row['ARTICOLO']}|{row['DATA']}"
-        if chiave in chiavi_multiple:
-            return "Anomalia: Ordini Multipli"
-        if chiave in chiavi_fuori_tempo:
-            return "Anomalia: Chiuso Fuori Finestra"
-        if chiave in chiavi_critiche:
-            return "Anomalia: Dato Duplicato"
-        return "Dato Integro"
-
-    preventivi['Analisi_Integrita'] = preventivi.apply(verifica_riga, axis=1)
-
-    # --- GESTIONE ORDINI ORFANI PER REPORT FINALE ---
-    ordini_orfani['Stato'] = "Vendita Diretta (Orfano)"
-    ordini_orfani['Analisi_Integrita'] = "Anomalia: ORDINE Orfano"
-    ordini_orfani['Stato_Torta'] = "Aggiudicati"
-    
-    # Prepariamo il report completo per l'analisi commerciali
-    cols_to_keep = ['DATA', 'CLIENTE', 'ARTICOLO', 'TOTALE', 'CODICE GESTIONALE UTENTE', 'Stato', 'Analisi_Integrita', 'Stato_Torta']
-    report_completo = pd.concat([preventivi, ordini_orfani[cols_to_keep]], ignore_index=True)
-
-
-    # --- SEZIONE AVVISI ANOMALIE (LAYOUT VERTICALE) ---
-
-    # Verifichiamo se esiste almeno un'anomalia tra le 4 categorie identificate
-    if not (preventivi_multipli.empty and ordini_orfani.empty and 
-            ordini_fuori_tempo.empty and casi_critici.empty):
+    # 3. VALUTAZIONE STATO PER OGNI PREVENTIVO
+    def definisci_stato_documento(group):
         
-        st.error("⚠️ Rilevate anomalie nel flusso documenti")
+        # Righe del preventivo che hanno trovato un ordine
+        # ovvero gli articoli evasi
+        righe_evase = group[group['ID DOCUMENTO_ord'].notna()]
         
-        # A. PREVENTIVI MULTIPLI
-        if not preventivi_multipli.empty:
-            with st.expander(f"🚩 {len(preventivi_multipli)} Preventivi con Ordini Multipli"):
-                st.write("Questi preventivi hanno generato più di un ORDINE (o righe d'ORDINE distinte) nel periodo di validità.")
-                st.dataframe(preventivi_multipli, use_container_width=True, hide_index=True)
+        # Se nessuna articolo è stata evaso, ritorna None
+        # Sarà gestito dopo come "In Attesa/Perso"
+        if righe_evase.empty:
+            return pd.Series([None, None, None]) 
+
+        # Controllo tempistiche: l'ordine è arrivato nella finestra?
+        entro_finestra = righe_evase['diff_giorni'].min() <= finestra
+        
+        if not entro_finestra:
+            return pd.Series(["CHIUSO FUORI FINESTRA", righe_evase['diff_giorni'].min(), righe_evase['ID DOCUMENTO_ord'].iloc[0]])
+
+        # Verifica completezza basata sul numero di TRACK ID
+        tot_articoli_prev = len(group['TRACK ID'].unique())
+        articoli_evasi = len(righe_evase['TRACK ID'].unique())
+
+        diff_gg = righe_evase['diff_giorni'].min()
+        id_ordine = righe_evase['ID DOCUMENTO_ord'].iloc[0]
+
+        if articoli_evasi >= tot_articoli_prev:
+            return pd.Series(["ORDINE COMPLETO", diff_gg, id_ordine])
+        else:
+            return pd.Series(["ORDINE PARZIALE", diff_gg, id_ordine])
+
+    # Applichiamo la logica raggruppando per ID documento preventivo
+    risultati = merged.groupby('ID DOCUMENTO_prev').apply(definisci_stato_documento).reset_index()
+    risultati.columns = ['ID DOCUMENTO', 'STATO_DETTAGLIO', 'DURATA', 'ID_ORDINE_MATCH']
+
+    # 4. CREAZIONE REPORT TESTATE PREVENTIVI
+    report_prev = preventivi.groupby('ID DOCUMENTO').agg({
+        'DATA': 'first', 'CLIENTE': 'first', 'TOTALE': 'sum', 'CODICE GESTIONALE UTENTE': 'first'
+    }).reset_index()
+
+    report_prev = pd.merge(report_prev, risultati, on='ID DOCUMENTO', how='left')
+
+    # 5. GESTIONE STATI TEMPORALI (PERSI / IN ATTESA)
+    def pulizia_stati(row):
+        if pd.notna(row['STATO_DETTAGLIO']):
+            return row['STATO_DETTAGLIO']
+        
+        giorni_passati = (DATA_riferimento - row['DATA']).days
+        if giorni_passati > finestra: return "PERSI"
+        if (finestra - giorni_passati) <= giorni_scadenza: return "IN SCADENZA"
+        return "IN ATTESA"
+
+    report_prev['STATO'] = report_prev.apply(pulizia_stati, axis=1)
+    report_prev['DURATA'] = report_prev.apply(
+        lambda r: (DATA_riferimento - r['DATA']).days if pd.isna(r['DURATA']) else r['DURATA'], axis=1
+    )
+
+    # 6. IDENTIFICAZIONE ORDINI CON EXTRA E ORFANI
+    # Un ordine ha EXTRA se il suo ID DOCUMENTO contiene TRACK ID non presenti in alcun preventivo
+    track_id_preventivati = set(preventivi['TRACK ID'])
     
-        # B. ORDINI ORFANI
-        if not ordini_orfani.empty:
-            with st.expander(f"❓ {len(ordini_orfani)} Ordini Orfani (Senza PREVENTIVO)"):
-                st.write("Ordini per i quali non è stato trovato alcun PREVENTIVO antecedente nel DATAbase.")
-                st.dataframe(ordini_orfani[['DATA', 'CLIENTE', 'ARTICOLO', 'TOTALE']], use_container_width=True, hide_index=True)
+    ordini_testata = ordini.groupby('ID DOCUMENTO').agg({
+        'DATA': 'first', 'CLIENTE': 'first', 'TOTALE': 'sum', 'CODICE GESTIONALE UTENTE': 'first'
+    }).reset_index()
+
+    # Identifichiamo quali ID ORDINE hanno articoli "nuovi"
+    ordini_con_extra_ids = ordini[~ordini['TRACK ID'].isin(track_id_preventivati)]['ID DOCUMENTO'].unique()
     
-        # C. ORDINI FUORI TEMPO
-        if not ordini_fuori_tempo.empty:
-            with st.expander(f"⏰ {len(ordini_fuori_tempo)} Ordini arrivati Fuori Tempo"):
-                df_ft = ordini_fuori_tempo[['DATA_ord', 'CLIENTE', 'ARTICOLO', 'diff_giorni']].rename(
-                    columns={'DATA_ord': 'DATA ORDINE', 'diff_giorni': 'GG dopo Prev.'}
-                )
-                st.write(f"Ordini che hanno un PREVENTIVO nel DATAbase, ma sono stati chiusi oltre i {finestra}gg stabiliti.")
-                st.dataframe(df_ft, use_container_width=True, hide_index=True)
+    # Identifichiamo quali ID ORDINE non hanno proprio alcun match (Orfani)
+    id_ordini_che_evadono_prev = set(risultati['ID_ORDINE_MATCH'].dropna())
     
-        # D. CASI CRITICI (INTEGRITÀ)
-        if not casi_critici.empty:
-            with st.expander(f"⚠️ {len(casi_critici)} Casi Critici (Potenziali Accorpamenti)"):
-                st.write("Rilevati più ordini per lo stesso CLIENTE/articolo nella medesima DATA.")
-                st.info("Nota tecnica: A causa della mancanza di un ID ORDINE univoco, questi record vengono conteggiati come singola vendita.")
-                st.dataframe(casi_critici, use_container_width=True, hide_index=True)
-                
+    def definisci_stato_ordine(row):
+        if row['ID DOCUMENTO'] in id_ordini_che_evadono_prev:
+            return "VENDITA DA PREVENTIVO" # Già conteggiato nei preventivi
+        if row['ID DOCUMENTO'] in ordini_con_extra_ids:
+            return "ORDINE CON EXTRA / DIRETTO"
+        return "ORDINE SENZA PREVENTIVO"
+
+    ordini_testata['STATO'] = ordini_testata.apply(definisci_stato_ordine, axis=1)
+    
+    # Filtriamo gli ordini che non sono stati già "assorbiti" dall'analisi preventivi
+    ordini_extra_orfani = ordini_testata[ordini_testata['STATO'] != "VENDITA DA PREVENTIVO"].copy()
+
+    # UNIONE FINALE
+    report_completo = pd.concat([report_prev, ordini_extra_orfani], ignore_index=True)
+    report_completo['STATO_TORTA'] = report_completo['STATO'].apply(
+        lambda x: "AGGIUDICATI" if "ORDINE" in x or "VENDITA" in x else x
+    )
+
+    return report_completo
+
+    """
     # --- CALCOLI PER FUNNEL ---
     df_conclusi    = preventivi[preventivi['Stato'].isin(["Ordini Chiusi", "Ordini Aperti", "Persi"])]
     n_conclusi     = len(df_conclusi)
@@ -679,7 +531,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     return report_completo
 
-
+"""
 
 def analizza_performance_commerciali(df_report):
     """

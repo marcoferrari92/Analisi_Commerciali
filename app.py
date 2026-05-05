@@ -991,6 +991,16 @@ if df_orders is not None:
     with st.expander("🎯 Analisi Globale della Conversione dei Preventivi"):
         st.write("")
         st.write("")
+
+        # --- CALCOLO MASSIMO DINAMICO ---
+        # Se period è una tupla con due date (inizio e fine)
+        if isinstance(period, tuple) and len(period) == 2:
+            delta_giorni = (period[1] - period[0]).days
+            # Evitiamo che il max_value sia 0 se le date coincidono
+            max_slider = max(1, delta_giorni)
+        else:
+            max_slider = 180 # Valore di fallback
+        # --------------------------------
         
         # Creiamo due colonne per i parametri
         c1, c2, c3, c4, c5 = st.columns([0.2, 1, 0.3, 1, 0.2])
@@ -998,7 +1008,7 @@ if df_orders is not None:
         with c2:
             finestra = st.slider(
                 "Validità preventivi (giorni):", 
-                min_value=1, max_value=180, value=30, 
+                min_value=1, max_value=max_slider, value=30, 
                 help="Giorni massimi per convertire un preventivo in ordine."
             )
         

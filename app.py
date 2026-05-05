@@ -861,22 +861,27 @@ if df_orders is not None:
     # ************
 
     # 1. COMPATTAZIONE PER ID DOCUMENTO
-    # Sommiamo il TOTALE di tutte le righe che appartengono allo stesso ID
-    # ovvero i vari articoli venduti (perchè ho già rimosso le righe senza importi).
-    # Manteniamo la TIPOLOGIA DOC. per non perdere la distinzione tra preventivi e 
-    # ordini. 
+    # Creaiamo un dataframe suddiviso per l'ID dei documenti.
+    # Per ogni ID avremo la tipologia di documento (preventivo, ordine aperto, ordine)
+    # e il totale (€) degli articoli per quel documento.
+    
     df_documenti_univoci = df_orders.groupby('ID DOCUMENTO').agg({
         'TIPOLOGIA DOC.': 'first',
         'TOTALE': 'sum'
     }).reset_index()
 
-    # 2. CALCOLO QUANTITÀ (Numero di Pratiche)
-    # Ora contiamo quanti ID esistono per ogni tipologia
+    
+    # 2. QUANTITÀ
+    # Num. documenti = numero ID esistenti per ogni tipologia
+    
     conteggio_qty = df_documenti_univoci['TIPOLOGIA DOC.'].value_counts().reset_index()
     conteggio_qty.columns = ['TIPOLOGIA DOC.', 'Conteggio'] 
+
     
-    # 3. CALCOLO VOLUMI (Somma dei Totali)
+    # 3. VOLUMI
+    # Sommamiamo sui totali di ogni articolo per ogni documento
     conteggio_vol = df_documenti_univoci.groupby('TIPOLOGIA DOC.')['TOTALE'].sum().reset_index()
+
     
     with st.expander("📊 Panoramica Quantità e Volumi"):
         

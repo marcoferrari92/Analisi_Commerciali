@@ -446,6 +446,17 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         'Num. Articoli Ordine', 'ID Preventivo', 'ID Ordine'
     ]
 
+    # Funzione per colorare il testo della colonna Stato
+    def colora_stato(val):
+        colori = {
+            "AGGIUDICATO (CHIUSO)": "color: #4E944F; font-weight: bold;",
+            "AGGIUDICATO (APERTO)": "color: #B4E197; font-weight: bold;",
+            "IN SCADENZA": "color: #CCAA00; font-weight: bold;", # Giallo scuro per leggibilità
+            "IN ATTESA": "color: #007BFF;",
+            "PERSO": "color: #FF4B4B;"
+        }
+        return colori.get(val, "color: black;")
+
     st.dataframe(
         df_display.sort_values('Data Preventivo', ascending=False).style.format({
             'Data Preventivo': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y'),
@@ -454,8 +465,9 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             'Durata': lambda x: f"{int(x)} gg" if pd.notnull(x) else "-",
             'Num. Articoli Preventivo': '{:,.0f}',
             'Num. Articoli Ordine': '{:,.0f}'
-        }),
-        use_container_width=True, hide_index=True
+        }).map(colora_stato, subset=['Stato']), # <--- Applica i colori qui
+        use_container_width=True, 
+        hide_index=True
     )
 
     return report_prev

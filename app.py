@@ -455,24 +455,40 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     report_prev['STATO'] = report_prev.apply(pulizia_stati, axis=1)
 
     # 6. IDENTIFICAZIONE ORDINI DIRETTI (ORFANI)
-    # Creiamo un set di tutti gli ID ordine che sono stati associati a un preventivo
+    # Questa sezione serve a recuperare gli ordini che non sono nati da un preventivo (vendite dirette).
+    
+    # Creiamo un set (contenitore univoco) di tutti gli ID ordine che sono già stati associati a un preventivo.
+    # Usiamo .split(", ") perché 'ID_ORDINI_MATCH' può contenere più ID per riga (es. "ORD1, ORD2").
     id_matchati_totali = set()
     risultati['ID_ORDINI_MATCH'].dropna().str.split(", ").apply(id_matchati_totali.update)
     
+    # Raggruppiamo il database degli ordini per avere una riga per ogni documento (testata dell'ordine).
+    # Calcoliamo il totale e recuperiamo i dati principali del cliente.
     ordini_testata = ordini.groupby(['ID DOCUMENTO', 'TIPOLOGIA DOC.']).agg({
         'DATA': 'first', 'CLIENTE': 'first', 'TOTALE': 'sum', 'CODICE GESTIONALE UTENTE': 'first'
     }).reset_index()
 
     def definisci_ordini_diretti(row):
+        # Se l'ID dell'ordine è presente nel set degli "ID_matchati", significa che ha un preventivo alle spalle.
+        # Lo marchiamo come "MATCHATO" per poterlo escludere tra poco.
         if str(row['ID DOCUMENTO']) in id_matchati_totali: return "MATCHATO"
+        
+        # Se non è presente, è un ORDINE DIRETTO (orfano). 
+        # Aggiungiamo il suffisso per sapere se è già stato evaso (CHIUSO) o è ancora un impegno (APERTO).
         suffix = " (CHIUSO)" if row['TIPOLOGIA DOC.'] == "ORDINE" else " (APERTO)"
         return "ORDINE DIRETTO" + suffix
 
+    # Applichiamo la funzione per etichettare ogni ordine.
     ordini_testata['STATO'] = ordini_testata.apply(definisci_ordini_diretti, axis=1)
+    
+    # Creiamo un DataFrame che contiene solo gli ordini che NON hanno un preventivo collegato.
     ordini_diretti = ordini_testata[ordini_testata['STATO'] != "MATCHATO"].copy()
 
-    # UNIONE FINALE
+    # --- UNIONE FINALE ---
+    # Uniamo i due report: quello dei preventivi (con i loro stati) e quello degli ordini diretti.
+    # Il risultato sarà una tabella completa che mostra tutto il flusso commerciale dell'azienda.
     report_completo = pd.concat([report_prev, ordini_diretti], ignore_index=True)
+    
     return report_completo
 
     

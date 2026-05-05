@@ -728,14 +728,14 @@ def analizza_performance_commerciali(df_report):
     # 2. CALCOLO METRICHE AGGREGATE
     # Raggruppiamo per il codice gestionale dell'utente
     performance = df_integro.groupby('CODICE GESTIONALE UTENTE').agg(
-        Nr_Preventivi=('Totale', 'count'),
-        Volume_Offerto=('Totale', 'sum'),
-        Nr_Vinti=('Stato_Torta', lambda x: (x == "Aggiudicati").sum()),
-        Volume_Vinto=('Totale', lambda x: x[df_integro.loc[x.index, 'Stato_Torta'] == "Aggiudicati"].sum())
+        Nr_Preventivi    = ('Totale', 'count'),
+        Volume_Offerto   = ('Totale', 'sum'),
+        Nr_Vinti         = ('Stato_Torta', lambda x: (x == "Aggiudicati").sum()),
+        Volume_Vinto     = ('Totale', lambda x: x[df_integro.loc[x.index, 'Stato_Torta'] == "Aggiudicati"].sum())
     ).reset_index()
 
     # Calcolo Tassi di Conversione (Hit Rate)
-    performance['Conversion_Rate_Nr'] = (performance['Nr_Vinti'] / performance['Nr_Preventivi'] * 100).fillna(0)
+    performance['Conversion_Rate_Nr']  = (performance['Nr_Vinti'] / performance['Nr_Preventivi'] * 100).fillna(0)
     performance['Conversion_Rate_Val'] = (performance['Volume_Vinto'] / performance['Volume_Offerto'] * 100).fillna(0)
 
     # 3. ANALISI DISCIPLINARE (ANOMALIE)
@@ -973,7 +973,9 @@ if df_orders is not None:
         plot_distribuzione_ordini(df_orders)
         
        
-
+    # **********************************
+    #  CONVERSIONE PREVENTIVI - GLOBALE
+    # **********************************
 
     with st.expander("🎯 Analisi Globale della Conversione dei Preventivi"):
         st.write("")
@@ -1002,8 +1004,12 @@ if df_orders is not None:
         df_report = analisi_conversione_preventivi(df_orders, finestra, scadenza)
 
 
+    # ******************************************
+    #  CONVERSIONE PREVENTIVI - PER COMMERCIALE
+    # ******************************************
+    
     with st.expander("🎯 Analisi Conversione dei Preventivi per Commerciale"):
-        performance = analizza_performance_commerciali(df_report)
+        df_performance = analizza_performance_commerciali(df_report)
     
 
 

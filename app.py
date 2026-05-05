@@ -217,7 +217,7 @@ def plot_distribuzione_ordini(df_target):
     # Creiamo la stringa data PRIMA di ogni altra operazione
     if 'DATA' in df_plot.columns:
         # Convertiamo in datetime se non lo è, poi in stringa
-        df_plot['Data_Str'] = pd.to_datetime(df_plot['Data']).dt.strftime('%d/%m/%Y')
+        df_plot['Data_Str'] = pd.to_datetime(df_plot['DATA']).dt.strftime('%d/%m/%Y')
     else:
         df_plot['Data_Str'] = "N.D."
 
@@ -270,14 +270,14 @@ def plot_distribuzione_ordini(df_target):
                 showlegend=False,
                 orientation='h',
                 # Passiamo i dati extra qui
-                customdata=df_stadio[['Data_Str', 'Oggetto', 'Cliente', 'Agente']],
+                customdata=df_stadio[['Data_Str', 'ID DOCUMENTO', 'CLIENTE', 'CODICE GESTIONALE UTENTE']],
                 # Definiamo cosa appare al passaggio del mouse
                 hovertemplate=(
                     "<b>Importo:</b> €%{x:,.2f}<br>" +
                     "<b>Data:</b> %{customdata[0]}<br>" +
-                    "<b>Oggetto:</b> %{customdata[1]}<br>" +
+                    "<b>ID:</b> %{customdata[1]}<br>" +
                     "<b>Cliente:</b> %{customdata[2]}<br>" +
-                    "<b>Agente:</b> %{customdata[3]}<br>" +
+                    "<b>Utente:</b> %{customdata[3]}<br>" +
                     "<extra></extra>" # Rimuove la scritta "trace name" a lato
                 )
             ),

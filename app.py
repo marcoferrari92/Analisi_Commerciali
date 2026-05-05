@@ -62,8 +62,8 @@ def data_filtering(period, df):
     if isinstance(period, tuple) and len(period) == 2:
         #data_start, data_end = period
         df_filtrato = df[
-                (df['Data'].dt.date >= period[0]) & 
-                (df['Data'].dt.date <= period[1])
+                (df['DATA'].dt.date >= period[0]) & 
+                (df['DATA'].dt.date <= period[1])
                 ].copy()
         
     # Un piccolo avviso se manca una delle due date (inizio o fine)

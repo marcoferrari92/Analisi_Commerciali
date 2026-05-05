@@ -215,7 +215,7 @@ def plot_distribuzione_ordini(df_target):
     df_plot = df_target.copy()
 
     # Creiamo la stringa data PRIMA di ogni altra operazione
-    if 'Data' in df_plot.columns:
+    if 'DATA' in df_plot.columns:
         # Convertiamo in datetime se non lo è, poi in stringa
         df_plot['Data_Str'] = pd.to_datetime(df_plot['Data']).dt.strftime('%d/%m/%Y')
     else:
@@ -231,13 +231,13 @@ def plot_distribuzione_ordini(df_target):
         row_heights=[0.5, 0.5]
     )
 
-    colori = {"Preventivo": "#A2D2FF", "Ordine Aperto": "#B4E197", "Ordine": "#4E944F"}
-    stadi = ["Preventivo", "Ordine Aperto", "Ordine"]
+    colori = {"PREVENTIVO": "#A2D2FF", "ORDINE APERTO": "#B4E197", "ORDINE": "#4E944F"}
+    stadi = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
 
     for stadio in stadi:
         
         # Filtriamo il dataframe per lo stadio attuale
-        df_stadio = df_plot[df_plot['Tipo Doc.'] == stadio]
+        df_stadio = df_plot[df_plot['TIPOLOGIA DOC.'] == stadio]
         
         if df_stadio.empty: continue
 

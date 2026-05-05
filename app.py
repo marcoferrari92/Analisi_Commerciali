@@ -30,9 +30,9 @@ def carica_dati_commerciali(file):
             return None
 
         # 4. Gestione specifica della Data
-        df['Data'] = pd.to_datetime(df['Data'], dayfirst=True, errors='coerce')
-        righe_nulle = df['Data'].isna().sum()
-        df = df.dropna(subset=['Data'])
+        df['DATA'] = pd.to_datetime(df['DATA'], dayfirst=True, errors='coerce')
+        righe_nulle = df['DATA'].isna().sum()
+        df = df.dropna(subset=['DATA'])
         
         if righe_nulle > 0:
             st.warning(f"⚠️ Rimosse {righe_nulle} righe con data non valida.")

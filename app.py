@@ -444,45 +444,54 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
 
     # --- CALCOLI PER FUNNEL ---
-    # Consideriamo "Conclusi" tutti i preventivi che non sono più "In Attesa" o "In Scadenza"
+    # Definiamo quali stati nel report sono considerati "Vinti"
     stati_vinti = ["ORDINE COMPLETO", "ORDINE CON EXTRA", "ORDINE PARZIALE"]
+    
+    # Filtriamo i preventivi conclusi (vinti o persi)
     df_conclusi = report_prev[report_prev['STATO'].isin(stati_vinti + ["PERSI"])]
     
     n_conclusi    = len(df_conclusi)
     val_conclusi  = df_conclusi['TOTALE'].sum()
     
-    # Suddivisione per tipologia di vincita (per il funnel)
-    n_vinti_tot   = len(report_prev[report_prev['STATO'].isin(stati_vinti)])
-    val_vinti_tot = report_prev[report_prev['STATO'].isin(stati_vinti)]['TOTALE'].sum()
+    # Conteggio totali vinti
+    df_vinti      = report_prev[report_prev['STATO'].isin(stati_vinti)]
+    n_vinti_tot   = len(df_vinti)
+    val_vinti_tot = df_vinti['TOTALE'].sum()
 
     # --- VISUALIZZAZIONE GRAFICI ---
-    st.subheader("📊 Analisi Performance Conversioni (TRACK ID)")
+    st.subheader("📊 Analisi Performance Conversioni")
     
-    # Mappa colori aggiornata per i nuovi stati
-    color_map_torta = {
-        "AGGIUDICATI": "#4E944F",   # Verde
-        "IN SCADENZA": "#FFD700",   # Giallo/Oro
-        "IN ATTESA": "#A2D2FF",     # Azzurro
-        "PERSI": "#FF9999"          # Rosso Pastello
+    # Mappa colori basata direttamente sui valori della colonna STATO
+    color_map_stato = {
+        "ORDINE COMPLETO": "#4E944F",
+        "ORDINE CON EXTRA": "#1E5631",
+        "ORDINE PARZIALE": "#B4E197",
+        "IN SCADENZA": "#FFD700",
+        "IN ATTESA": "#A2D2FF",
+        "PERSI": "#FF9999",
+        "CHIUSO FUORI FINESTRA": "#7A7A7A"
     }
 
     r1_c1, r1_c2 = st.columns(2)
     with r1_c1:
-        stats_n = report_prev['STATO_TORTA'].value_counts().reset_index()
-        fig_pie_n = px.pie(stats_n, values='count', names='STATO_TORTA', 
+        # Grafico basato sulla colonna STATO originale
+        stats_n = report_prev['STATO'].value_counts().reset_index()
+        fig_pie_n = px.pie(stats_n, values='count', names='STATO', 
                           title="Esito per Numero Documenti", hole=0.4, 
-                          color='STATO_TORTA', color_discrete_map=color_map_torta)
+                          color='STATO', color_discrete_map=color_map_stato)
         fig_pie_n.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
         st.plotly_chart(fig_pie_n, use_container_width=True)
         
     with r1_c2:
-        stats_val = report_prev.groupby('STATO_TORTA')['TOTALE'].sum().reset_index()
-        fig_pie_val = px.pie(stats_val, values='TOTALE', names='STATO_TORTA', 
+        stats_val = report_prev.groupby('STATO')['TOTALE'].sum().reset_index()
+        fig_pie_val = px.pie(stats_val, values='TOTALE', names='STATO', 
                             title="Esito per Valore Economico (€)", hole=0.4, 
-                            color='STATO_TORTA', color_discrete_map=color_map_torta)
+                            color='STATO', color_discrete_map=color_map_stato)
         fig_pie_val.update_traces(textinfo='percent', hovertemplate='€%{value:,.2f}')
         fig_pie_val.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
         st.plotly_chart(fig_pie_val, use_container_width=True)
+
+    # ... [Resto del codice per Funnel e Metriche (usando n_vinti_tot e val_vinti_tot)] ...
 
     # Funnel di conversione
     st.write("#### 🌪️ Funnel di Efficacia Commerciale")

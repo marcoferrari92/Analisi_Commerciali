@@ -46,7 +46,7 @@ def carica_dati_commerciali(file):
 
 def data_range(df):
     
-    date = df['Data'].dropna()
+    date = df['DATA'].dropna()
     
     if not date.empty:
         d_min, d_max = date.min().date(), date.max().date()

@@ -363,7 +363,6 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         # Scarta le righe (articoli) del preventivo che non hanno trovato un corrispettivo nell'ordine 
         #    (dove 'ID DOCUMENTO_ord' è rimasto vuoto/NaN dopo il left join).
         # Mantiene solo le righe "evase", ovvero quelle che hanno un ID ordine valido.
-        
         righe_evase = group[group['ID DOCUMENTO_ord'].notna()]
 
         # Se nessun articolo è stato evaso, ritorna None
@@ -374,18 +373,16 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         # Verifica se il primo articolo del preventivo è stato convertito entro i giorni stabiliti.
         # (.min() recupera la data del primo ordine utile associato a questo preventivo, nel
         # caso di un preventivo completato in più ordini). 
-        # In caso contrario flagga l'ordine con END per non tornarci
-        
+        # In caso contrario flagga l'ordine con FINISH per non tornarci
         diff_gg = righe_evase['diff_giorni'].min()
         if diff_gg > finestra:
-            return pd.Series(["ORDINE FUORI FINESTRA", diff_gg, righe_evase['ID DOCUMENTO_ord'].iloc[0], "END"])
+            return pd.Series(["ORDINE FUORI FINESTRA", diff_gg, righe_evase['ID DOCUMENTO_ord'].iloc[0], "FINISH"])
 
         # DETERMINAZIONE DELLO STATO DOCUMENTALE
         # Identifichiamo la natura del primo ordine che ha convertito il preventivo.
         # 1. Ordiniamo per data (diff_giorni) e prendiamo il primo evento cronologico (.iloc[0]).
         # 2. Assegniamo un suffisso descrittivo per distinguere se la vendita è 
         #    già finalizzata (CHIUSO) o ancora in corso (APERTO).
-        
         tipo_doc_ord = righe_evase.sort_values('diff_giorni')['TIPOLOGIA DOC._ord'].iloc[0]
         suffix = " (CHIUSO)" if tipo_doc_ord == "ORDINE" else " (APERTO)"
 
@@ -395,18 +392,18 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         # 1. Ordiniamo le righe evase per giorni di differenza (dal più rapido al più lento).
         # 2. .iloc[0] preleva l'ID del primo documento che ha agganciato i TRACK ID.
         # Questo ID verrà usato per determinare se sono stati aggiunti articoli extra (Upselling).
-        
         id_ordine_vincitore = righe_evase.sort_values('diff_giorni')['ID DOCUMENTO_ord'].iloc[0]
+        
+        # Raccolgo tutti gli ID unici degli ordini che hanno evaso questo preventivo
+        tutti_gli_ordini = ", ".join(righe_evase['ID DOCUMENTO_ord'].unique().astype(str))
 
         # CALCOLO DELLA CORRISPONDENZA E DELL'UPSELLING
         # Creiamo due set per confrontare i contenuti dei documenti:
         # 1.Recuperiamo tutti i TRACK ID (articoli) presenti nel preventivo originale.
-        
         track_prev = set(group['TRACK ID'].unique())
         
         # 2. Recuperiamo TUTTI gli articoli contenuti nell'ordine "vincitore", 
         #    andando a rileggere l'intero database ordini per quell'ID documento specifico.
-        
         track_ord_effettivi = set(ordini[ordini['ID DOCUMENTO'] == id_ordine_vincitore]['TRACK ID'].unique())
         
         # Identifichiamo quali articoli del preventivo sono stati effettivamente comprati.
@@ -415,29 +412,31 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         # Verifichiamo se l'ordine contiene articoli che NON erano nel preventivo.
         # 'issubset' controlla se l'ordine è un "sottoinsieme" perfetto del preventivo.
         # Se NON lo è (not), significa che il cliente ha aggiunto prodotti extra (Upselling).
-        
         ha_extra = not track_ord_effettivi.issubset(track_prev)
 
         # Se abbiamo coperto l'intera proposta commerciale...
         if len(articoli_matchati) >= len(track_prev):
-        
             # ESEMPIO ORDINE COMPLETO: Offerto {A, B} -> Venduto {A, B}. 
             # (len è uguale, ha_extra è False)
             # ESEMPIO ORDINE CON EXTRA: Offerto {A, B} -> Venduto {A, B, C}. 
             # (len matchati è uguale a preventivo, ma ha_extra è True perché c'è C)
-            
             stato = "ORDINE CON EXTRA" if ha_extra else "ORDINE COMPLETO"
-        
         else:
             # ESEMPIO ORDINE PARZIALE: Offerto {A, B} -> Venduto {A}.
             # (Il numero di match è inferiore all'offerta originale)
             stato = "ORDINE PARZIALE"
             
-        return pd.Series([stato + suffix, diff_gg, id_ordine_vincitore, "END"])
+        return pd.Series([stato + suffix, diff_gg, tutti_gli_ordini, "FINISH"])
 
-    # Applicazione raggruppamento
+    # APPLICAZIONE RAGGRUPPAMENTO
+    # Applica la funzione "definisci_stato_documento" e salva i vari stati come segue:
+    #      ID DOCUMENTO       Il numero del preventivo originale
+    #      STATO_DETTAGLIO    L'etichetta (es. ORDINE COMPLETO (CHIUSO))
+    #      DURATA             I giorni impiegati per la conversione
+    #      ID_ORDINI_MATCH    Tutti i numeri d'ordine legati a questo preventivo
+    #      PROCESSO_LOGICO    Flag FINISH per indicare la fine dell'analisi
     risultati = merged.groupby('ID DOCUMENTO_prev').apply(definisci_stato_documento).reset_index()
-    risultati.columns = ['ID DOCUMENTO', 'STATO_DETTAGLIO', 'DURATA', 'ID_ORDINE_MATCH', 'TIPO_ORDINE']
+    risultati.columns = ['ID DOCUMENTO', 'STATO_DETTAGLIO', 'DURATA', 'ID_ORDINI_MATCH', 'PROCESSO_LOGICO']
 
     # 4. REPORT PREVENTIVI
     report_prev = preventivi.groupby('ID DOCUMENTO').agg({
@@ -456,14 +455,16 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     report_prev['STATO'] = report_prev.apply(pulizia_stati, axis=1)
 
     # 6. IDENTIFICAZIONE ORDINI DIRETTI (ORFANI)
-    id_ordini_matchati = set(risultati['ID_ORDINE_MATCH'].dropna())
+    # Creiamo un set di tutti gli ID ordine che sono stati associati a un preventivo
+    id_matchati_totali = set()
+    risultati['ID_ORDINI_MATCH'].dropna().str.split(", ").apply(id_matchati_totali.update)
     
     ordini_testata = ordini.groupby(['ID DOCUMENTO', 'TIPOLOGIA DOC.']).agg({
         'DATA': 'first', 'CLIENTE': 'first', 'TOTALE': 'sum', 'CODICE GESTIONALE UTENTE': 'first'
     }).reset_index()
 
     def definisci_ordini_diretti(row):
-        if row['ID DOCUMENTO'] in id_ordini_matchati: return "MATCHATO"
+        if str(row['ID DOCUMENTO']) in id_matchati_totali: return "MATCHATO"
         suffix = " (CHIUSO)" if row['TIPOLOGIA DOC.'] == "ORDINE" else " (APERTO)"
         return "ORDINE DIRETTO" + suffix
 
@@ -472,6 +473,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     # UNIONE FINALE
     report_completo = pd.concat([report_prev, ordini_diretti], ignore_index=True)
+    return report_completo
 
     
 

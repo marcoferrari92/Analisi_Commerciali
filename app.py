@@ -141,7 +141,7 @@ def validazione_importi(df):
     if len(df_errori) > 0:
         with st.expander("⚠️ ERRORI RILEVATI", expanded=False):
             st.error(f"Trovate {len(df_errori)} righe scartate (Importo non valido o Tipo Doc non ammesso)!")
-            st.DATAframe(df_errori)
+            st.dataframe(df_errori)
     else:
         st.success("Nessun errore rilevato (Tutti i calcoli sono validi).")
 

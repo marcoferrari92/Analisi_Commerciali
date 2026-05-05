@@ -857,86 +857,89 @@ st.write("")
 if df_orders is not None: 
     
     # ************
-    #  PANORAMICA
+    #   PANORAMICA
     # ************
+
+    # 1. COMPATTAZIONE PER ID DOCUMENTO
+    # Sommiamo il TOTALE di tutte le righe che appartengono allo stesso ID
+    # ovvero i vari articoli venduti (perchè ho già rimosso le righe senza importi).
+    # Manteniamo la TIPOLOGIA DOC. per non perdere la distinzione tra preventivi e 
+    # ordini. 
+    df_documenti_univoci = df_orders.groupby('ID DOCUMENTO').agg({
+        'TIPOLOGIA DOC.': 'first',
+        'TOTALE': 'sum'
+    }).reset_index()
+
+    # 2. CALCOLO QUANTITÀ (Numero di Pratiche)
+    # Ora contiamo quanti ID esistono per ogni tipologia
+    conteggio_qty = df_documenti_univoci['TIPOLOGIA DOC.'].value_counts().reset_index()
+    conteggio_qty.columns = ['TIPOLOGIA DOC.', 'Conteggio'] 
     
-    # Aggregazione quantità e volumi
-    conteggio_qty             = df_orders['Tipo Doc.'].value_counts().reset_index()
-    conteggio_qty.columns     = ['Tipo Doc.', 'Conteggio'] 
-    conteggio_vol             = df_orders.groupby('Tipo Doc.')['Totale'].sum().reset_index()
+    # 3. CALCOLO VOLUMI (Somma dei Totali)
+    conteggio_vol = df_documenti_univoci.groupby('TIPOLOGIA DOC.')['TOTALE'].sum().reset_index()
     
     with st.expander("📊 Panoramica Quantità e Volumi"):
         
         if not conteggio_qty.empty and not conteggio_vol.empty:
-            
             col_sinistra, col_destra = st.columns(2)
             
             with col_sinistra:
                 render_grafico_torta(
                     data=conteggio_qty, 
                     values_col='Conteggio', 
-                    names_col='Tipo Doc.', 
-                    titolo="Volume per Numero Articoli",
+                    names_col='TIPOLOGIA DOC.', 
+                    titolo="N. Documenti Univoci",
                     tipo="numerico"
                 )
             
             with col_destra:
                 render_grafico_torta(
                     data=conteggio_vol, 
-                    values_col='Totale', 
-                    names_col='Tipo Doc.', 
-                    titolo="Volume per Valore Economico",
+                    values_col='TOTALE', 
+                    names_col='TIPOLOGIA DOC.', 
+                    titolo="Valore Economico Totale",
                     tipo="soldi"
                 )
-        else:
-            st.warning("Dati insufficienti per generare i grafici.")
-
         
-
-        # 1. Mediana
-        mediane = df_orders.groupby('Tipo Doc.')['Totale'].median().reset_index()
-        mediane.columns = ['Tipo Doc.', 'Mediana (€)']
+        # 4. CALCOLO INDICATORI (Mediana e Media sui Documenti)
+        mediane = df_documenti_univoci.groupby('TIPOLOGIA DOC.')['TOTALE'].median().reset_index()
+        mediane.columns = ['TIPOLOGIA DOC.', 'Mediana (€)']
         
-        # 2. Uniamo i dati: Quantità + Volumi + Mediane
-        df_riepilogo = pd.merge(conteggio_qty, conteggio_vol, on='Tipo Doc.')
-        df_riepilogo = pd.merge(df_riepilogo, mediane, on='Tipo Doc.')
+        # Unione dati per la tabella
+        df_riepilogo = pd.merge(conteggio_qty, conteggio_vol, on='TIPOLOGIA DOC.')
+        df_riepilogo = pd.merge(df_riepilogo, mediane, on='TIPOLOGIA DOC.')
         
-        # 3. Calcolo Percentuali sul totale
+        # Percentuali
         tot_qty = df_riepilogo['Conteggio'].sum()
-        tot_vol = df_riepilogo['Totale'].sum()
+        tot_vol = df_riepilogo['TOTALE'].sum()
         df_riepilogo['% Qty'] = (df_riepilogo['Conteggio'] / tot_qty * 100).round(1).astype(str) + '%'
-        df_riepilogo['% Vol'] = (df_riepilogo['Totale'] / tot_vol * 100).round(1).astype(str) + '%'
+        df_riepilogo['% Vol'] = (df_riepilogo['TOTALE'] / tot_vol * 100).round(1).astype(str) + '%'
         
-        # 4. Calcolo Prezzo Medio
-        df_riepilogo['Media (€)'] = (df_riepilogo['Totale'] / df_riepilogo['Conteggio'])
+        # Prezzo Medio per Ordine Completo
+        df_riepilogo['Media (€)'] = (df_riepilogo['TOTALE'] / df_riepilogo['Conteggio'])
         
-        # 5. Ordinamento e Selezione Colonne per una lettura logica
+        # Ordinamento e formattazione nomi (TUTTO MAIUSCOLO per le colonne)
         ordine_fisso = ["Preventivo", "Ordine Aperto", "Ordine"]
-        df_riepilogo['Tipo Doc.'] = pd.Categorical(df_riepilogo['Tipo Doc.'], categories=ordine_fisso, ordered=True)
-        df_riepilogo = df_riepilogo.sort_values('Tipo Doc.')
+        df_riepilogo['TIPOLOGIA DOC.'] = pd.Categorical(df_riepilogo['TIPOLOGIA DOC.'], categories=ordine_fisso, ordered=True)
+        df_riepilogo = df_riepilogo.sort_values('TIPOLOGIA DOC.')
         
-        # 6. Organizziamo le colonne in modo che la tabella sia facile da leggere
         colonne_finali = [
-            'Tipo Doc.', 
-            'Conteggio', '% Qty',      # Gruppo Quantità
-            'Totale', '% Vol',         # Gruppo Valore Economico
-            'Media (€)', 'Mediana (€)' # Indicatori di performance
+            'TIPOLOGIA DOC.', 'Conteggio', '% Qty', 
+            'TOTALE', '% Vol', 'Media (€)', 'Mediana (€)'
         ]
 
-        # 7. Stampa tabella
-        st.write("")
         st.write("")
         st.dataframe(
             df_riepilogo[colonne_finali].style.format({
-                'Totale': '€ {:,.2f}',
+                'TOTALE': '€ {:,.2f}',
                 'Media (€)': '€ {:,.2f}',
                 'Mediana (€)': '€ {:,.2f}'
             }),
             use_container_width=True,
             hide_index=True
         )
-        st.caption("Nota: La Mediana è spesso più affidabile della Media perché non viene influenzata da singoli ordini eccezionalmente alti o bassi.")
-
+        st.caption("Nota: I dati sopra riportati sono raggruppati per **ID DOCUMENTO**. Il valore 'TOTALE' è la somma degli importi di tutte le righe del documento.")
+        
         # Istogramma e BoxPlot della distribuzione articoli
         st.divider()
         st.write("#### Distribuzione Ordini e Preventivi")

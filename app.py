@@ -128,7 +128,7 @@ def validazione_importi(df):
     df_pulito = df[~mask_errori].copy()
     
     # Assegniamo il valore calcolato alla colonna definitiva 'Totale'
-    df_pulito['TOT'] = df_pulito['Totale_TMP']
+    df_pulito['TOTALE'] = df_pulito['Totale_TMP']
     
     # --- 4. PULIZIA FINALE ---
     cols_da_rimuovere = ['QT_pulito', 'PREZZO_pulito', 'IVA_pulito', 'Totale_TMP']

@@ -668,7 +668,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             if val == 'Persi': return 'color: #FF9999'
             return 'color: #A2D2FF'
     
-        st.DATAframe(
+        st.dataframe(
             df_f.style.format({
                 'DATA PREVENTIVO': lambda x: x.strftime('%d/%m/%Y'),
                 'TOTALE': '{:,.2f} €',
@@ -731,7 +731,7 @@ def analizza_performance_commerciali(df_report):
     st.write("Questa tabella mostra l'efficacia reale escludendo errori di inserimento o ordini orfani.")
     
     # Visualizzazione con formattazione e colori
-    st.DATAframe(
+    st.dataframe(
         performance.style.format({
             'Nr_Rate': '{:.1f} %',
             'Vol_Preventivi': '€ {:,.2f}',
@@ -762,7 +762,7 @@ def analizza_performance_commerciali(df_report):
         col1.metric("TOTALE Righe Gestite", len(df_agente))
         col2.metric("Di cui Integre", len(df_agente[df_agente['Analisi_Integrita'] == "Dato Integro"]))
         
-        st.DATAframe(
+        st.dataframe(
             df_agente[['DATA', 'CLIENTE', 'ARTICOLO', 'TOTALE', 'Stato', 'Analisi_Integrita']],
             use_container_width=True, hide_index=True
         )

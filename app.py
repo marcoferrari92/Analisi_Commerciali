@@ -150,7 +150,7 @@ def validazione_importi(df):
 
 def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
     """
-    Renderizza un grafico a torta con stile fisso e ordine orario costante.
+    Renderizza un grafico a torta con stile fisso e ORDINE orario costante.
     """
     
     # Palette Pastello
@@ -160,8 +160,8 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
         "ORDINE": "#4E944F"         
     }
 
-    # Ordine desiderato in senso orario
-    ordine_fisso = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
+    # ORDINE desiderato in senso orario
+    ORDINE_fisso = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
 
     fig = px.pie(
         data, 
@@ -171,7 +171,7 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
         hole=0.4,
         color=names_col,
         color_discrete_map=palette,
-        category_orders={names_col: ordine_fisso} 
+        category_orders={names_col: ORDINE_fisso} 
     )
 
     if tipo == "soldi":
@@ -326,11 +326,11 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # ** SEPARAZIONE DATAFRAME **
     # Separa il dataframe df in due per Preventivi e Ordini (Aperti e Chiusi)
     
-    preventivi = df[df['Tipo Doc.'] == "Preventivo"].copy()
-    ordini     = df[df['Tipo Doc.'].isin(["Ordine", "Ordine Aperto"])].copy()
+    preventivi = df[df['TIPOLOGIA DOC.'] == "PREVENTIVO"].copy()
+    ordini     = df[df['TIPOLOGIA DOC.'].isin(["ORDINE", "ORDINE APERTO"])].copy()
 
     if preventivi.empty:
-        st.warning("⚠️ Nessun preventivo trovato per l'analisi!")
+        st.warning("⚠️ Nessun PREVENTIVO trovato per l'analisi!")
         return
 
     data_riferimento = df['Data'].max()
@@ -348,10 +348,10 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     #     e ha fatto 2 ordini per l'Oggetto Y, "merged_full"
     #     conterrà 6 righe (tutte le combinazioni possibili).
     #     Poi aggiunge la colonna "diff_giorni" che è la differenza
-    #     tra la data dell'ordine e quella del preventivo per ogni 
+    #     tra la data dell'ORDINE e quella del PREVENTIVO per ogni 
     #     combinazione possibile. 
-    #     Ammette anche differenze negative (Es: ordine 1 Maggio
-    #     e preventivo 5 Maggio, diff_giorni = -4). 
+    #     Ammette anche differenze negative (Es: ORDINE 1 Maggio
+    #     e PREVENTIVO 5 Maggio, diff_giorni = -4). 
     #     Mantenere tutte le combinazioni e ammettere diff_giorni 
     #     negative serve per identificare eventuali anomalie.
     
@@ -367,13 +367,13 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # ** ORDINI TRACCIABILI **
     # 
     # Diff_giorni viene usata per verificare gli ordini "tracciabili",
-    # ovvero ordini di cui è presente un preventivo nel dataset 
-    # antecedente all'ordine. 
-    # Di tutte le combinazioni vengono conservate quelle dove l'ordine 
-    # è avvenuto lo stesso giorno (o dopo) il preventivo. 
+    # ovvero ordini di cui è presente un PREVENTIVO nel dataset 
+    # antecedente all'ORDINE. 
+    # Di tutte le combinazioni vengono conservate quelle dove l'ORDINE 
+    # è avvenuto lo stesso giorno (o dopo) il PREVENTIVO. 
     # Di queste ne viene mantenuta una e droppate le altre.
-    # A questo stadio non stiamo ancora dicendo che "l'ordine X appartiene 
-    # al preventivo Y", ma stiamo verificando che "l'ordine X ha almeno 
+    # A questo stadio non stiamo ancora dicendo che "l'ORDINE X appartiene 
+    # al PREVENTIVO Y", ma stiamo verificando che "l'ORDINE X ha almeno 
     # un padre nel database, quindi non è un orfano
     
     ordini_matchati_totali = merged_full[merged_full['diff_giorni'] >= 0][['Cliente', 'Oggetto', 'Data_ord']].drop_duplicates()
@@ -383,14 +383,14 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
     # A. ORDINI ORFANI
     # 
-    #     L'obiettivo è isolare gli ordini che non hanno alcun preventivo associato nel dataset.
+    #     L'obiettivo è isolare gli ordini che non hanno alcun PREVENTIVO associato nel dataset.
     #     1. Il Merge (how='left'):
     #         - Prende la tabella di tutti gli ordini (dataframe 'ordini').
     #         - Tenta di affiancare gli 'ordini_matchati_totali' per Cliente e Oggetto.
     #         - how='left': se non trova match, i campi della tabella destra saranno riempiti con NaN.
     #         - indicator=True: Crea la colonna '_merge' che funge da 'verdetto':
-    #         - 'both': l'ordine ha un preventivo (è tracciabile).
-    #         - 'left_only': l'ordine non ha trovato corrispondenze (è un orfano).
+    #         - 'both': l'ORDINE ha un PREVENTIVO (è tracciabile).
+    #         - 'left_only': l'ORDINE non ha trovato corrispondenze (è un orfano).
     #     2. Il Filtro (.query):
     #         - Seleziona solo le righe marcate come 'left_only', isolando gli ordini 
     #           che non hanno un'offerta commerciale alle spalle.
@@ -404,16 +404,16 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     # B. PREVENTIVI CON ORDINI MULTIPLI
     #     
-    #     L'obiettivo è identificare i preventivi che hanno generato più di un ordine 
+    #     L'obiettivo è identificare i preventivi che hanno generato più di un ORDINE 
     #     all'interno della finestra temporale di validità.
     #     1. Definizione dei match validi (valid_matches):
     #         - Filtra il dataframe 'merged_full' per tenere solo le combinazioni 
     #           cronologicamente corrette (diff_giorni >= 0) e che rientrano 
     #           nella 'finestra' di giorni stabilita.
-    #     2. Conteggio degli ordini per preventivo (groupby):
-    #         - Raggruppa i dati per l'identità univoca del preventivo: 
-    #           Cliente, Oggetto (Articolo) e Data del preventivo.
-    #         - .size(): Conta quante volte ogni preventivo appare nel set dei match validi.
+    #     2. Conteggio degli ordini per PREVENTIVO (groupby):
+    #         - Raggruppa i dati per l'identità univoca del PREVENTIVO: 
+    #           Cliente, Oggetto (Articolo) e Data del PREVENTIVO.
+    #         - .size(): Conta quante volte ogni PREVENTIVO appare nel set dei match validi.
     #         - .reset_index(name='n_ordini'): Trasforma il risultato in un DataFrame 
     #           nominando 'n_ordini' la colonna con il numero di occorrenze trovate.
     #     3. Filtro Anomalie (counts > 1):
@@ -428,19 +428,19 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
     # C. ORDINI FUORI TEMPO
     #     
-    #     L'obiettivo è isolare gli ordini che hanno un preventivo "padre", ma sono arrivati
+    #     L'obiettivo è isolare gli ordini che hanno un PREVENTIVO "padre", ma sono arrivati
     #     oltre il limite di giorni (finestra) stabilito per l'analisi.
     #     1. Filtro Temporale (> finestra):
-    #         - Estrae dal dataframe 'merged_full' tutte le combinazioni in cui l'ordine
-    #           è avvenuto dopo la scadenza della validità del preventivo.
+    #         - Estrae dal dataframe 'merged_full' tutte le combinazioni in cui l'ORDINE
+    #           è avvenuto dopo la scadenza della validità del PREVENTIVO.
     #         - .copy(): Crea una copia autonoma del dataframe per le successive manipolazioni.
     #     2. Ordinamento Cronologico (sort_values):
     #         - Ordina i match per 'diff_giorni' in modo crescente. Questo mette in cima 
-    #           il match più "vicino" alla scadenza della finestra (il primo preventivo utile).
+    #           il match più "vicino" alla scadenza della finestra (il primo PREVENTIVO utile).
     #     3. Pulizia dei Duplicati (drop_duplicates):
-    #         - Poiché un ordine potrebbe avere più preventivi vecchi alle spalle, 
-    #           usiamo 'subset' su Cliente, Oggetto e Data dell'ordine per assicurarci 
-    #           che ogni ordine ritardatario compaia una sola volta nella lista.
+    #         - Poiché un ORDINE potrebbe avere più preventivi vecchi alle spalle, 
+    #           usiamo 'subset' su Cliente, Oggetto e Data dell'ORDINE per assicurarci 
+    #           che ogni ORDINE ritardatario compaia una sola volta nella lista.
     #         - Questo evita di sovrastimare l'anomalia se ci sono stati molti preventivi 
     #           tutti scaduti per lo stesso articolo (è stato proposto più volte al 
     #           cliente che non ha mai accettato)
@@ -473,24 +473,24 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
     
     # ** PREVENTIVI AGGIUDICATI EFFETTIVI **
-    # In questa fase avviene la "scelta" definitiva: per ogni preventivo, identifichiamo 
-    # quale ordine lo ha effettivamente chiuso, applicando criteri di priorità cronologica.
+    # In questa fase avviene la "scelta" definitiva: per ogni PREVENTIVO, identifichiamo 
+    # quale ORDINE lo ha effettivamente chiuso, applicando criteri di priorità cronologica.
     # 
     # 1. Ordinamento per Prossimità Temporale (.sort_values):
     #     - Viene ordinato il dataframe 'valid_matches' in base a 'diff_giorni' (dal valore minore al maggiore).
-    #     - Questo garantisce che, per ogni preventivo, l'ordine avvenuto più a ridosso 
+    #     - Questo garantisce che, per ogni PREVENTIVO, l'ORDINE avvenuto più a ridosso 
     #       della data dell'offerta finisca in cima alla lista.
     # 
-    # 2. Selezione dell'Ordine "Vincitore" (.drop_duplicates):
-    #     - subset=['Cliente', 'Oggetto', 'Data_prev']: Il sistema isola ogni singolo preventivo 
+    # 2. Selezione dell'ORDINE "Vincitore" (.drop_duplicates):
+    #     - subset=['Cliente', 'Oggetto', 'Data_prev']: Il sistema isola ogni singolo PREVENTIVO 
     #       univoco (chi, cosa, quando è stata fatta l'offerta).
     #     - Poiché Pandas, durante il 'drop_duplicates', mantiene solo la PRIMA riga che incontra 
     #       e scarta le successive, e dato che abbiamo ordinato per giorni crescenti, 
-    #       verrà conservato solo l'ordine più vicino nel tempo.
+    #       verrà conservato solo l'ORDINE più vicino nel tempo.
     # 
     # 3. Risultato:
-    #     - Il dataframe 'vinti_effettivi' conterrà una riga per ogni preventivo trasformato 
-    #       in vendita, collegato esclusivamente al suo primo ordine cronologico. 
+    #     - Il dataframe 'vinti_effettivi' conterrà una riga per ogni PREVENTIVO trasformato 
+    #       in vendita, collegato esclusivamente al suo primo ORDINE cronologico. 
     #       Tutte le altre combinazioni (es. secondi o terzi ordini dello stesso cliente) 
     #       vengono rimosse per non duplicare le statistiche di conversione.
     
@@ -503,9 +503,9 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             (vinti_effettivi['Data_prev'] == row['Data'])
         ]
         if not match.empty:
-            tipo_ordine = match.iloc[0]['Tipo Doc._ord']
+            tipo_ORDINE = match.iloc[0]['TIPOLOGIA DOC._ord']
             durata      = match.iloc[0]['diff_giorni']
-            return pd.Series(["Ordini Chiusi" if tipo_ordine == "Ordine" else "Ordini Aperti", durata])
+            return pd.Series(["Ordini Chiusi" if tipo_ORDINE == "ORDINE" else "Ordini Aperti", durata])
 
         giorni_passati     = (data_riferimento - row['Data']).days
         giorni_rimanenti   = finestra - giorni_passati
@@ -543,7 +543,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     # --- GESTIONE ORDINI ORFANI PER REPORT FINALE ---
     ordini_orfani['Stato'] = "Vendita Diretta (Orfano)"
-    ordini_orfani['Analisi_Integrita'] = "Anomalia: Ordine Orfano"
+    ordini_orfani['Analisi_Integrita'] = "Anomalia: ORDINE Orfano"
     ordini_orfani['Stato_Torta'] = "Aggiudicati"
     
     # Prepariamo il report completo per l'analisi commerciali
@@ -562,29 +562,29 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         # A. PREVENTIVI MULTIPLI
         if not preventivi_multipli.empty:
             with st.expander(f"🚩 {len(preventivi_multipli)} Preventivi con Ordini Multipli"):
-                st.write("Questi preventivi hanno generato più di un ordine (o righe d'ordine distinte) nel periodo di validità.")
+                st.write("Questi preventivi hanno generato più di un ORDINE (o righe d'ORDINE distinte) nel periodo di validità.")
                 st.dataframe(preventivi_multipli, use_container_width=True, hide_index=True)
     
         # B. ORDINI ORFANI
         if not ordini_orfani.empty:
-            with st.expander(f"❓ {len(ordini_orfani)} Ordini Orfani (Senza Preventivo)"):
-                st.write("Ordini per i quali non è stato trovato alcun preventivo antecedente nel database.")
+            with st.expander(f"❓ {len(ordini_orfani)} Ordini Orfani (Senza PREVENTIVO)"):
+                st.write("Ordini per i quali non è stato trovato alcun PREVENTIVO antecedente nel database.")
                 st.dataframe(ordini_orfani[['Data', 'Cliente', 'Oggetto', 'Totale']], use_container_width=True, hide_index=True)
     
         # C. ORDINI FUORI TEMPO
         if not ordini_fuori_tempo.empty:
             with st.expander(f"⏰ {len(ordini_fuori_tempo)} Ordini arrivati Fuori Tempo"):
                 df_ft = ordini_fuori_tempo[['Data_ord', 'Cliente', 'Oggetto', 'diff_giorni']].rename(
-                    columns={'Data_ord': 'Data Ordine', 'diff_giorni': 'GG dopo Prev.'}
+                    columns={'Data_ord': 'Data ORDINE', 'diff_giorni': 'GG dopo Prev.'}
                 )
-                st.write(f"Ordini che hanno un preventivo nel database, ma sono stati chiusi oltre i {finestra}gg stabiliti.")
+                st.write(f"Ordini che hanno un PREVENTIVO nel database, ma sono stati chiusi oltre i {finestra}gg stabiliti.")
                 st.dataframe(df_ft, use_container_width=True, hide_index=True)
     
         # D. CASI CRITICI (INTEGRITÀ)
         if not casi_critici.empty:
             with st.expander(f"⚠️ {len(casi_critici)} Casi Critici (Potenziali Accorpamenti)"):
                 st.write("Rilevati più ordini per lo stesso cliente/articolo nella medesima data.")
-                st.info("Nota tecnica: A causa della mancanza di un ID ordine univoco, questi record vengono conteggiati come singola vendita.")
+                st.info("Nota tecnica: A causa della mancanza di un ID ORDINE univoco, questi record vengono conteggiati come singola vendita.")
                 st.dataframe(casi_critici, use_container_width=True, hide_index=True)
                 
     # --- CALCOLI PER FUNNEL ---
@@ -655,11 +655,11 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # --- REGISTRO FINALE ---
     with st.expander("📋 Registro Dettagliato Preventivi", expanded=True):
         df_f = preventivi[['Data', 'Cliente', 'Oggetto', 'Totale', 'Stato', 'Durata']].copy()
-        df_f = df_f.rename(columns={'Data': 'Data Preventivo', 'Oggetto': 'Articolo'})
+        df_f = df_f.rename(columns={'Data': 'Data PREVENTIVO', 'Oggetto': 'Articolo'})
         
         prio = {"In Scadenza": 0, "Ordini Aperti": 1, "Ordini Chiusi": 2, "In Attesa": 3, "Persi": 4}
         df_f['p'] = df_f['Stato'].map(prio)
-        df_f = df_f.sort_values(['p', 'Data Preventivo'], ascending=[True, False]).drop(columns='p')
+        df_f = df_f.sort_values(['p', 'Data PREVENTIVO'], ascending=[True, False]).drop(columns='p')
     
         def colora(val):
             if val == 'Ordini Chiusi': return 'color: #4E944F; font-weight: bold'
@@ -670,7 +670,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
         st.dataframe(
             df_f.style.format({
-                'Data Preventivo': lambda x: x.strftime('%d/%m/%Y'),
+                'Data PREVENTIVO': lambda x: x.strftime('%d/%m/%Y'),
                 'Totale': '{:,.2f} €',
                 'Durata': '{:.0f} gg'
             }).map(colora, subset=['Stato']),
@@ -709,8 +709,8 @@ def analizza_performance_commerciali(df_report):
     performance['Conversion_Rate_Val'] = (performance['Volume_Vinto'] / performance['Volume_Offerto'] * 100).fillna(0)
 
     # --- RIORDINAMENTO COLONNE ---
-    # Impostiamo l'ordine richiesto: Nr_Preventivi, Nr_Vinti, Nr_Rate, Vol_Preventivi, Vol_Vinto, Vol_Rate
-    ordine_colonne = [
+    # Impostiamo l'ORDINE richiesto: Nr_Preventivi, Nr_Vinti, Nr_Rate, Vol_Preventivi, Vol_Vinto, Vol_Rate
+    ORDINE_colonne = [
         'CODICE GESTIONALE UTENTE', 
         'Nr_Preventivi', 
         'Nr_Vinti', 
@@ -719,7 +719,7 @@ def analizza_performance_commerciali(df_report):
         'Vol_Vinto', 
         'Vol_Rate'
     ]
-    performance = performance[ordine_colonne]
+    performance = performance[ORDINE_colonne]
 
     # 3. ANALISI DISCIPLINARE (ANOMALIE)
     anomalie_count = df_report[df_report['Analisi_Integrita'] != "Dato Integro"].groupby(
@@ -868,7 +868,7 @@ if df_orders is not None:
 
     # 1. COMPATTAZIONE PER ID DOCUMENTO
     # Creaiamo un dataframe suddiviso per l'ID dei documenti.
-    # Per ogni ID avremo la tipologia di documento (preventivo, ordine aperto, ordine)
+    # Per ogni ID avremo la tipologia di documento (PREVENTIVO, ORDINE APERTO, ORDINE)
     # e il totale (€) degli articoli per quel documento.
     
     df_documenti_univoci = df_orders.groupby('ID DOCUMENTO').agg({
@@ -926,12 +926,12 @@ if df_orders is not None:
         df_riepilogo['% Qty'] = (df_riepilogo['Conteggio'] / tot_qty * 100).round(1).astype(str) + '%'
         df_riepilogo['% Vol'] = (df_riepilogo['TOTALE'] / tot_vol * 100).round(1).astype(str) + '%'
         
-        # Prezzo Medio per Ordine Completo
+        # Prezzo Medio per ORDINE Completo
         df_riepilogo['Media (€)'] = (df_riepilogo['TOTALE'] / df_riepilogo['Conteggio'])
         
         # Ordinamento e formattazione nomi (TUTTO MAIUSCOLO per le colonne)
-        ordine_fisso = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
-        df_riepilogo['TIPOLOGIA DOC.'] = pd.Categorical(df_riepilogo['TIPOLOGIA DOC.'], categories=ordine_fisso, ordered=True)
+        ORDINE_fisso = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
+        df_riepilogo['TIPOLOGIA DOC.'] = pd.Categorical(df_riepilogo['TIPOLOGIA DOC.'], categories=ORDINE_fisso, ordered=True)
         df_riepilogo = df_riepilogo.sort_values('TIPOLOGIA DOC.')
         
         colonne_finali = [
@@ -987,7 +987,7 @@ if df_orders is not None:
             finestra = st.slider(
                 "Validità preventivi (giorni):", 
                 min_value=1, max_value=max_slider, value=30, 
-                help="Giorni massimi per convertire un preventivo in ordine."
+                help="Giorni massimi per convertire un PREVENTIVO in ORDINE."
             )
         
         with c4:
@@ -1339,8 +1339,8 @@ if uploaded_file_events:
                 ore_dinamiche = list(range(ora_min, ora_max + 1))
             
                 # Troviamo i giorni della settimana che hanno almeno un evento
-                giorni_ordine_std = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-                giorni_presenti = [g for g in giorni_ordine_std if g in df_heat_base['Giorno'].unique()]
+                giorni_ORDINE_std = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                giorni_presenti = [g for g in giorni_ORDINE_std if g in df_heat_base['Giorno'].unique()]
                 
                 traduzione_giorni = {
                     'Monday': 'Lunedì', 'Tuesday': 'Martedì', 'Wednesday': 'Mercoledì', 

@@ -489,7 +489,6 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # Il risultato sarà una tabella completa che mostra tutto il flusso commerciale dell'azienda.
     report_completo = pd.concat([report_prev, ordini_diretti], ignore_index=True)
     
-    return report_completo
 
     
 

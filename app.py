@@ -490,20 +490,19 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     report_completo = pd.concat([report_prev, ordini_diretti], ignore_index=True)
     
 
-    
-
-    # --- CALCOLI PER FUNNEL ---
+    # --- CALCOLI PER FUNNEL E METRICHE (Aggiungi questo pezzo!) ---
     # Definiamo quali stati nel report sono considerati "Vinti"
     stati_vinti = ["ORDINE COMPLETO", "ORDINE CON EXTRA", "ORDINE PARZIALE"]
     
-    # Filtriamo i preventivi conclusi (vinti o persi)
-    df_conclusi = report_prev[report_prev['STATO'].isin(stati_vinti + ["PERSI"])]
+    # Filtriamo i preventivi conclusi (vinti o persi) per il calcolo del tasso di conversione
+    # Usiamo lo str.contains perché lo stato ora include i suffissi (CHIUSO)/(APERTO)
+    df_conclusi = report_prev[report_prev['STATO'].str.contains('|'.join(stati_vinti + ["PERSI"]), na=False)]
     
     n_conclusi    = len(df_conclusi)
     val_conclusi  = df_conclusi['TOTALE'].sum()
     
-    # Conteggio totali vinti
-    df_vinti      = report_prev[report_prev['STATO'].isin(stati_vinti)]
+    # Conteggio totali vinti per le metriche
+    df_vinti      = report_prev[report_prev['STATO'].str.contains('|'.join(stati_vinti), na=False)]
     n_vinti_tot   = len(df_vinti)
     val_vinti_tot = df_vinti['TOTALE'].sum()
 
@@ -539,32 +538,6 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         fig_pie_val.update_traces(textinfo='percent', hovertemplate='€%{value:,.2f}')
         fig_pie_val.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
         st.plotly_chart(fig_pie_val, use_container_width=True)
-
-    # ... [Resto del codice per Funnel e Metriche (usando n_vinti_tot e val_vinti_tot)] ...
-
-    # Funnel di conversione
-    st.write("#### 🌪️ Funnel di Efficacia Commerciale")
-    r2_c1, r2_c2 = st.columns(2)
-    
-    with r2_c1:
-        fig_f_n = go.Figure(go.Funnel(
-            y=["Preventivi Conclusi", "Totale Aggiudicati"], 
-            x=[n_conclusi, n_vinti_tot],
-            textinfo="value+percent initial", 
-            marker={"color": ["#D3D3D3", "#4E944F"]}
-        ))
-        fig_f_n.update_layout(title="Conversione (N. Documenti)", height=300)
-        st.plotly_chart(fig_f_n, use_container_width=True)
-        
-    with r2_c2:
-        fig_f_v = go.Figure(go.Funnel(
-            y=["Volume Concluso", "Volume Aggiudicato"], 
-            x=[val_conclusi, val_vinti_tot],
-            textinfo="value+percent initial", 
-            marker={"color": ["#D3D3D3", "#4E944F"]}
-        ))
-        fig_f_v.update_layout(title="Conversione (Valore €)", height=300)
-        st.plotly_chart(fig_f_v, use_container_width=True)
 
     # --- RIEPILOGO METRICHE ---
     st.divider()

@@ -154,7 +154,7 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
     """
     
     # Palette Pastello
-    colori_personalizzati = {
+    palette = {
         "PREVENTIVO": "#A2D2FF",    # Azzurro
         "ORDINE APERTO": "#B4E197", # Verde chiaro
         "ORDINE FISSO": "#4E944F"         # Verde bosco
@@ -170,7 +170,7 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
         title=titolo,
         hole=0.4,
         color=names_col,
-        color_discrete_map=colori_personalizzati,
+        color_discrete_map=palette,
         category_orders={names_col: ordine_fisso} 
     )
 
@@ -231,7 +231,12 @@ def plot_distribuzione_ordini(df_target):
         row_heights=[0.5, 0.5]
     )
 
-    colori = {"PREVENTIVO": "#A2D2FF", "ORDINE APERTO": "#B4E197", "ORDINE": "#4E944F"}
+    # Palette Pastello
+    palette = {
+        "PREVENTIVO": "#A2D2FF",    # Azzurro
+        "ORDINE APERTO": "#B4E197", # Verde chiaro
+        "ORDINE FISSO": "#4E944F"         # Verde bosco
+    }
     stadi = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
 
     for stadio in stadi:
@@ -248,7 +253,7 @@ def plot_distribuzione_ordini(df_target):
             go.Histogram(
                 x=vals,
                 name=stadio,
-                marker_color=colori[stadio],
+                marker_color=palette[stadio],
                 opacity=0.6,
                 xbins=dict(size=st.session_state.bin_size),
                 marker_line=dict(width=1, color='white'),
@@ -262,7 +267,7 @@ def plot_distribuzione_ordini(df_target):
             go.Box(
                 x=vals,
                 name=stadio,
-                marker_color=colori[stadio],
+                marker_color=palette[stadio],
                 boxpoints='all',
                 jitter=0.5,       
                 pointpos=0,

@@ -241,7 +241,7 @@ def plot_distribuzione_ordini(df_target):
         
         if df_stadio.empty: continue
 
-        vals = df_stadio['Totale']
+        vals = df_stadio['TOTALE']
 
         # ISTOGRAMMA (Row 2)
         fig.add_trace(

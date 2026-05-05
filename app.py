@@ -563,13 +563,13 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         if not preventivi_multipli.empty:
             with st.expander(f"🚩 {len(preventivi_multipli)} Preventivi con Ordini Multipli"):
                 st.write("Questi preventivi hanno generato più di un ORDINE (o righe d'ORDINE distinte) nel periodo di validità.")
-                st.DATAframe(preventivi_multipli, use_container_width=True, hide_index=True)
+                st.dataframe(preventivi_multipli, use_container_width=True, hide_index=True)
     
         # B. ORDINI ORFANI
         if not ordini_orfani.empty:
             with st.expander(f"❓ {len(ordini_orfani)} Ordini Orfani (Senza PREVENTIVO)"):
                 st.write("Ordini per i quali non è stato trovato alcun PREVENTIVO antecedente nel DATAbase.")
-                st.DATAframe(ordini_orfani[['DATA', 'CLIENTE', 'ARTICOLO', 'Totale']], use_container_width=True, hide_index=True)
+                st.dataframe(ordini_orfani[['DATA', 'CLIENTE', 'ARTICOLO', 'Totale']], use_container_width=True, hide_index=True)
     
         # C. ORDINI FUORI TEMPO
         if not ordini_fuori_tempo.empty:
@@ -578,14 +578,14 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
                     columns={'DATA_ord': 'DATA ORDINE', 'diff_giorni': 'GG dopo Prev.'}
                 )
                 st.write(f"Ordini che hanno un PREVENTIVO nel DATAbase, ma sono stati chiusi oltre i {finestra}gg stabiliti.")
-                st.DATAframe(df_ft, use_container_width=True, hide_index=True)
+                st.dataframe(df_ft, use_container_width=True, hide_index=True)
     
         # D. CASI CRITICI (INTEGRITÀ)
         if not casi_critici.empty:
             with st.expander(f"⚠️ {len(casi_critici)} Casi Critici (Potenziali Accorpamenti)"):
                 st.write("Rilevati più ordini per lo stesso CLIENTE/articolo nella medesima DATA.")
                 st.info("Nota tecnica: A causa della mancanza di un ID ORDINE univoco, questi record vengono conteggiati come singola vendita.")
-                st.DATAframe(casi_critici, use_container_width=True, hide_index=True)
+                st.dataframe(casi_critici, use_container_width=True, hide_index=True)
                 
     # --- CALCOLI PER FUNNEL ---
     df_conclusi    = preventivi[preventivi['Stato'].isin(["Ordini Chiusi", "Ordini Aperti", "Persi"])]

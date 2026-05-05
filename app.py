@@ -363,6 +363,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         # Scarta le righe (articoli) del preventivo che non hanno trovato un corrispettivo nell'ordine 
         #    (dove 'ID DOCUMENTO_ord' è rimasto vuoto/NaN dopo il left join).
         # Mantiene solo le righe "evase", ovvero quelle che hanno un ID ordine valido.
+        
         righe_evase = group[group['ID DOCUMENTO_ord'].notna()]
 
         # Se nessun articolo è stato evaso, ritorna None
@@ -374,6 +375,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         # (.min() recupera la data del primo ordine utile associato a questo preventivo, nel
         # caso di un preventivo completato in più ordini). 
         # In caso contrario flagga l'ordine con END per non tornarci
+        
         diff_gg = righe_evase['diff_giorni'].min()
         if diff_gg > finestra:
             return pd.Series(["ORDINE FUORI FINESTRA", diff_gg, righe_evase['ID DOCUMENTO_ord'].iloc[0], "END"])
@@ -383,22 +385,52 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         # 1. Ordiniamo per data (diff_giorni) e prendiamo il primo evento cronologico (.iloc[0]).
         # 2. Assegniamo un suffisso descrittivo per distinguere se la vendita è 
         #    già finalizzata (CHIUSO) o ancora in corso (APERTO).
+        
         tipo_doc_ord = righe_evase.sort_values('diff_giorni')['TIPOLOGIA DOC._ord'].iloc[0]
         suffix = " (CHIUSO)" if tipo_doc_ord == "ORDINE" else " (APERTO)"
 
-        # Logica Completezza/Extra
-        id_ordine_vincitore = righe_evase.sort_values('diff_giorni')['ID DOCUMENTO_ord'].iloc[0]
+        # IDENTIFICAZIONE DEL DOCUMENTO DI CONVERSIONE (IL "VINCITORE")
+        # Poiché un preventivo può essere evaso da più ordini nel tempo, 
+        # dobbiamo isolare quello che ha fatto scattare la vendita per primo.
+        # 1. Ordiniamo le righe evase per giorni di differenza (dal più rapido al più lento).
+        # 2. .iloc[0] preleva l'ID del primo documento che ha agganciato i TRACK ID.
+        # Questo ID verrà usato per determinare se sono stati aggiunti articoli extra (Upselling).
         
-        # TRACK ID del preventivo vs TRACK ID trovati nell'ordine
+        id_ordine_vincitore = righe_evase.sort_values('diff_giorni')['ID DOCUMENTO_ord'].iloc[0]
+
+        # CALCOLO DELLA CORRISPONDENZA E DELL'UPSELLING
+        # Creiamo due set per confrontare i contenuti dei documenti:
+        # 1.Recuperiamo tutti i TRACK ID (articoli) presenti nel preventivo originale.
+        
         track_prev = set(group['TRACK ID'].unique())
+        
+        # 2. Recuperiamo TUTTI gli articoli contenuti nell'ordine "vincitore", 
+        #    andando a rileggere l'intero database ordini per quell'ID documento specifico.
+        
         track_ord_effettivi = set(ordini[ordini['ID DOCUMENTO'] == id_ordine_vincitore]['TRACK ID'].unique())
         
+        # Identifichiamo quali articoli del preventivo sono stati effettivamente comprati.
         articoli_matchati = track_prev.intersection(track_ord_effettivi)
+
+        # Verifichiamo se l'ordine contiene articoli che NON erano nel preventivo.
+        # 'issubset' controlla se l'ordine è un "sottoinsieme" perfetto del preventivo.
+        # Se NON lo è (not), significa che il cliente ha aggiunto prodotti extra (Upselling).
+        
         ha_extra = not track_ord_effettivi.issubset(track_prev)
 
+        # Se abbiamo coperto l'intera proposta commerciale...
         if len(articoli_matchati) >= len(track_prev):
+        
+            # ESEMPIO ORDINE COMPLETO: Offerto {A, B} -> Venduto {A, B}. 
+            # (len è uguale, ha_extra è False)
+            # ESEMPIO ORDINE CON EXTRA: Offerto {A, B} -> Venduto {A, B, C}. 
+            # (len matchati è uguale a preventivo, ma ha_extra è True perché c'è C)
+            
             stato = "ORDINE CON EXTRA" if ha_extra else "ORDINE COMPLETO"
+        
         else:
+            # ESEMPIO ORDINE PARZIALE: Offerto {A, B} -> Venduto {A}.
+            # (Il numero di match è inferiore all'offerta originale)
             stato = "ORDINE PARZIALE"
             
         return pd.Series([stato + suffix, diff_gg, id_ordine_vincitore, "END"])

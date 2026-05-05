@@ -327,6 +327,9 @@ def plot_distribuzione_ordini(df_target):
 
 
 def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
+    # Poiché il DF è già passato per validazione_importi, 
+    # la colonna 'TOTALE' esiste già ed è numerica.
+    
     # 1. SEPARAZIONE DATAFRAME
     preventivi = df[df['TIPOLOGIA DOC.'] == "PREVENTIVO"].copy()
     ordini     = df[df['TIPOLOGIA DOC.'].isin(["ORDINE", "ORDINE APERTO"])].copy()
@@ -337,12 +340,9 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     DATA_riferimento = pd.to_datetime(df['DATA']).max()
 
-    # Calcolo preventivo del valore di ogni riga (QT * PREZZO + IVA)
-    df['RIGA_VALORE'] = (df['QT'] * df['PREZZO']) + df['IVA']
-    
-    # Aggregazione per calcolare i totali reali di ogni documento nel database
+    # Raggruppamento per totali reali usando la colonna già calcolata
     totali_database = df.groupby(['ID DOCUMENTO', 'TIPOLOGIA DOC.']).agg({
-        'RIGA_VALORE': 'sum',
+        'TOTALE': 'sum',      # Colonna creata da validazione_importi
         'TRACK ID': 'count'
     }).reset_index()
 

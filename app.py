@@ -50,7 +50,7 @@ def data_range(df):
     
     if not date.empty:
         d_min, d_max = date.min().date(), date.max().date()
-        st.info(f"📅 Dati disponibili: dal **{d_min.strftime('%d/%m/%Y')}** al **{d_max.strftime('%d/%m/%Y')}**")
+        #st.info(f"📅 Dati disponibili: dal **{d_min.strftime('%d/%m/%Y')}** al **{d_max.strftime('%d/%m/%Y')}**")
         
         return d_min, d_max
         

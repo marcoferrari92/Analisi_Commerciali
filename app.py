@@ -547,7 +547,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     ordini_orfani['Stato_Torta'] = "Aggiudicati"
     
     # Prepariamo il report completo per l'analisi commerciali
-    cols_to_keep = ['DATA', 'CLIENTE', 'ARTICOLO', 'Totale', 'CODICE GESTIONALE UTENTE', 'Stato', 'Analisi_Integrita', 'Stato_Torta']
+    cols_to_keep = ['DATA', 'CLIENTE', 'ARTICOLO', 'TOTALE', 'CODICE GESTIONALE UTENTE', 'Stato', 'Analisi_Integrita', 'Stato_Torta']
     report_completo = pd.concat([preventivi, ordini_orfani[cols_to_keep]], ignore_index=True)
 
 

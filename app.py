@@ -119,7 +119,7 @@ def validazione_importi(df):
 
     # --- 2. VALIDAZIONE TIPO DOC ---
     tipi_ammessi = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
-    mask_tipo_errato = ~df['Tipo Doc.'].astype(str).isin(tipi_ammessi)
+    mask_tipo_errato = ~df['TIPOLOGIA DOC.'].astype(str).isin(tipi_ammessi)
 
     # --- 3. CREAZIONE MASCHERE FINALI ---
     mask_errori = (df['Totale_TMP'] <= 0) | (df['Totale_TMP'].isna()) | mask_tipo_errato

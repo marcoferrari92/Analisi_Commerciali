@@ -155,13 +155,13 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
     
     # Palette Pastello
     colori_personalizzati = {
-        "Preventivo": "#A2D2FF",    # Azzurro
-        "Ordine Aperto": "#B4E197", # Verde chiaro
-        "Ordine": "#4E944F"         # Verde bosco
+        "PREVENTIVO": "#A2D2FF",    # Azzurro
+        "ORDINE APERTO": "#B4E197", # Verde chiaro
+        "ORDINE FISSO": "#4E944F"         # Verde bosco
     }
 
     # Ordine desiderato in senso orario
-    ordine_fisso = ["Preventivo", "Ordine Aperto", "Ordine"]
+    ordine_fisso = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
 
     fig = px.pie(
         data, 
@@ -879,7 +879,7 @@ if df_orders is not None:
 
     
     # 3. VOLUMI
-    # Sommamiamo sui totali di ogni articolo per ogni documento
+    # Sommamiamo sui totali di ogni documento per ogni tipologia
     conteggio_vol = df_documenti_univoci.groupby('TIPOLOGIA DOC.')['TOTALE'].sum().reset_index()
 
     
@@ -887,7 +887,7 @@ if df_orders is not None:
         
         if not conteggio_qty.empty and not conteggio_vol.empty:
             col_sinistra, col_destra = st.columns(2)
-            
+
             with col_sinistra:
                 render_grafico_torta(
                     data=conteggio_qty, 
@@ -906,11 +906,11 @@ if df_orders is not None:
                     tipo="soldi"
                 )
         
-        # 4. CALCOLO INDICATORI (Mediana e Media sui Documenti)
+        # 4. METRICHE
+        
+        # Mediana e Media sui documenti
         mediane = df_documenti_univoci.groupby('TIPOLOGIA DOC.')['TOTALE'].median().reset_index()
         mediane.columns = ['TIPOLOGIA DOC.', 'Mediana (€)']
-        
-        # Unione dati per la tabella
         df_riepilogo = pd.merge(conteggio_qty, conteggio_vol, on='TIPOLOGIA DOC.')
         df_riepilogo = pd.merge(df_riepilogo, mediane, on='TIPOLOGIA DOC.')
         
@@ -924,7 +924,7 @@ if df_orders is not None:
         df_riepilogo['Media (€)'] = (df_riepilogo['TOTALE'] / df_riepilogo['Conteggio'])
         
         # Ordinamento e formattazione nomi (TUTTO MAIUSCOLO per le colonne)
-        ordine_fisso = ["Preventivo", "Ordine Aperto", "Ordine"]
+        ordine_fisso = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
         df_riepilogo['TIPOLOGIA DOC.'] = pd.Categorical(df_riepilogo['TIPOLOGIA DOC.'], categories=ordine_fisso, ordered=True)
         df_riepilogo = df_riepilogo.sort_values('TIPOLOGIA DOC.')
         

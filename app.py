@@ -354,11 +354,11 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             primo_match = evasi.sort_values('diff_giorni').iloc[0]
             tipo_doc = primo_match['TIPOLOGIA DOC._ord']
             stato = "AGGIUDICATO (CHIUSO)" if tipo_doc == "ORDINE" else "AGGIUDICATO (APERTO)"
-            return pd.Series([stato, primo_match['ID DOCUMENTO_ord']])
-        return pd.Series([None, None])
+            return pd.Series([stato, primo_match['diff_giorni'], primo_match['ID DOCUMENTO_ord']])
+        return pd.Series([None, None, None])
 
     risultati = merged.groupby('ID DOCUMENTO_prev').apply(definisci_stato_documento).reset_index()
-    risultati.columns = ['ID PREVENTIVO', 'STATO_DETTAGLIO', 'ID ORDINE']
+    risultati.columns = ['ID PREVENTIVO', 'STATO_DETTAGLIO', 'DURATA', 'ID ORDINE']
 
     # 4. CREAZIONE REPORT FINALE
     report_prev = preventivi.groupby('ID DOCUMENTO').agg({
@@ -406,14 +406,39 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         fig_pie_val.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
         st.plotly_chart(fig_pie_val, use_container_width=True)
 
-    # --- REGISTRO FINALE ---
+    # --- REGISTRO FINALE (ORDINE COLONNE RICHIESTO) ---
     st.subheader("📋 Registro Conversioni")
-    df_visualizza = report_prev[['ID PREVENTIVO', 'DATA', 'CLIENTE', 'CODICE GESTIONALE UTENTE', 'TOTALE', 'STATO', 'ID ORDINE']].copy()
     
+    # 1. Preparazione DataFrame con l'ordine richiesto
+    df_display = report_prev[[
+        'DATA', 
+        'CLIENTE', 
+        'CODICE GESTIONALE UTENTE', 
+        'TOTALE', 
+        'STATO', 
+        'DURATA', 
+        'ID PREVENTIVO', 
+        'ID ORDINE'
+    ]].copy()
+
+    # 2. Ridenominazione per estetica
+    df_display = df_display.rename(columns={
+        'DATA': 'Data Preventivo',
+        'CODICE GESTIONALE UTENTE': 'Utente',
+        'TOTALE': 'Totale (€)',
+        'STATO': 'Stato',
+        'DURATA': 'Durata'
+    })
+
+    # 3. Formattazione e visualizzazione
     st.dataframe(
-        df_visualizza.rename(columns={'DATA': 'DATA EMISSIONE', 'CODICE GESTIONALE UTENTE': 'UTENTE', 'TOTALE': 'VALORE (€)'})
-        .sort_values('DATA EMISSIONE', ascending=False), 
-        use_container_width=True, hide_index=True
+        df_display.sort_values('Data Preventivo', ascending=False).style.format({
+            'Data Preventivo': lambda x: x.strftime('%d/%m/%Y'),
+            'Totale (€)': '{:,.2f} €',
+            'Durata': lambda x: f"{int(x)} gg" if pd.notnull(x) else "-"
+        }),
+        use_container_width=True, 
+        hide_index=True
     )
 
     return report_prev

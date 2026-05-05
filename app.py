@@ -275,14 +275,15 @@ def plot_distribuzione_ordini(df_target):
                 showlegend=False,
                 orientation='h',
                 # Passiamo i dati extra qui
-                customdata=df_stadio[['Data_Str', 'ID DOCUMENTO', 'CLIENTE', 'CODICE GESTIONALE UTENTE']],
+                customdata=df_stadio[['Data_Str', 'ID DOCUMENTO', 'CLIENTE', 'TITOLO', 'CODICE GESTIONALE UTENTE']],
                 # Definiamo cosa appare al passaggio del mouse
                 hovertemplate=(
-                    "<b>Importo:</b> €%{x:,.2f}<br>" +
+                    "<b>Totale Articoli:</b> €%{x:,.2f}<br>" +
                     "<b>Data:</b> %{customdata[0]}<br>" +
                     "<b>ID:</b> %{customdata[1]}<br>" +
                     "<b>Cliente:</b> %{customdata[2]}<br>" +
-                    "<b>Utente:</b> %{customdata[3]}<br>" +
+                    "<b>Titolo:</b> %{customdata[3]}<br>" +
+                    "<b>Utente:</b> %{customdata[4]}<br>" +
                     "<extra></extra>" # Rimuove la scritta "trace name" a lato
                 )
             ),

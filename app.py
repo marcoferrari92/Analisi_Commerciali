@@ -279,11 +279,11 @@ def plot_distribuzione_ordini(df_target):
                 # Definiamo cosa appare al passaggio del mouse
                 hovertemplate=(
                     "<b>TOTALE Articoli:</b> €%{x:,.2f}<br>" +
-                    "<b>DATA:</b> %{customDATA[0]}<br>" +
-                    "<b>ID:</b> %{customDATA[1]}<br>" +
-                    "<b>CLIENTE:</b> %{customDATA[2]}<br>" +
-                    "<b>Titolo:</b> %{customDATA[3]}<br>" +
-                    "<b>Utente:</b> %{customDATA[4]}<br>" +
+                    "<b>DATA:</b> %{customdata[0]}<br>" +
+                    "<b>ID:</b> %{customdata[1]}<br>" +
+                    "<b>CLIENTE:</b> %{customdata[2]}<br>" +
+                    "<b>Titolo:</b> %{customdata[3]}<br>" +
+                    "<b>Utente:</b> %{customdata[4]}<br>" +
                     "<extra></extra>" # Rimuove la scritta "trace name" a lato
                 )
             ),

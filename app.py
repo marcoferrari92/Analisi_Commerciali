@@ -436,102 +436,127 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         lambda x: "AGGIUDICATI" if "ORDINE" in x or "VENDITA" in x else x
     )
 
-    return report_completo
+    
 
-    """
     # --- CALCOLI PER FUNNEL ---
-    df_conclusi    = preventivi[preventivi['Stato'].isin(["Ordini Chiusi", "Ordini Aperti", "Persi"])]
-    n_conclusi     = len(df_conclusi)
-    val_conclusi   = df_conclusi['TOTALE'].sum()
-    n_aperti       = len(preventivi[preventivi['Stato'] == "Ordini Aperti"])
-    val_aperti     = preventivi[preventivi['Stato'] == "Ordini Aperti"]['TOTALE'].sum()
-    n_chiusi       = len(preventivi[preventivi['Stato'] == "Ordini Chiusi"])
-    val_chiusi     = preventivi[preventivi['Stato'] == "Ordini Chiusi"]['TOTALE'].sum()
+    # Consideriamo "Conclusi" tutti i preventivi che non sono più "In Attesa" o "In Scadenza"
+    stati_vinti = ["ORDINE COMPLETO", "ORDINE CON EXTRA", "ORDINE PARZIALE"]
+    df_conclusi = report_prev[report_prev['STATO'].isin(stati_vinti + ["PERSI"])]
+    
+    n_conclusi    = len(df_conclusi)
+    val_conclusi  = df_conclusi['TOTALE'].sum()
+    
+    # Suddivisione per tipologia di vincita (per il funnel)
+    n_vinti_tot   = len(report_prev[report_prev['STATO'].isin(stati_vinti)])
+    val_vinti_tot = report_prev[report_prev['STATO'].isin(stati_vinti)]['TOTALE'].sum()
 
     # --- VISUALIZZAZIONE GRAFICI ---
-    st.subheader("📊 Distribuzione Stati Preventivi")
-    color_map_torta = {"Aggiudicati": "#4E944F", "In Scadenza": "#FFD700", "In Attesa": "#A2D2FF", "Persi": "#FF9999"}
+    st.subheader("📊 Analisi Performance Conversioni (TRACK ID)")
+    
+    # Mappa colori aggiornata per i nuovi stati
+    color_map_torta = {
+        "AGGIUDICATI": "#4E944F",   # Verde
+        "IN SCADENZA": "#FFD700",   # Giallo/Oro
+        "IN ATTESA": "#A2D2FF",     # Azzurro
+        "PERSI": "#FF9999"          # Rosso Pastello
+    }
 
     r1_c1, r1_c2 = st.columns(2)
     with r1_c1:
-        stats_n = preventivi['Stato_Torta'].value_counts().reset_index()
-        fig_pie_n = px.pie(stats_n, values='count', names='Stato_Torta', title="Esito (Quantità TOTALE)", hole=0.4, color='Stato_Torta', color_discrete_map=color_map_torta)
+        stats_n = report_prev['STATO_TORTA'].value_counts().reset_index()
+        fig_pie_n = px.pie(stats_n, values='count', names='STATO_TORTA', 
+                          title="Esito per Numero Documenti", hole=0.4, 
+                          color='STATO_TORTA', color_discrete_map=color_map_torta)
         fig_pie_n.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
         st.plotly_chart(fig_pie_n, use_container_width=True)
         
     with r1_c2:
-        stats_val = preventivi.groupby('Stato_Torta')['TOTALE'].sum().reset_index()
-        fig_pie_val = px.pie(stats_val, values='TOTALE', names='Stato_Torta', title="Esito (Valore TOTALE €)", hole=0.4, color='Stato_Torta', color_discrete_map=color_map_torta)
+        stats_val = report_prev.groupby('STATO_TORTA')['TOTALE'].sum().reset_index()
+        fig_pie_val = px.pie(stats_val, values='TOTALE', names='STATO_TORTA', 
+                            title="Esito per Valore Economico (€)", hole=0.4, 
+                            color='STATO_TORTA', color_discrete_map=color_map_torta)
         fig_pie_val.update_traces(textinfo='percent', hovertemplate='€%{value:,.2f}')
         fig_pie_val.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
         st.plotly_chart(fig_pie_val, use_container_width=True)
 
+    # Funnel di conversione
+    st.write("#### 🌪️ Funnel di Efficacia Commerciale")
     r2_c1, r2_c2 = st.columns(2)
+    
     with r2_c1:
         fig_f_n = go.Figure(go.Funnel(
-            y=["Preventivi Conclusi", "Ordini Aperti", "Ordini Chiusi"], 
-            x=[n_conclusi, n_aperti, n_chiusi],
+            y=["Preventivi Conclusi", "Totale Aggiudicati"], 
+            x=[n_conclusi, n_vinti_tot],
             textinfo="value+percent initial", 
-            marker={"color": ["#D3D3D3", "#B4E197", "#4E944F"]}
+            marker={"color": ["#D3D3D3", "#4E944F"]}
         ))
-        fig_f_n.update_layout(title="Efficacia Quantità (Casi Chiusi)", height=350)
+        fig_f_n.update_layout(title="Conversione (N. Documenti)", height=300)
         st.plotly_chart(fig_f_n, use_container_width=True)
         
     with r2_c2:
         fig_f_v = go.Figure(go.Funnel(
-            y=["Volume Concluso", "Ordini Aperti", "Ordini Chiusi"], 
-            x=[val_conclusi, val_aperti, val_chiusi],
+            y=["Volume Concluso", "Volume Aggiudicato"], 
+            x=[val_conclusi, val_vinti_tot],
             textinfo="value+percent initial", 
-            marker={"color": ["#D3D3D3", "#B4E197", "#4E944F"]}
+            marker={"color": ["#D3D3D3", "#4E944F"]}
         ))
-        fig_f_v.update_layout(title="Efficacia Valore (Casi Chiusi)", height=350)
+        fig_f_v.update_layout(title="Conversione (Valore €)", height=300)
         st.plotly_chart(fig_f_v, use_container_width=True)
 
     # --- RIEPILOGO METRICHE ---
     st.divider()
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("TOTALE Emesso", f"€ {preventivi['TOTALE'].sum():,.2f}")
-    
-    val_vinti_tot = val_aperti + val_chiusi
-    n_vinti_tot = n_aperti + n_chiusi
-    m2.metric("Vinto (Aperti+Chiusi)", f"€ {val_vinti_tot:,.2f}", f"{n_vinti_tot} Doc")
+    m1.metric("TOTALE Emesso", f"€ {report_prev['TOTALE'].sum():,.2f}")
+    m2.metric("Vinto Reale", f"€ {val_vinti_tot:,.2f}", f"{n_vinti_tot} Doc")
     
     t_n = (n_vinti_tot / n_conclusi * 100) if n_conclusi > 0 else 0
     t_v = (val_vinti_tot / val_conclusi * 100) if val_conclusi > 0 else 0
-    m3.metric("Tasso Conversione Reale", f"{t_n:.1f}%", f"{t_v:.1f}% Valore")
+    m3.metric("Tasso Conversione", f"{t_n:.1f}%", f"{t_v:.1f}% Valore")
     
-    n_scad = len(preventivi[preventivi['Stato'] == "In Scadenza"])
-    val_scad = preventivi[preventivi['Stato'] == "In Scadenza"]['TOTALE'].sum()
+    n_scad = len(report_prev[report_prev['STATO'] == "IN SCADENZA"])
+    val_scad = report_prev[report_prev['STATO'] == "IN SCADENZA"]['TOTALE'].sum()
     m4.metric("In Scadenza", f"{n_scad} Doc", f"€ {val_scad:,.2f}", delta_color="inverse")
 
     # --- REGISTRO FINALE ---
-    with st.expander("📋 Registro Dettagliato Preventivi", expanded=True):
-        df_f = preventivi[['DATA', 'CLIENTE', 'ARTICOLO', 'TOTALE', 'Stato', 'Durata']].copy()
-        df_f = df_f.rename(columns={'DATA': 'DATA PREVENTIVO', 'ARTICOLO': 'Articolo'})
+    with st.expander("📋 Registro Dettagliato Analisi TRACK ID", expanded=True):
+        # Preparazione DataFrame per visualizzazione
+        df_display = report_prev[['DATA', 'CLIENTE', 'TOTALE', 'STATO', 'DURATA', 'ID_ORDINE_MATCH']].copy()
+        df_display = df_display.rename(columns={'DATA': 'DATA PREV.', 'ID_ORDINE_MATCH': 'ORDINE RIF.'})
         
-        prio = {"In Scadenza": 0, "Ordini Aperti": 1, "Ordini Chiusi": 2, "In Attesa": 3, "Persi": 4}
-        df_f['p'] = df_f['Stato'].map(prio)
-        df_f = df_f.sort_values(['p', 'DATA PREVENTIVO'], ascending=[True, False]).drop(columns='p')
+        # Ordinamento logico: Prima le scadenze, poi i chiusi, poi il resto
+        prio = {
+            "IN SCADENZA": 0, 
+            "ORDINE COMPLETO": 1, 
+            "ORDINE CON EXTRA": 1, 
+            "ORDINE PARZIALE": 2, 
+            "IN ATTESA": 3, 
+            "PERSI": 4,
+            "CHIUSO FUORI FINESTRA": 5
+        }
+        df_display['p'] = df_display['STATO'].map(prio).fillna(6)
+        df_display = df_display.sort_values(['p', 'DATA PREV.'], ascending=[True, False]).drop(columns='p')
     
-        def colora(val):
-            if val == 'Ordini Chiusi': return 'color: #4E944F; font-weight: bold'
-            if val == 'Ordini Aperti': return 'color: #B4E197; font-weight: bold'
-            if val == 'In Scadenza': return 'color: #CCAA00; font-weight: bold' 
-            if val == 'Persi': return 'color: #FF9999'
+        def style_stato(val):
+            if val == 'ORDINE COMPLETO': return 'color: #4E944F; font-weight: bold'
+            if val == 'ORDINE CON EXTRA': return 'color: #1E5631; font-weight: bold'
+            if val == 'ORDINE PARZIALE': return 'color: #B4E197; font-weight: bold'
+            if val == 'IN SCADENZA': return 'color: #CCAA00; font-weight: bold' 
+            if val == 'PERSI': return 'color: #FF9999'
+            if val == 'CHIUSO FUORI FINESTRA': return 'color: #7A7A7A; font-style: italic'
             return 'color: #A2D2FF'
     
         st.dataframe(
-            df_f.style.format({
-                'DATA PREVENTIVO': lambda x: x.strftime('%d/%m/%Y'),
+            df_display.style.format({
+                'DATA PREV.': lambda x: x.strftime('%d/%m/%Y') if pd.notnull(x) else "",
                 'TOTALE': '{:,.2f} €',
-                'Durata': '{:.0f} gg'
-            }).map(colora, subset=['Stato']),
+                'DURATA': lambda x: f"{x:.0f} gg" if pd.notnull(x) else "-"
+            }).map(style_stato, subset=['STATO']),
             use_container_width=True, hide_index=True
         )
 
     return report_completo
 
-"""
+
 
 def analizza_performance_commerciali(df_report):
     """

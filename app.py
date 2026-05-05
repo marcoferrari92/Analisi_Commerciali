@@ -327,8 +327,7 @@ def plot_distribuzione_ordini(df_target):
 
 
 def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
-    # Poiché il DF è già passato per validazione_importi, 
-    # la colonna 'TOTALE' esiste già ed è numerica.
+    # NOTA: df è già passato per validazione_importi(), quindi ha già la colonna 'TOTALE'
     
     # 1. SEPARAZIONE DATAFRAME
     preventivi = df[df['TIPOLOGIA DOC.'] == "PREVENTIVO"].copy()
@@ -340,13 +339,13 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     DATA_riferimento = pd.to_datetime(df['DATA']).max()
 
-    # Raggruppamento per totali reali usando la colonna già calcolata
+    # Raggruppamento per calcolare i totali reali di ogni documento nel database
     totali_database = df.groupby(['ID DOCUMENTO', 'TIPOLOGIA DOC.']).agg({
-        'TOTALE': 'sum',      # Colonna creata da validazione_importi
+        'TOTALE': 'sum',
         'TRACK ID': 'count'
     }).reset_index()
 
-    # 2. MATCHING SEMPLIFICATO
+    # 2. MATCHING
     merged = pd.merge(
         preventivi,
         ordini[['TRACK ID', 'ID DOCUMENTO', 'DATA', 'TIPOLOGIA DOC.']],
@@ -354,47 +353,44 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         how='left',
         suffixes=('_prev', '_ord')
     )
+    
     merged['diff_giorni'] = (pd.to_datetime(merged['DATA_ord']) - pd.to_datetime(merged['DATA_prev'])).dt.days
 
     # 3. DEFINIZIONE STATO E RECUPERO DATI ORDINE
     def definisci_stato_documento(group):
         evasi = group[group['ID DOCUMENTO_ord'].notna() & (group['diff_giorni'] <= finestra)]
+        
         if not evasi.empty:
             primo_match = evasi.sort_values('diff_giorni').iloc[0]
             id_ord = primo_match['ID DOCUMENTO_ord']
             tipo_doc = primo_match['TIPOLOGIA DOC._ord']
-            stato = "AGGIUDICATO (CHIUSO)" if tipo_doc == "ORDINE" else "AGGIUDICATO (APERTO)"
             
-            # Recuperiamo i dati totali dell'ordine collegato
+            stato = "AGGIUDICATO (CHIUSO)" if tipo_doc == "ORDINE" else "AGGIUDICATO (APERTO)"
             info_ordine = totali_database[totali_database['ID DOCUMENTO'] == id_ord].iloc[0]
             
             return pd.Series([
                 stato, 
                 primo_match['diff_giorni'], 
                 id_ord,
-                info_ordine['RIGA_VALORE'],
+                info_ordine['TOTALE'], 
                 info_ordine['TRACK ID']
             ])
+        
         return pd.Series([None, None, None, 0.0, 0])
 
     risultati = merged.groupby('ID DOCUMENTO_prev').apply(definisci_stato_documento).reset_index()
-    risultati.columns = ['ID PREVENTIVO', 'STATO_DETTAGLIO', 'DURATA', 'ID ORDINE', 'TOTALE ORDINE', 'NUM ART ORD']
+    risultati.columns = ['ID PREVENTIVO_KEY', 'STATO_DETTAGLIO', 'DURATA', 'ID ORDINE', 'TOTALE ORDINE', 'NUM ART ORD']
 
     # 4. CREAZIONE REPORT FINALE
     report_prev = preventivi.groupby('ID DOCUMENTO').agg({
         'DATA': 'first', 
         'CLIENTE': 'first', 
         'CODICE GESTIONALE UTENTE': 'first',
-        'TRACK ID': 'count' # Conteggio articoli preventivo
+        'TOTALE': 'sum',
+        'TRACK ID': 'count'
     }).reset_index()
     
-    # Calcolo totale preventivo
-    preventivi['RIGA_VALORE'] = (preventivi['QT'] * preventivi['PREZZO']) + preventivi['IVA']
-    tot_prev = preventivi.groupby('ID DOCUMENTO')['RIGA_VALORE'].sum().reset_index()
-    
-    report_prev = pd.merge(report_prev, tot_prev, on='ID DOCUMENTO')
-    report_prev = report_prev.rename(columns={'ID DOCUMENTO': 'ID PREVENTIVO', 'RIGA_VALORE': 'TOTALE PREVENTIVO'})
-    report_prev = pd.merge(report_prev, risultati, on='ID PREVENTIVO', how='left')
+    report_prev = pd.merge(report_prev, risultati, left_on='ID DOCUMENTO', right_on='ID PREVENTIVO_KEY', how='left')
 
     # 5. ASSEGNAZIONE STATI TEMPORALI
     def assegna_stato_finale(row):
@@ -404,19 +400,46 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         if (finestra - giorni_passati) <= giorni_scadenza: return "IN SCADENZA"
         return "IN ATTESA"
 
-    report_prev['STATO'] = report_prev.apply(assegna_stato_finale, axis=1)
+    report_prev['STATO_FINALE'] = report_prev.apply(assegna_stato_finale, axis=1)
+
+    # --- VISUALIZZAZIONE GRAFICI ---
+    st.subheader("📊 Analisi Performance Conversioni")
+    
+    color_map_stato = {
+        "AGGIUDICATO (CHIUSO)": "#4E944F",
+        "AGGIUDICATO (APERTO)": "#B4E197",
+        "IN SCADENZA": "#FFD700",
+        "IN ATTESA": "#A2D2FF",
+        "PERSO": "#FF9999"
+    }
+
+    r1_c1, r1_c2 = st.columns(2)
+    with r1_c1:
+        stats_n = report_prev['STATO_FINALE'].value_counts().reset_index()
+        fig_pie_n = px.pie(stats_n, values='count', names='STATO_FINALE', 
+                          title="Esito per Numero Documenti", hole=0.4, 
+                          color='STATO_FINALE', color_discrete_map=color_map_stato)
+        fig_pie_n.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
+        st.plotly_chart(fig_pie_n, use_container_width=True)
+        
+    with r1_c2:
+        stats_val = report_prev.groupby('STATO_FINALE')['TOTALE'].sum().reset_index()
+        fig_pie_val = px.pie(stats_val, values='TOTALE', names='STATO_FINALE', 
+                            title="Esito per Valore Economico (€)", hole=0.4, 
+                            color='STATO_FINALE', color_discrete_map=color_map_stato)
+        fig_pie_val.update_traces(textinfo='percent', hovertemplate='€%{value:,.2f}')
+        fig_pie_val.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
+        st.plotly_chart(fig_pie_val, use_container_width=True)
 
     # --- REGISTRO FINALE ---
     st.subheader("📋 Registro Conversioni")
     
-    # Selezione e ordinamento colonne
     df_display = report_prev[[
-        'DATA', 'CLIENTE', 'CODICE GESTIONALE UTENTE', 'TOTALE PREVENTIVO', 
-        'TOTALE ORDINE', 'STATO', 'DURATA', 'TRACK ID', 'NUM ART ORD', 
-        'ID PREVENTIVO', 'ID ORDINE'
+        'DATA', 'CLIENTE', 'CODICE GESTIONALE UTENTE', 'TOTALE', 
+        'TOTALE ORDINE', 'STATO_FINALE', 'DURATA', 'TRACK ID', 
+        'NUM ART ORD', 'ID DOCUMENTO', 'ID ORDINE'
     ]].copy()
 
-    # Ridenominazione per visualizzazione
     df_display.columns = [
         'Data Preventivo', 'Cliente', 'Utente', 'Totale Preventivo', 
         'Totale Ordine', 'Stato', 'Durata', 'Num. Articoli Preventivo', 
@@ -429,6 +452,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             'Totale Preventivo': '{:,.2f} €',
             'Totale Ordine': '{:,.2f} €',
             'Durata': lambda x: f"{int(x)} gg" if pd.notnull(x) else "-",
+            'Num. Articoli Preventivo': '{:,.0f}',
             'Num. Articoli Ordine': '{:,.0f}'
         }),
         use_container_width=True, hide_index=True

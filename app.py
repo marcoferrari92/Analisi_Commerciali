@@ -738,25 +738,36 @@ def analizza_performance_commerciali(df_report):
     performance['Conversion_Rate_Nr']  = (performance['Nr_Vinti'] / performance['Nr_Preventivi'] * 100).fillna(0)
     performance['Conversion_Rate_Val'] = (performance['Volume_Vinto'] / performance['Volume_Offerto'] * 100).fillna(0)
 
+    # --- RIORDINAMENTO COLONNE ---
+    # Impostiamo l'ordine richiesto: Nr_Preventivi, Nr_Vinti, Nr_Rate, Vol_Preventivi, Vol_Vinto, Vol_Rate
+    ordine_colonne = [
+        'CODICE GESTIONALE UTENTE', 
+        'Nr_Preventivi', 
+        'Nr_Vinti', 
+        'Nr_Rate', 
+        'Vol_Preventivi', 
+        'Vol_Vinto', 
+        'Vol_Rate'
+    ]
+    performance = performance[ordine_colonne]
+
     # 3. ANALISI DISCIPLINARE (ANOMALIE)
-    # Contiamo quante anomalie ha generato ogni commerciale
     anomalie_count = df_report[df_report['Analisi_Integrita'] != "Dato Integro"].groupby(
         ['CODICE GESTIONALE UTENTE', 'Analisi_Integrita']
     ).size().unstack(fill_value=0).reset_index()
 
     # 4. VISUALIZZAZIONE STREAMLIT
-    
-    # --- Tabella Main Performance ---
     st.subheader("📈 KPI di Conversione (Solo Dati Integri)")
     st.write("Questa tabella mostra l'efficacia reale escludendo errori di inserimento o ordini orfani.")
     
+    # Visualizzazione con formattazione e colori
     st.dataframe(
         performance.style.format({
-            'Volume_Offerto': '€ {:,.2f}',
-            'Volume_Vinto': '€ {:,.2f}',
-            'Conversion_Rate_Nr': '{:.1f} %',
-            'Conversion_Rate_Val': '{:.1f} %'
-        }).background_gradient(subset=['Conversion_Rate_Nr'], cmap='Greens'),
+            'Nr_Rate': '{:.1f} %',
+            'Vol_Preventivi': '€ {:,.2f}',
+            'Vol_Vinto': '€ {:,.2f}',
+            'Vol_Rate': '{:.1f} %'
+        }).background_gradient(subset=['Nr_Rate'], cmap='Greens'),
         use_container_width=True, hide_index=True
     )
 

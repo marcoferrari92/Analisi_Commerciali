@@ -22,7 +22,7 @@ def carica_dati_commerciali(file):
         df.columns = df.columns.str.strip().str.replace('ï»¿', '', regex=False)
 
         # 3. Controllo colonne obbligatorie
-        colonne_necessarie = ['DATA', 'CODICE GESTIONALE UTENTE', 'CLIENTE', 'OGGETTO', 'TIPOLOGIA DOC.', 'CODICE ARTICOLO', 'PREZZO', 'QT']
+        colonne_necessarie = ['DATA', 'ID DOCUMENTO', 'CODICE GESTIONALE UTENTE', 'CLIENTE', 'TIPOLOGIA DOC.', 'CODICE ARTICOLO', 'PREZZO', 'QT']
         mancanti = [c for c in colonne_necessarie if c not in df.columns]
         if mancanti:
             st.error(f"Mancano colonne fondamentali: {mancanti}")
@@ -777,7 +777,7 @@ st.divider()
 # Inizializzazione
 df_events = None
 df_orders = None
-# Limiti filtro date calendario
+# date calendario
 date_min = None
 date_max = None
 

@@ -940,7 +940,7 @@ if df_orders is not None:
         ]
 
         st.write("")
-        st.DATAframe(
+        st.dataframe(
             df_riepilogo[colonne_finali].style.format({
                 'TOTALE': '€ {:,.2f}',
                 'Media (€)': '€ {:,.2f}',

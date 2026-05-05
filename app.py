@@ -10,6 +10,7 @@ st.set_page_config(layout="wide")
 
 @st.cache_data
 def carica_dati_commerciali(file):
+    
     try:
         # 1. Lettura file
         df = pd.read_csv(file, sep=';', encoding='utf-8-sig')
@@ -20,40 +21,9 @@ def carica_dati_commerciali(file):
         # 2. Pulizia preliminare spazi e caratteri invisibili
         df.columns = df.columns.str.strip().str.replace('ï»¿', '', regex=False)
 
-        # --- LOGICA DI MAPPATURA INTELLIGENTE ---
-        # Creiamo un dizionario temporaneo {NOME_IN_MAIUSCOLO: Nome_Originale}
-        # Questo ci permette di trovare "CLIENTE" anche se nel file è "cliente" o "Cliente"
-        col_map_raw = {c.upper(): c for c in df.columns}
-
-        # Definiamo cosa cerchiamo (Sinistra) e come lo vogliamo nel codice (Destra)
-        mappa_standard = {
-            'CLIENTE': 'Cliente',
-            'ARTICOLO': 'Oggetto',
-            'COMMERCIALE': 'Agente',
-            'OGGETTO': 'Oggetto',
-            'DATA': 'Data',
-            'DATA EVENTO': 'Data',
-            'TIPOLOGIA DOC.': 'Tipo Doc.',
-            'TIPOLOGIA DOC': 'Tipo Doc.',
-            'TIPO DOC.': 'Tipo Doc.',
-            'TIPO EVENTO': 'Tipo Doc.'
-        }
-
-        # Costruiamo il dizionario finale di rinomina per Pandas
-        rinomina_finale = {}
-        for alias_maiuscolo, nome_standard in mappa_standard.items():
-            if alias_maiuscolo in col_map_raw:
-                nome_reale_nel_file = col_map_raw[alias_maiuscolo]
-                rinomina_finale[nome_reale_nel_file] = nome_standard
-
-        # Rinominiamo le colonne
-        df = df.rename(columns=rinomina_finale)
-        # ----------------------------------------
-
         # 3. Controllo colonne obbligatorie
-        colonne_necessarie = ['Data', 'Cliente', 'Oggetto', 'Tipo Doc.']
+        colonne_necessarie = ['DATA', 'CODICE GESTIONALE UTENTE', 'CLIENTE', 'OGGETTO', 'TIPOLOGIA DOC.', 'CODICE ARTICOLO', 'PREZZO', 'QT']
         mancanti = [c for c in colonne_necessarie if c not in df.columns]
-        
         if mancanti:
             st.error(f"Mancano colonne fondamentali: {mancanti}")
             st.info(f"Colonne rilevate nel file: {list(df.columns)}")
@@ -66,13 +36,6 @@ def carica_dati_commerciali(file):
         
         if righe_nulle > 0:
             st.warning(f"⚠️ Rimosse {righe_nulle} righe con data non valida.")
-
-        # 5. Pulizia testuale Tipo Doc. (per match nel resto del codice)
-        df['Tipo Doc.'] = df['Tipo Doc.'].apply(
-            lambda x: re.sub(r'[^a-zA-Z\s]', '', str(x)).strip().title() if pd.notnull(x) else x
-        )
-        # Nota: uso .title() così "ORDINE" diventa "Ordine", "PREVENTIVO" diventa "Preventivo"
-        # coerentemente con i tuoi if/filtri successivi.
 
         return df
 
@@ -244,6 +207,7 @@ def render_grafico_torta(data, values_col, names_col, titolo, tipo="numerico"):
 
 
 def plot_distribuzione_ordini(df_target):
+    
     if df_target.empty:
         st.warning("Nessun dato disponibile.")
         return

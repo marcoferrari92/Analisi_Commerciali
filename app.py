@@ -113,25 +113,25 @@ def validazione_importi(df):
         else:
             df[f'{col}_pulito'] = 0.0
 
-    # Calcolo del Totale: (Prezzo * Quantità) + IVA (%)
+    # Calcolo del TOTALE: (Prezzo * Quantità) + IVA (%)
     # Formula: (P * Q) * (1 + IVA/100)
-    df['Totale_TMP'] = (df['PREZZO_pulito'] * df['QT_pulito']) * (1 + (df['IVA_pulito'] / 100))
+    df['TOTALE_TMP'] = (df['PREZZO_pulito'] * df['QT_pulito']) * (1 + (df['IVA_pulito'] / 100))
 
     # --- 2. VALIDAZIONE TIPO DOC ---
     tipi_ammessi = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
     mask_tipo_errato = ~df['TIPOLOGIA DOC.'].astype(str).isin(tipi_ammessi)
 
     # --- 3. CREAZIONE MASCHERE FINALI ---
-    mask_errori = (df['Totale_TMP'] <= 0) | (df['Totale_TMP'].isna()) | mask_tipo_errato
+    mask_errori = (df['TOTALE_TMP'] <= 0) | (df['TOTALE_TMP'].isna()) | mask_tipo_errato
 
     df_errori = df[mask_errori].copy()
     df_pulito = df[~mask_errori].copy()
     
-    # Assegniamo il valore calcolato alla colonna definitiva 'Totale'
-    df_pulito['TOTALE'] = df_pulito['Totale_TMP']
+    # Assegniamo il valore calcolato alla colonna definitiva 'TOTALE'
+    df_pulito['TOTALE'] = df_pulito['TOTALE_TMP']
     
     # --- 4. PULIZIA FINALE ---
-    cols_da_rimuovere = ['QT_pulito', 'PREZZO_pulito', 'IVA_pulito', 'Totale_TMP']
+    cols_da_rimuovere = ['QT_pulito', 'PREZZO_pulito', 'IVA_pulito', 'TOTALE_TMP']
     df_pulito = df_pulito.drop(columns=cols_da_rimuovere)
     df_errori = df_errori.drop(columns=cols_da_rimuovere)
 
@@ -278,7 +278,7 @@ def plot_distribuzione_ordini(df_target):
                 customdata=df_stadio[['DATA_Str', 'ID DOCUMENTO', 'CLIENTE', 'TITOLO', 'CODICE GESTIONALE UTENTE']],
                 # Definiamo cosa appare al passaggio del mouse
                 hovertemplate=(
-                    "<b>Totale Articoli:</b> €%{x:,.2f}<br>" +
+                    "<b>TOTALE Articoli:</b> €%{x:,.2f}<br>" +
                     "<b>DATA:</b> %{customDATA[0]}<br>" +
                     "<b>ID:</b> %{customDATA[1]}<br>" +
                     "<b>CLIENTE:</b> %{customDATA[2]}<br>" +
@@ -301,7 +301,7 @@ def plot_distribuzione_ordini(df_target):
             gridcolor='lightgray'
         )
     )
-    fig.update_xaxes(title_text="Importo Documento (totale articoli) (€)", row=2, col=1)
+    fig.update_xaxes(title_text="Importo Documento (TOTALE articoli) (€)", row=2, col=1)
     fig.update_yaxes(type="log", row=2, col=1)
     
     st.plotly_chart(fig, use_container_width=True)
@@ -464,7 +464,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     #         - Filtra solo le combinazioni che compaiono più di una volta nello stesso giorno.
     #         - Questi 'casi_critici' rappresentano ordini che il sistema "appiattirà" 
     #           in un unico match, causando una potenziale sottostima nel conteggio (N.) 
-    #           dei documenti vinti, anche se il valore economico totale (Somma €) 
+    #           dei documenti vinti, anche se il valore economico TOTALE (Somma €) 
     #           rimarrà corretto.
     
     check_integrita = ordini.groupby(['CLIENTE', 'ARTICOLO', 'DATA']).size().reset_index(name='n_righe')
@@ -569,7 +569,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         if not ordini_orfani.empty:
             with st.expander(f"❓ {len(ordini_orfani)} Ordini Orfani (Senza PREVENTIVO)"):
                 st.write("Ordini per i quali non è stato trovato alcun PREVENTIVO antecedente nel DATAbase.")
-                st.dataframe(ordini_orfani[['DATA', 'CLIENTE', 'ARTICOLO', 'Totale']], use_container_width=True, hide_index=True)
+                st.dataframe(ordini_orfani[['DATA', 'CLIENTE', 'ARTICOLO', 'TOTALE']], use_container_width=True, hide_index=True)
     
         # C. ORDINI FUORI TEMPO
         if not ordini_fuori_tempo.empty:
@@ -590,11 +590,11 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # --- CALCOLI PER FUNNEL ---
     df_conclusi    = preventivi[preventivi['Stato'].isin(["Ordini Chiusi", "Ordini Aperti", "Persi"])]
     n_conclusi     = len(df_conclusi)
-    val_conclusi   = df_conclusi['Totale'].sum()
+    val_conclusi   = df_conclusi['TOTALE'].sum()
     n_aperti       = len(preventivi[preventivi['Stato'] == "Ordini Aperti"])
-    val_aperti     = preventivi[preventivi['Stato'] == "Ordini Aperti"]['Totale'].sum()
+    val_aperti     = preventivi[preventivi['Stato'] == "Ordini Aperti"]['TOTALE'].sum()
     n_chiusi       = len(preventivi[preventivi['Stato'] == "Ordini Chiusi"])
-    val_chiusi     = preventivi[preventivi['Stato'] == "Ordini Chiusi"]['Totale'].sum()
+    val_chiusi     = preventivi[preventivi['Stato'] == "Ordini Chiusi"]['TOTALE'].sum()
 
     # --- VISUALIZZAZIONE GRAFICI ---
     st.subheader("📊 Distribuzione Stati Preventivi")
@@ -603,13 +603,13 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     r1_c1, r1_c2 = st.columns(2)
     with r1_c1:
         stats_n = preventivi['Stato_Torta'].value_counts().reset_index()
-        fig_pie_n = px.pie(stats_n, values='count', names='Stato_Torta', title="Esito (Quantità Totale)", hole=0.4, color='Stato_Torta', color_discrete_map=color_map_torta)
+        fig_pie_n = px.pie(stats_n, values='count', names='Stato_Torta', title="Esito (Quantità TOTALE)", hole=0.4, color='Stato_Torta', color_discrete_map=color_map_torta)
         fig_pie_n.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
         st.plotly_chart(fig_pie_n, use_container_width=True)
         
     with r1_c2:
-        stats_val = preventivi.groupby('Stato_Torta')['Totale'].sum().reset_index()
-        fig_pie_val = px.pie(stats_val, values='Totale', names='Stato_Torta', title="Esito (Valore Totale €)", hole=0.4, color='Stato_Torta', color_discrete_map=color_map_torta)
+        stats_val = preventivi.groupby('Stato_Torta')['TOTALE'].sum().reset_index()
+        fig_pie_val = px.pie(stats_val, values='TOTALE', names='Stato_Torta', title="Esito (Valore TOTALE €)", hole=0.4, color='Stato_Torta', color_discrete_map=color_map_torta)
         fig_pie_val.update_traces(textinfo='percent', hovertemplate='€%{value:,.2f}')
         fig_pie_val.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
         st.plotly_chart(fig_pie_val, use_container_width=True)
@@ -638,7 +638,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # --- RIEPILOGO METRICHE ---
     st.divider()
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Totale Emesso", f"€ {preventivi['Totale'].sum():,.2f}")
+    m1.metric("TOTALE Emesso", f"€ {preventivi['TOTALE'].sum():,.2f}")
     
     val_vinti_tot = val_aperti + val_chiusi
     n_vinti_tot = n_aperti + n_chiusi
@@ -649,12 +649,12 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     m3.metric("Tasso Conversione Reale", f"{t_n:.1f}%", f"{t_v:.1f}% Valore")
     
     n_scad = len(preventivi[preventivi['Stato'] == "In Scadenza"])
-    val_scad = preventivi[preventivi['Stato'] == "In Scadenza"]['Totale'].sum()
+    val_scad = preventivi[preventivi['Stato'] == "In Scadenza"]['TOTALE'].sum()
     m4.metric("In Scadenza", f"{n_scad} Doc", f"€ {val_scad:,.2f}", delta_color="inverse")
 
     # --- REGISTRO FINALE ---
     with st.expander("📋 Registro Dettagliato Preventivi", expanded=True):
-        df_f = preventivi[['DATA', 'CLIENTE', 'ARTICOLO', 'Totale', 'Stato', 'Durata']].copy()
+        df_f = preventivi[['DATA', 'CLIENTE', 'ARTICOLO', 'TOTALE', 'Stato', 'Durata']].copy()
         df_f = df_f.rename(columns={'DATA': 'DATA PREVENTIVO', 'ARTICOLO': 'Articolo'})
         
         prio = {"In Scadenza": 0, "Ordini Aperti": 1, "Ordini Chiusi": 2, "In Attesa": 3, "Persi": 4}
@@ -671,7 +671,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         st.DATAframe(
             df_f.style.format({
                 'DATA PREVENTIVO': lambda x: x.strftime('%d/%m/%Y'),
-                'Totale': '{:,.2f} €',
+                'TOTALE': '{:,.2f} €',
                 'Durata': '{:.0f} gg'
             }).map(colora, subset=['Stato']),
             use_container_width=True, hide_index=True
@@ -698,10 +698,10 @@ def analizza_performance_commerciali(df_report):
     # 2. CALCOLO METRICHE AGGREGATE
     # Raggruppiamo per il codice gestionale dell'utente
     performance = df_integro.groupby('CODICE GESTIONALE UTENTE').agg(
-        Nr_Preventivi    = ('Totale', 'count'),
-        Volume_Offerto   = ('Totale', 'sum'),
+        Nr_Preventivi    = ('TOTALE', 'count'),
+        Volume_Offerto   = ('TOTALE', 'sum'),
         Nr_Vinti         = ('Stato_Torta', lambda x: (x == "Aggiudicati").sum()),
-        Volume_Vinto     = ('Totale', lambda x: x[df_integro.loc[x.index, 'Stato_Torta'] == "Aggiudicati"].sum())
+        Volume_Vinto     = ('TOTALE', lambda x: x[df_integro.loc[x.index, 'Stato_Torta'] == "Aggiudicati"].sum())
     ).reset_index()
 
     # Calcolo Tassi di Conversione (Hit Rate)
@@ -759,11 +759,11 @@ def analizza_performance_commerciali(df_report):
         df_agente = df_report[df_report['CODICE GESTIONALE UTENTE'] == agente_sel]
         
         col1, col2 = st.columns(2)
-        col1.metric("Totale Righe Gestite", len(df_agente))
+        col1.metric("TOTALE Righe Gestite", len(df_agente))
         col2.metric("Di cui Integre", len(df_agente[df_agente['Analisi_Integrita'] == "Dato Integro"]))
         
         st.DATAframe(
-            df_agente[['DATA', 'CLIENTE', 'ARTICOLO', 'Totale', 'Stato', 'Analisi_Integrita']],
+            df_agente[['DATA', 'CLIENTE', 'ARTICOLO', 'TOTALE', 'Stato', 'Analisi_Integrita']],
             use_container_width=True, hide_index=True
         )
 
@@ -869,7 +869,7 @@ if df_orders is not None:
     # 1. COMPATTAZIONE PER ID DOCUMENTO
     # Creaiamo un DATAframe suddiviso per l'ID dei documenti.
     # Per ogni ID avremo la tipologia di documento (PREVENTIVO, ORDINE APERTO, ORDINE)
-    # e il totale (€) degli articoli per quel documento.
+    # e il TOTALE (€) degli articoli per quel documento.
     
     df_documenti_univoci = df_orders.groupby('ID DOCUMENTO').agg({
         'TIPOLOGIA DOC.': 'first',
@@ -908,7 +908,7 @@ if df_orders is not None:
                     DATA=conteggio_vol, 
                     values_col='TOTALE', 
                     names_col='TIPOLOGIA DOC.', 
-                    titolo="Valore Economico Totale",
+                    titolo="Valore Economico TOTALE",
                     tipo="soldi"
                 )
         
@@ -1066,9 +1066,9 @@ if uploaded_file_events:
 
             with col2: 
                 st.write("#### Vulume Eventi")
-                totale_attivita = len(df_filtrato)
+                TOTALE_attivita = len(df_filtrato)
                 st.write("")
-                st.metric("Totale Attività", totale_attivita)
+                st.metric("TOTALE Attività", TOTALE_attivita)
                 st.DATAframe(stats_tipo, hide_index=True, use_container_width=True)
 
             with col3:
@@ -1176,8 +1176,8 @@ if uploaded_file_events:
             # --- ANALISI EVENTI MUTI (Senza Note) ---
 
             # 1. Lista completa di tutti i commerciali che hanno caricato qualcosa
-            totale_per_utente = df_filtrato['Utente'].value_counts().reset_index()
-            totale_per_utente.columns = ['Utente', 'Totale Eventi']
+            TOTALE_per_utente = df_filtrato['Utente'].value_counts().reset_index()
+            TOTALE_per_utente.columns = ['Utente', 'TOTALE Eventi']
             
             # 2. Filtriamo gli eventi senza note
             df_muti = df_filtrato[
@@ -1189,11 +1189,11 @@ if uploaded_file_events:
             stats_muti_raw.columns = ['Utente', 'N. Eventi Muti']
             
             # 4. UNIONE: Partiamo da tutti i commerciali e aggiungiamo i muti (chi non ne ha avrà NaN)
-            stats_muti = totale_per_utente.merge(stats_muti_raw, on='Utente', how='left')
+            stats_muti = TOTALE_per_utente.merge(stats_muti_raw, on='Utente', how='left')
             
             # 5. Pulizia: trasformiamo i NaN in 0 e calcoliamo la percentuale
             stats_muti['N. Eventi Muti'] = stats_muti['N. Eventi Muti'].fillna(0).astype(int)
-            stats_muti['Percentuale'] = (stats_muti['N. Eventi Muti'] / stats_muti['Totale Eventi'] * 100).round(1)
+            stats_muti['Percentuale'] = (stats_muti['N. Eventi Muti'] / stats_muti['TOTALE Eventi'] * 100).round(1)
             
             # Ordiniamo: chi ha più errori in alto, chi ne ha zero in basso
             stats_muti = stats_muti.sort_values('N. Eventi Muti', ascending=True)
@@ -1221,7 +1221,7 @@ if uploaded_file_events:
                 fig_muti.update_layout(
                     height=350 + (len(stats_muti) * 20), 
                     margin=dict(t=50, l=10, r=50, b=10),
-                    xaxis_title="Quota eventi MUTI sul totale personale",
+                    xaxis_title="Quota eventi MUTI sul TOTALE personale",
                     yaxis_title=None,
                     showlegend=False
                 )
@@ -1491,7 +1491,7 @@ if uploaded_file_events:
         fig_tree.update_traces(
             textinfo="label+value",
             texttemplate="<b>%{label}</b><br>Attività: %{value}",
-            hovertemplate="<b>%{label}</b><br>Totale: %{value}",
+            hovertemplate="<b>%{label}</b><br>TOTALE: %{value}",
             insidetextfont=dict(size=15),
             textposition="middle center"
         )
@@ -1525,14 +1525,14 @@ if uploaded_file_events:
         ).reset_index()
     
         colonne_attivita = [c for c in pivot_aziende.columns if c != 'Ragione Sociale']
-        pivot_aziende['Totale'] = pivot_aziende[colonne_attivita].sum(axis=1)
+        pivot_aziende['TOTALE'] = pivot_aziende[colonne_attivita].sum(axis=1)
     
         comm_riferimento = df_filtrato.groupby('Ragione Sociale')['Utente'].unique().apply(lambda x: ", ".join(x)).reset_index()
         comm_riferimento.columns = ['Ragione Sociale', 'Commerciali']
     
         df_finale_aziende = pd.merge(pivot_aziende, comm_riferimento, on='Ragione Sociale')
-        cols = ['Ragione Sociale', 'Totale'] + list(colonne_attivita) + ['Commerciali']
-        df_finale_aziende = df_finale_aziende[cols].sort_values(by='Totale', ascending=False)
+        cols = ['Ragione Sociale', 'TOTALE'] + list(colonne_attivita) + ['Commerciali']
+        df_finale_aziende = df_finale_aziende[cols].sort_values(by='TOTALE', ascending=False)
     
         st.DATAframe(df_finale_aziende, hide_index=True, use_container_width=True)
 

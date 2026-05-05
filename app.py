@@ -582,11 +582,16 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     # --- REGISTRO FINALE ---
     with st.expander("📋 Registro Dettagliato Analisi TRACK ID", expanded=True):
-        # Preparazione DataFrame per visualizzazione
-        df_display = report_prev[['DATA', 'CLIENTE', 'TOTALE', 'STATO', 'DURATA', 'ID_ORDINE_MATCH']].copy()
-        df_display = df_display.rename(columns={'DATA': 'DATA PREV.', 'ID_ORDINE_MATCH': 'ORDINE RIF.'})
+        # ⚠️ MODIFICA QUI: Ho aggiunto la 'I' a ID_ORDINI_MATCH
+        df_display = report_prev[['DATA', 'CLIENTE', 'TOTALE', 'STATO', 'DURATA', 'ID_ORDINI_MATCH']].copy()
         
-        # Ordinamento logico: Prima le scadenze, poi i chiusi, poi il resto
+        # Rinominiamo per la visualizzazione utente
+        df_display = df_display.rename(columns={
+            'DATA': 'DATA PREV.', 
+            'ID_ORDINI_MATCH': 'ORDINI RIF.'
+        })
+        
+        # Ordinamento logico
         prio = {
             "IN SCADENZA": 0, 
             "ORDINE COMPLETO": 1, 
@@ -598,16 +603,16 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         }
         df_display['p'] = df_display['STATO'].map(prio).fillna(6)
         df_display = df_display.sort_values(['p', 'DATA PREV.'], ascending=[True, False]).drop(columns='p')
-    
+
         def style_stato(val):
-            if val == 'ORDINE COMPLETO': return 'color: #4E944F; font-weight: bold'
-            if val == 'ORDINE CON EXTRA': return 'color: #1E5631; font-weight: bold'
-            if val == 'ORDINE PARZIALE': return 'color: #B4E197; font-weight: bold'
-            if val == 'IN SCADENZA': return 'color: #CCAA00; font-weight: bold' 
-            if val == 'PERSI': return 'color: #FF9999'
-            if val == 'CHIUSO FUORI FINESTRA': return 'color: #7A7A7A; font-style: italic'
+            if 'ORDINE COMPLETO' in str(val): return 'color: #4E944F; font-weight: bold'
+            if 'ORDINE CON EXTRA' in str(val): return 'color: #1E5631; font-weight: bold'
+            if 'ORDINE PARZIALE' in str(val): return 'color: #B4E197; font-weight: bold'
+            if 'IN SCADENZA' in str(val): return 'color: #CCAA00; font-weight: bold' 
+            if 'PERSI' in str(val): return 'color: #FF9999'
+            if 'FUORI FINESTRA' in str(val): return 'color: #7A7A7A; font-style: italic'
             return 'color: #A2D2FF'
-    
+
         st.dataframe(
             df_display.style.format({
                 'DATA PREV.': lambda x: x.strftime('%d/%m/%Y') if pd.notnull(x) else "",
@@ -617,6 +622,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             use_container_width=True, hide_index=True
         )
 
+    # ✅ IL RETURN DEVE ESSERE L'ULTIMISSIMA RIGA DELLA FUNZIONE
     return report_completo
 
 

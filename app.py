@@ -366,42 +366,63 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
     merged['diff_giorni'] = (pd.to_datetime(merged['DATA_ord']) - pd.to_datetime(merged['DATA_prev'])).dt.days
 
-    # 3. DEFINIZIONE STATO E RECUPERO DATI ORDINE (LOGICA ANTI-DUPLICAZIONE)
+    # 3. DEFINIZIONE STATO E LOGICA "INFO" (CONFRONTO STRUTTURALE)
     def definisci_stato_documento(group):
-        # Identifichiamo gli ordini univoci presenti in questo gruppo di righe
         id_ordini_collegati = group['ID DOCUMENTO_ord'].dropna().unique()
         
+        # Dati del preventivo originale nel gruppo
+        articoli_prev = group['TRACK ID'].unique()
+        nr_articoli_prev = len(articoli_prev)
+        qta_prev_totale = group['QT_prev'].sum()
+        valore_prev_totale = group['TOTALE_prev'].sum()
+
         if len(id_ordini_collegati) > 0:
-            # Recuperiamo i dati degli ordini UNICI direttamente dalla tabella dei totali
-            # evitando di sommare le righe duplicate dal merge
             info_ordini = totali_database[totali_database['ID DOCUMENTO'].isin(id_ordini_collegati)]
-            
-            # Calcoliamo i totali reali basandoci sui documenti, non sulle righe del merge
             totale_economico_ord = info_ordini['TOTALE'].sum()
             qta_totale_ord = info_ordini['QT'].sum()
             
-            # ID visualizzabili (es. "6342, 6350")
+            # Articoli del preventivo effettivamente trovati negli ordini
+            match_righe = group.dropna(subset=['ID DOCUMENTO_ord'])
+            articoli_matchati = match_righe['TRACK ID'].unique()
+            nr_articoli_matchati = len(articoli_matchati)
+
+            # --- LOGICA COLONNA INFO ---
+            note = []
+            
+            # A. INCOMPLETO: Se mancano intere righe/articoli
+            if nr_articoli_matchati < nr_articoli_prev:
+                note.append("INCOMPLETO")
+            
+            # B. RIDOTTO: Se gli articoli ci sono ma almeno uno ha quantità inferiore
+            if any(match_righe['QT_ord'] < match_righe['QT_prev']):
+                note.append("RIDOTTO")
+
+            # C. EXTRA: Se ci sono più articoli (nuovi) o il valore economico è cresciuto
+            # Usiamo una tolleranza di 0.01 per evitare errori di arrotondamento
+            if totale_economico_ord > (valore_prev_totale + 0.01) or qta_totale_ord > qta_prev_totale:
+                note.append("EXTRA")
+            
+            # Multi-tranche (opzionale, utile per capire se ci sono più ordini)
+            if len(id_ordini_collegati) > 1:
+                note.append("MULTI-TRANCHE")
+
+            info_text = " + ".join(note) if note else "INTEGRALE"
+            
+            # Recupero dati per ritorno
             id_ordine_display = ", ".join(id_ordini_collegati.astype(str))
-            
-            # Prendiamo l'ultima data per calcolare la durata finale
             ultimo_match = group.sort_values('DATA_ord', ascending=False).iloc[0]
-            
             stato = "AGGIUDICATO (CHIUSO)" if ultimo_match['TIPOLOGIA DOC._ord'] == "ORDINE" else "AGGIUDICATO (APERTO)"
             
             return pd.Series([
-                stato, 
-                ultimo_match['diff_giorni'], 
-                id_ordine_display,
-                totale_economico_ord, 
-                qta_totale_ord,      # Questo ora sarà esattamente 4 (2+2)
-                ultimo_match['DATA_ord']
+                stato, ultimo_match['diff_giorni'], id_ordine_display,
+                totale_economico_ord, qta_totale_ord, ultimo_match['DATA_ord'], info_text
             ])
         
-        return pd.Series([None, None, None, 0.0, 0, pd.NaT])
+        return pd.Series([None, None, None, 0.0, 0, pd.NaT, "NESSUN ORDINE"])
 
-    # Applichiamo la funzione
+    # Aggiorna l'assegnazione delle colonne (aggiungendo INFO alla fine)
     risultati = merged.groupby('ID DOCUMENTO_prev', group_keys=False).apply(definisci_stato_documento).reset_index()
-    risultati.columns = ['ID PREVENTIVO_KEY', 'STATO_DETTAGLIO', 'DURATA', 'ID ORDINE', 'TOTALE ORDINE', 'NUM ART ORD', 'DATA ORDINE']
+    risultati.columns = ['ID PREVENTIVO_KEY', 'STATO_DETTAGLIO', 'DURATA', 'ID ORDINE', 'TOTALE ORDINE', 'NUM ART ORD', 'DATA ORDINE', 'INFO']
 
 
     # 4. CREAZIONE REPORT FINALE
@@ -417,32 +438,23 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     # 5. ASSEGNAZIONE STATI TEMPORALI
     def elabora_dati_finali(row):
-        # Calcolo giorni passati ad oggi per i preventivi non convertiti
         giorni_passati = (DATA_riferimento - pd.to_datetime(row['DATA'])).days
         
-        # CASO A: Il preventivo è stato AGGIUDICATO (esiste un ID ORDINE)
-        # Non ci interessa se è fuori finestra, lo marchiamo come successo
+        # Se è aggiudicato, riportiamo l'INFO calcolato sopra
         if pd.notna(row['ID ORDINE']):
-            return pd.Series([row['STATO_DETTAGLIO'], row['DURATA']])
+            return pd.Series([row['STATO_DETTAGLIO'], row['DURATA'], row['INFO']])
         
-        # CASO B: Il preventivo NON è stato ancora convertito
-        # Qui applichiamo la logica dello SLIDER (finestra)
+        # Se non è aggiudicato, definiamo info temporali
         if giorni_passati > finestra:
-            stato = "PERSO"
+            return pd.Series(["PERSO", giorni_passati, "SCADUTO"])
         elif (finestra - giorni_passati) <= giorni_scadenza:
-            stato = "IN SCADENZA"
+            return pd.Series(["IN SCADENZA", giorni_passati, "SOLLECITARE"])
         else:
-            stato = "IN ATTESA"
-            
-        return pd.Series([stato, giorni_passati])
+            return pd.Series(["IN ATTESA", giorni_passati, "IN CORSO"])
+
+    report_prev[['STATO_FINALE', 'DURATA', 'INFO']] = report_prev.apply(elabora_dati_finali, axis=1)
 
     # Applichiamo la trasformazione
-    report_prev[['STATO_FINALE', 'DURATA']] = report_prev.apply(elabora_dati_finali, axis=1)
-
-    # Applichiamo la funzione aggiornata
-    report_prev[['STATO_FINALE', 'DURATA']] = report_prev.apply(elabora_dati_finali, axis=1)
-
-    # Applichiamo la funzione per aggiornare STATO e DURATA contemporaneamente
     report_prev[['STATO_FINALE', 'DURATA']] = report_prev.apply(elabora_dati_finali, axis=1)
 
     # --- VISUALIZZAZIONE GRAFICI ---   
@@ -497,27 +509,17 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     st.write("")
     st.write("")
     
-    # 1. Preparazione DataFrame con l'ordine richiesto
-    # NOTA: Usiamo 'QT' invece di 'TRACK ID' perché è il nome risultante dall'aggregazione
+    # 1. Preparazione DataFrame con l'ordine richiesto (Aggiunta INFO)
     df_display = report_prev[[
-        'DATA',           # Data Prev.
-        'DATA ORDINE',    # Data Ord.
-        'DURATA',         # Durata
-        'STATO_FINALE',   # Stato
-        'CLIENTE',        # Cliente
-        'CODICE GESTIONALE UTENTE', # Utente
-        'QT',             # 
-        'NUM ART ORD',    # Num. Art. Ord. (già sommato come QT in definisci_stato_documento)
-        'TOTALE',         # Tot. Prev.
-        'TOTALE ORDINE',  # Tot. Ord.
-        'ID DOCUMENTO',   # ID Preventivo
-        'ID ORDINE'       # ID Ordine
+        'DATA', 'DATA ORDINE', 'DURATA', 'STATO_FINALE', 'INFO', # <-- Aggiunta qui
+        'CLIENTE', 'CODICE GESTIONALE UTENTE', 'QT', 'NUM ART ORD', 'TOTALE', 'TOTALE ORDINE',
+        'ID DOCUMENTO', 'ID ORDINE'
     ]].copy()
 
-    # 2. Ridenominazione per visualizzazione utente
+    # 2. Ridenominazione
     df_display.columns = [
-        'Data Prev.', 'Data Ord.', 'Durata', 'Stato', 'Cliente', 'Utente', 
-        'Q.tà Prev.', 'Q.tà Ord.', 'Tot. Prev.', 'Tot. Ord.', 
+        'Data Prev.', 'Data Ord.', 'Durata', 'Stato', 'Info', # <-- Aggiunta qui
+        'Cliente', 'Utente', 'Q.tà Prev.', 'Q.tà Ord.', 'Tot. Prev.', 'Tot. Ord.', 
         'ID Prev.', 'ID Ord.'
     ]
 

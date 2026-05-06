@@ -355,11 +355,10 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         'QT': 'sum' # 'TRACK ID': 'count' per avere il numero di articoli univoci
     }).reset_index()
 
-    # 2. MATCHING
-    # Selezioniamo TRACK ID, ID DOCUMENTO, DATA, TIPOLOGIA DOC e la colonna quantità (QT)
+    # 2. MATCHING (Assicurati che TOTALE e QT siano inclusi nel lato ordini per attivare i suffissi)
     merged = pd.merge(
         preventivi,
-        ordini[['TRACK ID', 'ID DOCUMENTO', 'DATA', 'TIPOLOGIA DOC.', 'QT']], # Assicurati che 'QT' sia qui
+        ordini[['TRACK ID', 'ID DOCUMENTO', 'DATA', 'TIPOLOGIA DOC.', 'QT', 'TOTALE']], # <--- Aggiunto TOTALE qui
         on='TRACK ID',
         how='left',
         suffixes=('_prev', '_ord')
@@ -367,49 +366,40 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
     merged['diff_giorni'] = (pd.to_datetime(merged['DATA_ord']) - pd.to_datetime(merged['DATA_prev'])).dt.days
 
-    # 3. DEFINIZIONE STATO E LOGICA "INFO" (CONFRONTO STRUTTURALE)
+    # 3. DEFINIZIONE STATO E LOGICA "INFO"
     def definisci_stato_documento(group):
         id_ordini_collegati = group['ID DOCUMENTO_ord'].dropna().unique()
         
-        # Dati del preventivo originale nel gruppo
+        # ORA i suffissi esistono perché abbiamo messo le colonne in entrambi i DF del merge
         articoli_prev = group['TRACK ID'].unique()
         nr_articoli_prev = len(articoli_prev)
         qta_prev_totale = group['QT_prev'].sum()
-        valore_prev_totale = group['TOTALE_prev'].sum()
+        valore_prev_totale = group['TOTALE_prev'].sum() # <--- Ora questa funzionerà
 
         if len(id_ordini_collegati) > 0:
             info_ordini = totali_database[totali_database['ID DOCUMENTO'].isin(id_ordini_collegati)]
             totale_economico_ord = info_ordini['TOTALE'].sum()
             qta_totale_ord = info_ordini['QT'].sum()
             
-            # Articoli del preventivo effettivamente trovati negli ordini
             match_righe = group.dropna(subset=['ID DOCUMENTO_ord'])
             articoli_matchati = match_righe['TRACK ID'].unique()
             nr_articoli_matchati = len(articoli_matchati)
 
-            # --- LOGICA COLONNA INFO ---
             note = []
-            
-            # A. INCOMPLETO: Se mancano intere righe/articoli
             if nr_articoli_matchati < nr_articoli_prev:
                 note.append("INCOMPLETO")
             
-            # B. RIDOTTO: Se gli articoli ci sono ma almeno uno ha quantità inferiore
             if any(match_righe['QT_ord'] < match_righe['QT_prev']):
                 note.append("RIDOTTO")
 
-            # C. EXTRA: Se ci sono più articoli (nuovi) o il valore economico è cresciuto
-            # Usiamo una tolleranza di 0.01 per evitare errori di arrotondamento
             if totale_economico_ord > (valore_prev_totale + 0.01) or qta_totale_ord > qta_prev_totale:
                 note.append("EXTRA")
             
-            # Multi-tranche (opzionale, utile per capire se ci sono più ordini)
             if len(id_ordini_collegati) > 1:
                 note.append("MULTI-TRANCHE")
 
             info_text = " + ".join(note) if note else "INTEGRALE"
             
-            # Recupero dati per ritorno
             id_ordine_display = ", ".join(id_ordini_collegati.astype(str))
             ultimo_match = group.sort_values('DATA_ord', ascending=False).iloc[0]
             stato = "AGGIUDICATO (CHIUSO)" if ultimo_match['TIPOLOGIA DOC._ord'] == "ORDINE" else "AGGIUDICATO (APERTO)"

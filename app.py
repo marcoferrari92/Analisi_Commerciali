@@ -431,11 +431,11 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     def elabora_dati_finali(row):
         giorni_passati = (DATA_riferimento - pd.to_datetime(row['DATA'])).days
         
-        # Se è aggiudicato, riportiamo l'INFO calcolato sopra
+        # Se è aggiudicato, riportiamo i 3 valori calcolati in precedenza
         if pd.notna(row['ID ORDINE']):
             return pd.Series([row['STATO_DETTAGLIO'], row['DURATA'], row['INFO']])
         
-        # Se non è aggiudicato, definiamo info temporali
+        # Se non è aggiudicato, definiamo i 3 valori temporali
         if giorni_passati > finestra:
             return pd.Series(["PERSO", giorni_passati, "SCADUTO"])
         elif (finestra - giorni_passati) <= giorni_scadenza:
@@ -443,10 +443,8 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         else:
             return pd.Series(["IN ATTESA", giorni_passati, "IN CORSO"])
 
+    # --- CORREZIONE QUI: Aggiungi 'INFO' alla lista delle colonne ---
     report_prev[['STATO_FINALE', 'DURATA', 'INFO']] = report_prev.apply(elabora_dati_finali, axis=1)
-
-    # Applichiamo la trasformazione
-    report_prev[['STATO_FINALE', 'DURATA']] = report_prev.apply(elabora_dati_finali, axis=1)
 
     # --- VISUALIZZAZIONE GRAFICI ---   
     color_map_stato = {

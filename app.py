@@ -850,7 +850,7 @@ if df_orders is not None:
             *   🟠 **IN SCADENZA**: Ordine vicino alla fine della finestra di conversione. Richiede attenzione immediata.
             *   🔴 **PERSO**: Non è stato trovato alcun ordine collegato e il tempo trascorso ha superato la finestra impostata.
         
-            ### 📊 Note sulle Metriche
+            #### Note sulle Metriche
             *   **Durata**: 
                 *   Per gli **Aggiudicati**, indica i giorni reali tra preventivo e ordine.
                 *   Per gli altri stati, indica i giorni passati dalla creazione ad oggi.

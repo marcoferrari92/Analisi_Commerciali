@@ -449,7 +449,14 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             textinfo='value+percent', 
             texttemplate='%{value}<br><b>%{percent}<b>'
         )
-        fig_pie_n.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
+        fig_pie_n.update_layout(
+            title={
+                'text': "Esito per Numero Documenti",
+                'x': 0.35,               # Posizione orizzontale (0.5 = centro)
+                'xanchor': 'center',    # Punto di ancoraggio del testo
+                'yanchor': 'top'        # Punto di ancoraggio verticale
+            },
+            legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
         st.plotly_chart(fig_pie_n, use_container_width=True)
         
     with r1_c2:
@@ -461,7 +468,14 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             textinfo='value+percent',
             texttemplate='€%{value:,.2f}<br><b>%{percent}<b>'
         )
-        fig_pie_val.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
+        fig_pie_val.update_layout(
+            title={
+                'text': "Esito per Numero Documenti",
+                'x': 0.35,               # Posizione orizzontale (0.5 = centro)
+                'xanchor': 'center',    # Punto di ancoraggio del testo
+                'yanchor': 'top'        # Punto di ancoraggio verticale
+            },
+            legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
         st.plotly_chart(fig_pie_val, use_container_width=True)
 
     # --- REGISTRO FINALE (NUOVO ORDINE COLONNE) ---

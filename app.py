@@ -491,7 +491,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         'STATO_FINALE',   # Stato
         'CLIENTE',        # Cliente
         'CODICE GESTIONALE UTENTE', # Utente
-        'QT',             # <--- CORRETTO: era 'TRACK ID'
+        'QT',             # 
         'NUM ART ORD',    # Num. Art. Ord. (già sommato come QT in definisci_stato_documento)
         'TOTALE',         # Tot. Prev.
         'TOTALE ORDINE',  # Tot. Ord.
@@ -506,18 +506,33 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         'ID Preventivo', 'ID Ordine'
     ]
 
-    # ... (tieni la funzione colora_stato uguale) ...
+    # 3. Definizione Ordine Personalizzato degli Stati
+    ordine_stati = [
+        "IN SCADENZA", 
+        "IN ATTESA", 
+        "AGGIUDICATO (APERTO)", 
+        "AGGIUDICATO (CHIUSO)", 
+        "PERSO"
+    ]
+
+    # Trasformiamo la colonna 'Stato' in una categoria con l'ordine definito sopra
+    df_display['Stato'] = pd.Categorical(
+        df_display['Stato'], 
+        categories=ordine_stati, 
+        ordered=True
+    )
 
     # 4. Visualizzazione con Styler
     st.dataframe(
-        df_display.sort_values('Data Prev.', ascending=False).style.format({
+        # Cambiamo il sort_values per usare 'Stato'
+        df_display.sort_values(by=['Stato', 'Data Prev.'], ascending=[True, False]).style.format({
             'Data Prev.': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y'),
             'Data Ord.': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y') if pd.notnull(x) else "-",
             'Tot. Prev.': '{:,.2f} €',
             'Tot. Ord.': '{:,.2f} €',
             'Durata': lambda x: f"{int(x)} gg" if pd.notnull(x) else "-",
-            'Q.tà Prev.': '{:,.0f}', # <--- Aggiornato nome colonna
-            'Q.tà Ord.': '{:,.0f}'   # <--- Aggiornato nome colonna
+            'Q.tà Prev.': '{:,.0f}', 
+            'Q.tà Ord.': '{:,.0f}'   
         }).map(colora_stato, subset=['Stato']),
         use_container_width=True, 
         hide_index=True

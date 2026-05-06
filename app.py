@@ -518,7 +518,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     df_display.columns = [
         'Data Prev.', 'Data Ord.', 'Durata', 'Stato', 'Cliente', 'Utente', 
         'Q.tà Prev.', 'Q.tà Ord.', 'Tot. Prev.', 'Tot. Ord.', 
-        'ID Preventivo', 'ID Ordine'
+        'ID Prev.', 'ID Ord.'
     ]
 
     # 3. Definizione Ordine Personalizzato degli Stati

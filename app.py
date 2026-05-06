@@ -861,12 +861,12 @@ if df_orders is not None:
             *   🚀 **EXTRA**: L'ordine ha un volume economico maggiore o contiene più pezzi/articoli rispetto al preventivo (Upsell).
             *   📦 **MULTI-TRANCHE**: Il preventivo è stato convertito attraverso due o più ordini separati.
         
-            *   *RIDOTTO + MULTI-TRANCHE*: La fornitura sta avvenendo a scaglioni e, al momento, le quantità totali sono ancora inferiori al preventivato.
             **Combinazioni Comuni:**
             *   🧩 **INCOMPLETO + RIDOTTO**: Il cliente ha rimosso alcuni articoli e, per quelli rimasti, ha anche abbassato le quantità.
             *   🧩 **INCOMPLETO + EXTRA**: Mancano alcuni articoli originali, ma l'ordine ha un valore totale (€) maggiore (es. un articolo rimasto è stato venduto in quantità massiccia o a prezzo maggiorato).
             *   🧩 **RIDOTTO + EXTRA**: Le quantità di alcuni articoli sono scese, ma il valore totale (€) è comunque superiore al preventivo (es. aggiunta di articoli extra).
             *   🧩 **EXTRA + MULTI-TRANCHE**: Il preventivo è stato evaso con più ordini che, sommati, superano il valore o le quantità preventivate.
+            *   🧩 **RIDOTTO + MULTI-TRANCHE**: La fornitura sta avvenendo a scaglioni e, al momento, le quantità totali sono ancora inferiori al preventivato.
         
             ---
                 #### Metriche

@@ -840,8 +840,8 @@ if df_orders is not None:
     # **********************************
 
     with st.expander("🎯 Analisi Globale della Conversione dei Preventivi"):
-        with st.expander("ℹ️ Legenda Stati e Guida all'Analisi"):
-            st.markdown("""
+        with st.popover("ℹ️ Legenda Stati e Guida all'Analisi"):
+            st.info("""
             Il sistema classifica ogni preventivo in base alla sua interazione con gli ordini e alla finestra temporale impostata.
         
             *   🟢 **AGGIUDICATO (CHIUSO)**: Il preventivo è stato convertito in un **Ordine**. 

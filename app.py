@@ -373,8 +373,8 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
                 primo_match['diff_giorni'], 
                 id_ord,
                 info_ordine['TOTALE'], 
-                info_ordine['TRACK ID'],
-                primo_match['DATA_ord'] # Recuperiamo la Data dell'Ordine
+                info_ordine['QTA'], # <--- Prende la somma delle quantità dell'ordine
+                primo_match['DATA_ord']
             ])
         
         return pd.Series([None, None, None, 0.0, 0, pd.NaT])

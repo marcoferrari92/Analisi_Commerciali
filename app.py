@@ -325,6 +325,16 @@ def plot_distribuzione_ordini(df_target):
         )
 
 
+def colora_stato(val):
+    """Funzione di utilità per colorare il testo nella tabella Streamlit"""
+    colori = {
+        "AGGIUDICATO (CHIUSO)": "color: #4E944F; font-weight: bold;",
+        "AGGIUDICATO (APERTO)": "color: #B4E197; font-weight: bold;",
+        "IN SCADENZA": "color: #CCAA00; font-weight: bold;",
+        "IN ATTESA": "color: #007BFF;",
+        "PERSO": "color: #FF4B4B;"
+    }
+    return colori.get(val, "color: black;")
 
 def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # NOTA: df è già passato per validazione_importi(), quindi ha già la colonna 'TOTALE'

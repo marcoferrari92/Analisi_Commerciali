@@ -850,17 +850,17 @@ if df_orders is not None:
             *   🟠 **IN SCADENZA**: Ordine vicino alla fine della finestra di conversione. Richiede attenzione immediata.
             *   🔴 **PERSO**: Non è stato trovato alcun ordine collegato e il tempo trascorso ha superato la finestra impostata.
 
-           **N.B.** Uno stato è AGGIUDICATO se per almeno un articolo del preventivo il suo ID è stato trovato in un Ordine, 
-           anche se oltre la finestra di validità dei preventivi. 
+           **N.B.** 
             ---
         
             ### 📊 Note sulle Metriche
             *   **Durata**: 
                 *   Per gli **Aggiudicati**, indica i giorni reali tra preventivo e ordine.
-                *   Per gli altri stati, indica l'**anzianità** (giorni passati dalla creazione ad oggi).
+                *   Per gli altri stati, indica i giorni passati dalla creazione ad oggi.
             *   **Q.tà Prev. / Q.tà Ord.**: Somma totale dei pezzi nei documenti. Utile per vedere se l'ordine ha coperto tutto il preventivato.
-            *   **Conversione**: Un preventivo convertito in ordine viene **sempre** conteggiato come Aggiudicato, anche se l'ordine arriva oltre la finestra temporale impostata.
-            """.format(giorni_scadenza=giorni_scadenza))
+            *   **Conversione**: Un preventivo è AGGIUDICATO se almeno un ID di un articolo del preventivo è stato ritrovato in un Ordine, 
+                               anche se oltre la finestra di validità dei preventivi. 
+            """
         st.write("")
         st.write("")
 

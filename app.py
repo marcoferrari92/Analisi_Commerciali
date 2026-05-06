@@ -452,7 +452,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         fig_pie_n.update_layout(
             title={
                 'text': "Esito per Numero Documenti",
-                'x': 0.35,               # Posizione orizzontale (0.5 = centro)
+                'x': 0.5,               # Posizione orizzontale (0.5 = centro)
                 'xanchor': 'center',    # Punto di ancoraggio del testo
                 'yanchor': 'top'        # Punto di ancoraggio verticale
             },
@@ -471,7 +471,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         fig_pie_val.update_layout(
             title={
                 'text': "Esito per Numero Documenti",
-                'x': 0.35,               # Posizione orizzontale (0.5 = centro)
+                'x': 0.5,               # Posizione orizzontale (0.5 = centro)
                 'xanchor': 'center',    # Punto di ancoraggio del testo
                 'yanchor': 'top'        # Punto di ancoraggio verticale
             },

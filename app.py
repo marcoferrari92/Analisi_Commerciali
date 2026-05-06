@@ -342,7 +342,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # Raggruppamento per calcolare i totali reali di ogni documento nel database
     totali_database = df.groupby(['ID DOCUMENTO', 'TIPOLOGIA DOC.']).agg({
         'TOTALE': 'sum',
-        'QTA': 'sum' # 'TRACK ID': 'count' per avere il numero di articoli univoci
+        'QT': 'sum' # 'TRACK ID': 'count' per avere il numero di articoli univoci
     }).reset_index()
 
     # 2. MATCHING
@@ -373,7 +373,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
                 primo_match['diff_giorni'], 
                 id_ord,
                 info_ordine['TOTALE'], 
-                info_ordine['QTA'], # <--- Prende la somma delle quantità dell'ordine
+                info_ordine['QT'], # <--- Prende la somma delle quantità dell'ordine
                 primo_match['DATA_ord']
             ])
         
@@ -389,7 +389,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         'CLIENTE': 'first', 
         'CODICE GESTIONALE UTENTE': 'first',
         'TOTALE': 'sum',
-        'QTA': 'sum'     # 'TRACK ID': 'count' per avere il numero di articoli univoci
+        'QT': 'sum'     # 'TRACK ID': 'count' per avere il numero di articoli univoci
     }).reset_index()
     
     report_prev = pd.merge(report_prev, risultati, left_on='ID DOCUMENTO', right_on='ID PREVENTIVO_KEY', how='left')

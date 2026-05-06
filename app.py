@@ -453,6 +453,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     st.subheader("📋 Registro Conversioni")
     
     # 1. Preparazione DataFrame con l'ordine richiesto
+    # NOTA: Usiamo 'QT' invece di 'TRACK ID' perché è il nome risultante dall'aggregazione
     df_display = report_prev[[
         'DATA',           # Data Prev.
         'DATA ORDINE',    # Data Ord.
@@ -460,8 +461,8 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         'STATO_FINALE',   # Stato
         'CLIENTE',        # Cliente
         'CODICE GESTIONALE UTENTE', # Utente
-        'TRACK ID',       # Num. Art. Prev.
-        'NUM ART ORD',    # Num. Art. Ord.
+        'QT',             # <--- CORRETTO: era 'TRACK ID'
+        'NUM ART ORD',    # Num. Art. Ord. (già sommato come QT in definisci_stato_documento)
         'TOTALE',         # Tot. Prev.
         'TOTALE ORDINE',  # Tot. Ord.
         'ID DOCUMENTO',   # ID Preventivo
@@ -471,20 +472,11 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # 2. Ridenominazione per visualizzazione utente
     df_display.columns = [
         'Data Prev.', 'Data Ord.', 'Durata', 'Stato', 'Cliente', 'Utente', 
-        'Num. Art. Prev.', 'Num. Art. Ord.', 'Tot. Prev.', 'Tot. Ord.', 
+        'Q.tà Prev.', 'Q.tà Ord.', 'Tot. Prev.', 'Tot. Ord.', 
         'ID Preventivo', 'ID Ordine'
     ]
 
-    # 3. Funzione per colorare la colonna Stato
-    def colora_stato(val):
-        colori = {
-            "AGGIUDICATO (CHIUSO)": "color: #4E944F; font-weight: bold;",
-            "AGGIUDICATO (APERTO)": "color: #B4E197; font-weight: bold;",
-            "IN SCADENZA": "color: #CCAA00; font-weight: bold;",
-            "IN ATTESA": "color: #007BFF;",
-            "PERSO": "color: #FF4B4B;"
-        }
-        return colori.get(val, "color: black;")
+    # ... (tieni la funzione colora_stato uguale) ...
 
     # 4. Visualizzazione con Styler
     st.dataframe(
@@ -494,8 +486,8 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             'Tot. Prev.': '{:,.2f} €',
             'Tot. Ord.': '{:,.2f} €',
             'Durata': lambda x: f"{int(x)} gg" if pd.notnull(x) else "-",
-            'Num. Art. Prev.': '{:,.0f}',
-            'Num. Art. Ord.': '{:,.0f}'
+            'Q.tà Prev.': '{:,.0f}', # <--- Aggiornato nome colonna
+            'Q.tà Ord.': '{:,.0f}'   # <--- Aggiornato nome colonna
         }).map(colora_stato, subset=['Stato']),
         use_container_width=True, 
         hide_index=True

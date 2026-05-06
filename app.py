@@ -860,7 +860,7 @@ if df_orders is not None:
             *   **Q.tà Prev. / Q.tà Ord.**: Somma totale dei pezzi nei documenti. Utile per vedere se l'ordine ha coperto tutto il preventivato.
             *   **Conversione**: Un preventivo è AGGIUDICATO se almeno un ID di un articolo del preventivo è stato ritrovato in un Ordine, 
                                anche se oltre la finestra di validità dei preventivi. 
-            """
+            """)
         st.write("")
         st.write("")
 

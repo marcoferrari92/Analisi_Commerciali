@@ -394,15 +394,31 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
     report_prev = pd.merge(report_prev, risultati, left_on='ID DOCUMENTO', right_on='ID PREVENTIVO_KEY', how='left')
 
-    # 5. ASSEGNAZIONE STATI TEMPORALI
-    def assegna_stato_finale(row):
-        if pd.notna(row['STATO_DETTAGLIO']): return row['STATO_DETTAGLIO']
+    # 5. ASSEGNAZIONE STATI TEMPORALI E CALCOLO DURATA PER NON CHIUSI
+    def elabora_dati_finali(row):
+        # Calcolo giorni passati dalla data preventivo ad oggi (DATA_riferimento)
         giorni_passati = (DATA_riferimento - pd.to_datetime(row['DATA'])).days
-        if giorni_passati > finestra: return "PERSO"
-        if (finestra - giorni_passati) <= giorni_scadenza: return "IN SCADENZA"
-        return "IN ATTESA"
+        
+        # Se il documento è già aggiudicato, manteniamo la DURATA (già calcolata come data_ordine - data_prev)
+        if pd.notna(row['STATO_DETTAGLIO']):
+            stato = row['STATO_DETTAGLIO']
+            durata = row['DURATA']
+        else:
+            # Calcolo lo stato per i non aggiudicati
+            if giorni_passati > finestra:
+                stato = "PERSO"
+            elif (finestra - giorni_passati) <= giorni_scadenza:
+                stato = "IN SCADENZA"
+            else:
+                stato = "IN ATTESA"
+            
+            # Impostiamo la durata come giorni passati ad oggi
+            durata = giorni_passati
 
-    report_prev['STATO_FINALE'] = report_prev.apply(assegna_stato_finale, axis=1)
+        return pd.Series([stato, durata])
+
+    # Applichiamo la funzione per aggiornare STATO e DURATA contemporaneamente
+    report_prev[['STATO_FINALE', 'DURATA']] = report_prev.apply(elabora_dati_finali, axis=1)
 
     # --- VISUALIZZAZIONE GRAFICI ---
     st.subheader("📊 Analisi Performance Conversioni")

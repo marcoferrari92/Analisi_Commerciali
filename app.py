@@ -842,15 +842,16 @@ if df_orders is not None:
     with st.expander("🎯 Analisi Globale della Conversione dei Preventivi"):
         with st.popover("ℹ️ Legenda Stati e Guida all'Analisi"):
             st.info("""
+            #### Classificazione
             Il sistema classifica ogni preventivo come segue:
         
             *   🟢 **AGGIUDICATO (CHIUSO)**: Il preventivo è stato convertito in un **Ordine**. 
             *   🟢 **AGGIUDICATO (APERTO)**: Il preventivo è stato convertito in un **Ordine Aperto**.
-            *   🔵 **IN ATTESA**: Il preventivo è recente e si trova ancora all'interno della finestra di conversione.
-            *   🟠 **IN SCADENZA**: Ordine vicino alla fine della finestra di conversione. Richiede attenzione immediata.
-            *   🔴 **PERSO**: Non è stato trovato alcun ordine collegato e il tempo trascorso ha superato la finestra impostata.
+            *   🔵 **IN ATTESA**: Il preventivo si trova ancora all'interno della finestra di conversione.
+            *   🟠 **IN SCADENZA**: Ordine vicino alla fine della finestra di conversione.
+            *   🔴 **PERSO**: Non è stato trovato alcun ordine collegato **e** il tempo trascorso ha superato la finestra impostata.
         
-            #### Note sulle Metriche
+            #### Metriche
             *   **Durata**: 
                 *   Per gli **Aggiudicati**, indica i giorni reali tra preventivo e ordine.
                 *   Per gli altri stati, indica i giorni passati dalla creazione ad oggi.

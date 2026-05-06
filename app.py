@@ -869,7 +869,7 @@ if df_orders is not None:
             *   🧩 **RIDOTTO + MULTI-TRANCHE**: La fornitura sta avvenendo a scaglioni e, al momento, le quantità totali sono ancora inferiori al preventivato.
         
             ---
-                #### Metriche
+            #### Metriche
             *   **Durata**: 
                 *   Per gli AGGIUDICATI, indica i giorni reali tra preventivo e ordine 
                     (nel caso di ordine in più tranche, considera per la data e la durata l'ultimo ordine trovato).

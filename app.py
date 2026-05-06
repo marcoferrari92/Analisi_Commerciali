@@ -356,9 +356,10 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     }).reset_index()
 
     # 2. MATCHING
+    # Selezioniamo TRACK ID, ID DOCUMENTO, DATA, TIPOLOGIA DOC e la colonna quantità (QT)
     merged = pd.merge(
         preventivi,
-        ordini[['TRACK ID', 'ID DOCUMENTO', 'DATA', 'TIPOLOGIA DOC.']],
+        ordini[['TRACK ID', 'ID DOCUMENTO', 'DATA', 'TIPOLOGIA DOC.', 'QT']], # Assicurati che 'QT' sia qui
         on='TRACK ID',
         how='left',
         suffixes=('_prev', '_ord')

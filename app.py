@@ -368,33 +368,32 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     # 3. DEFINIZIONE STATO E RECUPERO DATI ORDINE (VERSIONE MULTI-TRANCHE)
     def definisci_stato_documento(group):
-        # Identifichiamo tutti gli ordini unici collegati ai TRACK ID del preventivo
+        # 1. Identifichiamo quali ID ORDINE sono legati a questo preventivo
         id_ordini_collegati = group['ID DOCUMENTO_ord'].dropna().unique()
         
         if len(id_ordini_collegati) > 0:
-            # Recuperiamo i dati di tutti questi ordini dal database
+            # 2. Recuperiamo i totali DIRETTAMENTE dalla tabella 'totali_database' 
+            # che abbiamo calcolato all'inizio. Questo evita i duplicati del merge.
             info_ordini = totali_database[totali_database['ID DOCUMENTO'].isin(id_ordini_collegati)]
             
-            # Sommiamo i valori di tutte le tranche
-            totale_combinato = info_ordini['TOTALE'].sum()
-            qta_combinata = info_ordini['QT'].sum()
+            # Sommiamo i valori reali dei documenti
+            totale_economico_ord = info_ordini['TOTALE'].sum()
+            qta_totale_ord = info_ordini['QT'].sum()
             
-            # Per la DATA e la DURATA, usiamo l'ultimo ordine (quello che ha completato la conversione)
-            ultimo_match = group.sort_values('DATA_ord', ascending=False).iloc[0]
-            primo_match = group.sort_values('DATA_ord', ascending=True).iloc[0]
-            
+            # 3. Gestione date e ID per la visualizzazione
             id_ordine_display = ", ".join(id_ordini_collegati.astype(str))
-            # Se ci sono più ordini, lo stato è AGGIUDICATO
+            ultimo_match = group.sort_values('DATA_ord', ascending=False).iloc[0]
+            
             tipo_doc = ultimo_match['TIPOLOGIA DOC._ord']
             stato = "AGGIUDICATO (CHIUSO)" if tipo_doc == "ORDINE" else "AGGIUDICATO (APERTO)"
             
             return pd.Series([
                 stato, 
-                ultimo_match['diff_giorni'], # Durata fino all'ultima tranche
-                id_ordine_display,           # Lista di tutti gli ID ordine
-                totale_combinato,            # Somma economica di tutte le tranche
-                qta_combinata,               # Somma pezzi di tutte le tranche
-                ultimo_match['DATA_ord']     # Data dell'ultima tranche
+                ultimo_match['diff_giorni'], 
+                id_ordine_display,
+                totale_economico_ord, 
+                qta_totale_ord, 
+                ultimo_match['DATA_ord']
             ])
         
         return pd.Series([None, None, None, 0.0, 0, pd.NaT])

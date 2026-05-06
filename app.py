@@ -849,8 +849,24 @@ if df_orders is not None:
             *   🔵 **IN ATTESA**: Il preventivo si trova ancora all'interno della finestra di conversione.
             *   🟠 **IN SCADENZA**: Ordine vicino alla fine della finestra di conversione.
             *   🔴 **PERSO**: Non è stato trovato alcun ordine collegato **e** il tempo trascorso ha superato la finestra impostata.
+            
+            ---
+    
+            #### Dettagli Conversione (INFO)
+            Questa colonna analizza la qualità della vendita confrontando gli articoli e le quantità tra preventivo e ordine:
         
-            #### Metriche
+            *   ✅ **INTEGRALE**: Match perfetto. Tutti gli articoli preventivati sono stati ordinati nelle quantità esatte.
+            *   ⚠️ **INCOMPLETO**: Uno o più articoli presenti nel preventivo non sono stati inclusi nell'ordine finale.
+            *   📉 **RIDOTTO**: Tutti gli articoli sono presenti, ma almeno uno ha una quantità inferiore rispetto al preventivo.
+            *   🚀 **EXTRA**: L'ordine ha un volume economico maggiore o contiene più pezzi/articoli rispetto al preventivo originale (Upsell).
+            *   📦 **MULTI-TRANCHE**: Il preventivo è stato convertito attraverso due o più ordini separati.
+        
+            **Esempi di combinazioni:**
+            *   *INCOMPLETO + EXTRA*: Alcuni articoli originali sono stati rimossi, ma sono stati aggiunti altri articoli o servizi che hanno alzato il valore totale.
+            *   *RIDOTTO + MULTI-TRANCHE*: La fornitura sta avvenendo a scaglioni e, al momento, le quantità totali sono ancora inferiori al preventivato.
+        
+            ---
+                #### Metriche
             *   **Durata**: 
                 *   Per gli AGGIUDICATI, indica i giorni reali tra preventivo e ordine 
                     (nel caso di ordine in più tranche, considera per la data e la durata l'ultimo ordine trovato).

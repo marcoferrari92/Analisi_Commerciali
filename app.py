@@ -367,38 +367,41 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     merged['diff_giorni'] = (pd.to_datetime(merged['DATA_ord']) - pd.to_datetime(merged['DATA_prev'])).dt.days
 
     # 3. DEFINIZIONE STATO E RECUPERO DATI ORDINE (VERSIONE MULTI-TRANCHE)
+    # 3. DEFINIZIONE STATO E RECUPERO DATI ORDINE (LOGICA ANTI-DUPLICAZIONE)
     def definisci_stato_documento(group):
-        # 1. Identifichiamo quali ID ORDINE sono legati a questo preventivo
+        # Identifichiamo gli ordini univoci presenti in questo gruppo di righe
         id_ordini_collegati = group['ID DOCUMENTO_ord'].dropna().unique()
         
         if len(id_ordini_collegati) > 0:
-            # 2. Recuperiamo i totali DIRETTAMENTE dalla tabella 'totali_database' 
-            # che abbiamo calcolato all'inizio. Questo evita i duplicati del merge.
+            # Recuperiamo i dati degli ordini UNICI direttamente dalla tabella dei totali
+            # evitando di sommare le righe duplicate dal merge
             info_ordini = totali_database[totali_database['ID DOCUMENTO'].isin(id_ordini_collegati)]
             
-            # Sommiamo i valori reali dei documenti
+            # Calcoliamo i totali reali basandoci sui documenti, non sulle righe del merge
             totale_economico_ord = info_ordini['TOTALE'].sum()
             qta_totale_ord = info_ordini['QT'].sum()
             
-            # 3. Gestione date e ID per la visualizzazione
+            # ID visualizzabili (es. "6342, 6350")
             id_ordine_display = ", ".join(id_ordini_collegati.astype(str))
+            
+            # Prendiamo l'ultima data per calcolare la durata finale
             ultimo_match = group.sort_values('DATA_ord', ascending=False).iloc[0]
             
-            tipo_doc = ultimo_match['TIPOLOGIA DOC._ord']
-            stato = "AGGIUDICATO (CHIUSO)" if tipo_doc == "ORDINE" else "AGGIUDICATO (APERTO)"
+            stato = "AGGIUDICATO (CHIUSO)" if ultimo_match['TIPOLOGIA DOC._ord'] == "ORDINE" else "AGGIUDICATO (APERTO)"
             
             return pd.Series([
                 stato, 
                 ultimo_match['diff_giorni'], 
                 id_ordine_display,
                 totale_economico_ord, 
-                qta_totale_ord, 
+                qta_totale_ord,      # Questo ora sarà esattamente 4 (2+2)
                 ultimo_match['DATA_ord']
             ])
         
         return pd.Series([None, None, None, 0.0, 0, pd.NaT])
 
-    risultati = merged.groupby('ID DOCUMENTO_prev').apply(definisci_stato_documento).reset_index()
+    # Applichiamo la funzione
+    risultati = merged.groupby('ID DOCUMENTO_prev', group_keys=False).apply(definisci_stato_documento).reset_index()
     risultati.columns = ['ID PREVENTIVO_KEY', 'STATO_DETTAGLIO', 'DURATA', 'ID ORDINE', 'TOTALE ORDINE', 'NUM ART ORD', 'DATA ORDINE']
 
 

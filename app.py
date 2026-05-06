@@ -509,87 +509,92 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
 def analizza_performance_commerciali(df_report):
     """
-    Analizza il report completo per valutare l'efficienza di ogni commerciale.
-    Filtra le anomalie per calcolare tassi di conversione realistici.
+    Analizza le performance dei commerciali basandosi sul report preventivi.
+    Calcola Hit Rate su numero, volumi economici e quantità di pezzi.
     """
     st.header("🏆 Analisi Performance per Commerciale")
 
     # 1. PREPARAZIONE DATI
-    # Consideriamo "In Scadenza", "In Attesa" e "Persi" come preventivi non ancora vinti
-    # Consideriamo "Aggiudicati" (Aperti + Chiusi) come successi
-    
-    # Filtriamo il DATAframe per considerare solo i dati integri nei calcoli di conversione
-    df_integro = df_report[df_report['Analisi_Integrita'] == "Dato Integro"].copy()
+    # Assicuriamoci di lavorare solo su dati validi se la colonna esiste
+    if 'Analisi_Integrita' in df_report.columns:
+        df_integro = df_report[df_report['Analisi_Integrita'] == "Dato Integro"].copy()
+    else:
+        df_integro = df_report.copy()
 
     # 2. CALCOLO METRICHE AGGREGATE
-    # Raggruppiamo per il codice gestionale dell'utente
+    # Usiamo STATO_FINALE (che contiene AGGIUDICATO...) e le colonne di volume/QT
     performance = df_integro.groupby('CODICE GESTIONALE UTENTE').agg(
-        Nr_Preventivi    = ('TOTALE', 'count'),
-        Volume_Offerto   = ('TOTALE', 'sum'),
-        Nr_Vinti         = ('Stato_Torta', lambda x: (x == "Aggiudicati").sum()),
-        Volume_Vinto     = ('TOTALE', lambda x: x[df_integro.loc[x.index, 'Stato_Torta'] == "Aggiudicati"].sum())
+        Nr_Preventivi    = ('ID DOCUMENTO', 'nunique'),
+        Vol_Preventivi   = ('TOTALE', 'sum'),
+        Pezzi_Offerti    = ('QT', 'sum'),
+        Nr_Vinti         = ('STATO_FINALE', lambda x: x.str.contains("AGGIUDICATO").sum()),
+        Vol_Vinto        = ('TOTALE ORDINE', 'sum'),
+        Pezzi_Vinti      = ('NUM ART ORD', 'sum')
     ).reset_index()
 
-    # Calcolo Tassi di Conversione (Hit Rate)
-    performance['Conversion_Rate_Nr']  = (performance['Nr_Vinti'] / performance['Nr_Preventivi'] * 100).fillna(0)
-    performance['Conversion_Rate_Val'] = (performance['Volume_Vinto'] / performance['Volume_Offerto'] * 100).fillna(0)
+    # Calcolo Tassi di Conversione (Hit Rate %)
+    performance['Nr_Rate']  = (performance['Nr_Vinti'] / performance['Nr_Preventivi'] * 100).fillna(0)
+    performance['Vol_Rate'] = (performance['Vol_Vinto'] / performance['Vol_Preventivi'] * 100).fillna(0)
+    performance['QT_Rate']  = (performance['Pezzi_Vinti'] / performance['Pezzi_Offerti'] * 100).fillna(0)
 
     # --- RIORDINAMENTO COLONNE ---
-    # Impostiamo l'ORDINE richiesto: Nr_Preventivi, Nr_Vinti, Nr_Rate, Vol_Preventivi, Vol_Vinto, Vol_Rate
     ORDINE_colonne = [
         'CODICE GESTIONALE UTENTE', 
-        'Nr_Preventivi', 
-        'Nr_Vinti', 
-        'Nr_Rate', 
-        'Vol_Preventivi', 
-        'Vol_Vinto', 
-        'Vol_Rate'
+        'Nr_Preventivi', 'Nr_Vinti', 'Nr_Rate',          # Focus Numerico
+        'Vol_Preventivi', 'Vol_Vinto', 'Vol_Rate',       # Focus Economico
+        'Pezzi_Offerti', 'Pezzi_Vinti', 'QT_Rate'        # Focus Quantità
     ]
-    performance = performance[ORDINE_colonne]
-
-    # 3. ANALISI DISCIPLINARE (ANOMALIE)
-    anomalie_count = df_report[df_report['Analisi_Integrita'] != "Dato Integro"].groupby(
-        ['CODICE GESTIONALE UTENTE', 'Analisi_Integrita']
-    ).size().unstack(fill_value=0).reset_index()
-
-    # 4. VISUALIZZAZIONE STREAMLIT
-    st.subheader("📈 KPI di Conversione (Solo Dati Integri)")
-    st.write("Questa tabella mostra l'efficacia reale escludendo errori di inserimento o ordini orfani.")
     
-    # Visualizzazione con formattazione e colori
+    # Filtriamo solo le colonne effettivamente create
+    performance = performance[[c for c in ORDINE_colonne if c in performance.columns]]
+
+    # 3. VISUALIZZAZIONE KPI
+    st.subheader("📈 KPI di Conversione")
+    
     st.dataframe(
         performance.style.format({
             'Nr_Rate': '{:.1f} %',
+            'Vol_Rate': '{:.1f} %',
+            'QT_Rate': '{:.1f} %',
             'Vol_Preventivi': '€ {:,.2f}',
             'Vol_Vinto': '€ {:,.2f}',
-            'Vol_Rate': '{:.1f} %'
-        }).background_gradient(subset=['Nr_Rate'], cmap='Greens'),
+            'Pezzi_Offerti': '{:,.0f}',
+            'Pezzi_Vinti': '{:,.0f}'
+        }).background_gradient(subset=['Vol_Rate'], cmap='Greens'),
         use_container_width=True, hide_index=True
     )
 
-    # --- Tabella Qualità Dati ---
-    st.divider()
-    st.subheader("🚩 Analisi Qualità Inserimento Dati")
-    st.write("Riepilogo delle anomalie tracciate per ogni commerciale. Alti valori qui indicano processi gestionali da rivedere.")
-    
-    if not anomalie_count.empty:
-        st.DATAframe(anomalie_count, use_container_width=True, hide_index=True)
-    else:
-        st.success("✅ Nessuna anomalia rilevata per i commerciali!")
+    # 4. ANALISI QUALITÀ DATI (Se presente colonna integrità)
+    if 'Analisi_Integrita' in df_report.columns:
+        st.divider()
+        st.subheader("🚩 Analisi Qualità Inserimento Dati")
+        anomalie_count = df_report[df_report['Analisi_Integrita'] != "Dato Integro"].groupby(
+            ['CODICE GESTIONALE UTENTE', 'Analisi_Integrita']
+        ).size().unstack(fill_value=0).reset_index()
+        
+        if not anomalie_count.empty:
+            st.dataframe(anomalie_count, use_container_width=True, hide_index=True)
+        else:
+            st.success("✅ Nessuna anomalia rilevata!")
 
-    # --- Dettaglio Singolo Agente ---
+    # 5. DETTAGLIO AGENTE
     st.divider()
-    agente_sel = st.selectbox("Seleziona un commerciale per il dettaglio righe:", df_report['CODICE GESTIONALE UTENTE'].unique())
+    utenti = df_report['CODICE GESTIONALE UTENTE'].unique()
+    agente_sel = st.selectbox("Seleziona un commerciale per il dettaglio:", utenti)
     
     if agente_sel:
-        df_agente = df_report[df_report['CODICE GESTIONALE UTENTE'] == agente_sel]
+        df_agente = df_report[df_report['CODICE GESTIONALE UTENTE'] == agente_sel].copy()
         
-        col1, col2 = st.columns(2)
-        col1.metric("TOTALE Righe Gestite", len(df_agente))
-        col2.metric("Di cui Integre", len(df_agente[df_agente['Analisi_Integrita'] == "Dato Integro"]))
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Preventivi Totali", len(df_agente['ID DOCUMENTO'].unique()))
+        c2.metric("Valore Offerto", f"€ {df_agente['TOTALE'].sum():,.2f}")
+        # Calcolo velocità media di chiusura (solo su quelli vinti)
+        velocita = df_agente[df_agente['STATO_FINALE'].str.contains("AGGIUDICATO")]['DURATA'].mean()
+        c3.metric("Tempo Medio Chiusura", f"{velocita:.1f} gg" if pd.notnull(velocita) else "-")
         
+        # Tabella di dettaglio
         st.dataframe(
-            df_agente[['DATA', 'CLIENTE', 'ARTICOLO', 'TOTALE', 'Stato', 'Analisi_Integrita']],
+            df_agente[['DATA', 'CLIENTE', 'TOTALE', 'STATO_FINALE', 'DURATA']].sort_values('DATA', ascending=False),
             use_container_width=True, hide_index=True
         )
 

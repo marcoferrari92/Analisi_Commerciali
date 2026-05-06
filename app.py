@@ -406,15 +406,16 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     # 5. ASSEGNAZIONE STATI TEMPORALI E CALCOLO DURATA PER NON CHIUSI
     def elabora_dati_finali(row):
-        # Calcolo giorni passati dalla data preventivo ad oggi (DATA_riferimento)
+        # Calcolo giorni passati dalla data preventivo ad oggi
         giorni_passati = (DATA_riferimento - pd.to_datetime(row['DATA'])).days
         
-        # Se il documento è già aggiudicato, manteniamo la DURATA (già calcolata come data_ordine - data_prev)
-        if pd.notna(row['STATO_DETTAGLIO']):
+        # PRIORITÀ: Se c'è un ordine (ID ORDINE non è nullo), lo stato è AGGIUDICATO
+        # indipendentemente dal fatto che sia fuori finestra
+        if pd.notna(row['ID ORDINE']):
             stato = row['STATO_DETTAGLIO']
             durata = row['DURATA']
         else:
-            # Calcolo lo stato per i non aggiudicati
+            # Solo se NON c'è un ordine verifichiamo se è perso o in attesa
             if giorni_passati > finestra:
                 stato = "PERSO"
             elif (finestra - giorni_passati) <= giorni_scadenza:
@@ -422,10 +423,12 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
             else:
                 stato = "IN ATTESA"
             
-            # Impostiamo la durata come giorni passati ad oggi
             durata = giorni_passati
 
         return pd.Series([stato, durata])
+
+    # Applichiamo la funzione aggiornata
+    report_prev[['STATO_FINALE', 'DURATA']] = report_prev.apply(elabora_dati_finali, axis=1)
 
     # Applichiamo la funzione per aggiornare STATO e DURATA contemporaneamente
     report_prev[['STATO_FINALE', 'DURATA']] = report_prev.apply(elabora_dati_finali, axis=1)

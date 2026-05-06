@@ -337,7 +337,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         st.warning("⚠️ Nessun PREVENTIVO trovato!")
         return None
 
-    DATA_riferimento = pd.to_datetime(df['DATA']).max()
+    DATA_riferimento = pd.Timestamp.now().normalize()
 
     # Raggruppamento per calcolare i totali reali di ogni documento nel database
     totali_database = df.groupby(['ID DOCUMENTO', 'TIPOLOGIA DOC.']).agg({

@@ -430,9 +430,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # Applichiamo la funzione per aggiornare STATO e DURATA contemporaneamente
     report_prev[['STATO_FINALE', 'DURATA']] = report_prev.apply(elabora_dati_finali, axis=1)
 
-    # --- VISUALIZZAZIONE GRAFICI ---
-    st.subheader("📊 Analisi Performance Conversioni")
-    
+    # --- VISUALIZZAZIONE GRAFICI ---   
     color_map_stato = {
         "AGGIUDICATO (CHIUSO)": "#4E944F",
         "AGGIUDICATO (APERTO)": "#B4E197",

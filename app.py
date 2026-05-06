@@ -839,7 +839,7 @@ if df_orders is not None:
     # **********************************
 
     with st.expander("🎯 Analisi Globale della Conversione dei Preventivi"):
-        with st.popover("ℹ️ Legenda Stati e Guida all'Analisi"):
+        with st.popover("ℹ️ Guida all'Analisi"):
             st.info("""
             #### Classificazione (STATO)
             Il sistema classifica ogni preventivo come segue:

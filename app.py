@@ -445,6 +445,10 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         fig_pie_n = px.pie(stats_n, values='count', names='STATO_FINALE', 
                           title="Esito per Numero Documenti", hole=0.4, 
                           color='STATO_FINALE', color_discrete_map=color_map_stato)
+        fig_pie_n.update_traces(
+            textinfo='value+percent', 
+            texttemplate='%{value}<br>%{percent}'
+        )
         fig_pie_n.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
         st.plotly_chart(fig_pie_n, use_container_width=True)
         
@@ -453,7 +457,10 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         fig_pie_val = px.pie(stats_val, values='TOTALE', names='STATO_FINALE', 
                             title="Esito per Valore Economico (€)", hole=0.4, 
                             color='STATO_FINALE', color_discrete_map=color_map_stato)
-        fig_pie_val.update_traces(textinfo='percent', hovertemplate='€%{value:,.2f}')
+        fig_pie_val.update_traces(
+            textinfo='value+percent',
+            texttemplate='€%{value:,.2f}<br>%{percent}'
+        )
         fig_pie_val.update_layout(legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"))
         st.plotly_chart(fig_pie_val, use_container_width=True)
 

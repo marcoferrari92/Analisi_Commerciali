@@ -479,7 +479,8 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         st.plotly_chart(fig_pie_val, use_container_width=True)
 
     # --- REGISTRO FINALE (NUOVO ORDINE COLONNE) ---
-    st.subheader("📋 Registro Conversioni")
+    st.write("")
+    st.write("")
     
     # 1. Preparazione DataFrame con l'ordine richiesto
     # NOTA: Usiamo 'QT' invece di 'TRACK ID' perché è il nome risultante dall'aggregazione

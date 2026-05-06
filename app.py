@@ -860,7 +860,8 @@ if df_orders is not None:
         
             #### Metriche
             *   **Durata**: 
-                *   Per gli AGGIUDICATI, indica i giorni reali tra preventivo e ordine.
+                *   Per gli AGGIUDICATI, indica i giorni reali tra preventivo e ordine 
+                    (nel caso di ordine in più tranche, considera per la data e la durata l'ultimo ordine trovato).
                 *   Per gli ALTRI STATI, indica i giorni passati dalla creazione ad oggi.
             *   **Q.tà Prev. / Q.tà Ord.**: Somma totale degli articoli nei documenti (articoli x num. pezzi). Utile per vedere se l'ordine ha coperto tutto il preventivato.
             *   **Conversione**: Un preventivo è AGGIUDICATO se almeno un ID di un articolo del preventivo è stato ritrovato in un Ordine, 

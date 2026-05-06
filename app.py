@@ -366,7 +366,6 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
     merged['diff_giorni'] = (pd.to_datetime(merged['DATA_ord']) - pd.to_datetime(merged['DATA_prev'])).dt.days
 
-    # 3. DEFINIZIONE STATO E RECUPERO DATI ORDINE (VERSIONE MULTI-TRANCHE)
     # 3. DEFINIZIONE STATO E RECUPERO DATI ORDINE (LOGICA ANTI-DUPLICAZIONE)
     def definisci_stato_documento(group):
         # Identifichiamo gli ordini univoci presenti in questo gruppo di righe

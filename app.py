@@ -841,7 +841,7 @@ if df_orders is not None:
     with st.expander("🎯 Analisi Globale della Conversione dei Preventivi"):
         with st.popover("ℹ️ Legenda Stati e Guida all'Analisi"):
             st.info("""
-            #### Classificazione
+            #### Classificazione (STATO)
             Il sistema classifica ogni preventivo come segue:
         
             *   🟢 **AGGIUDICATO (CHIUSO)**: Il preventivo è stato convertito in un **Ordine**. 
@@ -853,17 +853,20 @@ if df_orders is not None:
             ---
     
             #### Dettagli Conversione (INFO)
-            Questa colonna analizza la qualità della vendita confrontando gli articoli e le quantità tra preventivo e ordine:
+            Analisi della qualità della vendita confrontando articoli e quantità tra preventivo e ordine:
         
-            *   ✅ **INTEGRALE**: Match perfetto. Tutti gli articoli preventivati sono stati ordinati nelle quantità esatte.
+            *   ✅ **INTEGRALE**: Tutti gli articoli preventivati sono stati ordinati nelle quantità esatte.
             *   ⚠️ **INCOMPLETO**: Uno o più articoli presenti nel preventivo non sono stati inclusi nell'ordine finale.
-            *   📉 **RIDOTTO**: Tutti gli articoli sono presenti, ma almeno uno ha una quantità inferiore rispetto al preventivo.
-            *   🚀 **EXTRA**: L'ordine ha un volume economico maggiore o contiene più pezzi/articoli rispetto al preventivo originale (Upsell).
+            *   📉 **RIDOTTO**: Tutti gli articoli presenti, ma almeno uno ha una quantità inferiore rispetto al preventivo.
+            *   🚀 **EXTRA**: L'ordine ha un volume economico maggiore o contiene più pezzi/articoli rispetto al preventivo (Upsell).
             *   📦 **MULTI-TRANCHE**: Il preventivo è stato convertito attraverso due o più ordini separati.
         
-            **Esempi di combinazioni:**
-            *   *INCOMPLETO + EXTRA*: Alcuni articoli originali sono stati rimossi, ma sono stati aggiunti altri articoli o servizi che hanno alzato il valore totale.
             *   *RIDOTTO + MULTI-TRANCHE*: La fornitura sta avvenendo a scaglioni e, al momento, le quantità totali sono ancora inferiori al preventivato.
+            **Combinazioni Comuni:**
+            *   🧩 **INCOMPLETO + RIDOTTO**: Il cliente ha rimosso alcuni articoli e, per quelli rimasti, ha anche abbassato le quantità.
+            *   🧩 **INCOMPLETO + EXTRA**: Mancano alcuni articoli originali, ma l'ordine ha un valore totale (€) maggiore (es. un articolo rimasto è stato venduto in quantità massiccia o a prezzo maggiorato).
+            *   🧩 **RIDOTTO + EXTRA**: Le quantità di alcuni articoli sono scese, ma il valore totale (€) è comunque superiore al preventivo (es. aggiunta di articoli extra).
+            *   🧩 **EXTRA + MULTI-TRANCHE**: Il preventivo è stato evaso con più ordini che, sommati, superano il valore o le quantità preventivate.
         
             ---
                 #### Metriche

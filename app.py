@@ -368,9 +368,12 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     # 3. DEFINIZIONE STATO E RECUPERO DATI ORDINE
     def definisci_stato_documento(group):
-        evasi = group[group['ID DOCUMENTO_ord'].notna() & (group['diff_giorni'] <= finestra)]
+        # Cerchiamo tutti i match validi (senza filtrare per finestra qui)
+        evasi = group[group['ID DOCUMENTO_ord'].notna()]
         
         if not evasi.empty:
+            # Prendiamo il primo ordine avvenuto dopo il preventivo
+            # (anche se dopo 1000 giorni)
             primo_match = evasi.sort_values('diff_giorni').iloc[0]
             id_ord = primo_match['ID DOCUMENTO_ord']
             tipo_doc = primo_match['TIPOLOGIA DOC._ord']
@@ -383,7 +386,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
                 primo_match['diff_giorni'], 
                 id_ord,
                 info_ordine['TOTALE'], 
-                info_ordine['QT'], # <--- Prende la somma delle quantità dell'ordine
+                info_ordine['QT'], 
                 primo_match['DATA_ord']
             ])
         
@@ -404,28 +407,29 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     
     report_prev = pd.merge(report_prev, risultati, left_on='ID DOCUMENTO', right_on='ID PREVENTIVO_KEY', how='left')
 
-    # 5. ASSEGNAZIONE STATI TEMPORALI E CALCOLO DURATA PER NON CHIUSI
+    # 5. ASSEGNAZIONE STATI TEMPORALI
     def elabora_dati_finali(row):
-        # Calcolo giorni passati dalla data preventivo ad oggi
+        # Calcolo giorni passati ad oggi per i preventivi non convertiti
         giorni_passati = (DATA_riferimento - pd.to_datetime(row['DATA'])).days
         
-        # PRIORITÀ: Se c'è un ordine (ID ORDINE non è nullo), lo stato è AGGIUDICATO
-        # indipendentemente dal fatto che sia fuori finestra
+        # CASO A: Il preventivo è stato AGGIUDICATO (esiste un ID ORDINE)
+        # Non ci interessa se è fuori finestra, lo marchiamo come successo
         if pd.notna(row['ID ORDINE']):
-            stato = row['STATO_DETTAGLIO']
-            durata = row['DURATA']
+            return pd.Series([row['STATO_DETTAGLIO'], row['DURATA']])
+        
+        # CASO B: Il preventivo NON è stato ancora convertito
+        # Qui applichiamo la logica dello SLIDER (finestra)
+        if giorni_passati > finestra:
+            stato = "PERSO"
+        elif (finestra - giorni_passati) <= giorni_scadenza:
+            stato = "IN SCADENZA"
         else:
-            # Solo se NON c'è un ordine verifichiamo se è perso o in attesa
-            if giorni_passati > finestra:
-                stato = "PERSO"
-            elif (finestra - giorni_passati) <= giorni_scadenza:
-                stato = "IN SCADENZA"
-            else:
-                stato = "IN ATTESA"
+            stato = "IN ATTESA"
             
-            durata = giorni_passati
+        return pd.Series([stato, giorni_passati])
 
-        return pd.Series([stato, durata])
+    # Applichiamo la trasformazione
+    report_prev[['STATO_FINALE', 'DURATA']] = report_prev.apply(elabora_dati_finali, axis=1)
 
     # Applichiamo la funzione aggiornata
     report_prev[['STATO_FINALE', 'DURATA']] = report_prev.apply(elabora_dati_finali, axis=1)

@@ -857,6 +857,7 @@ if df_orders is not None:
     # **********************************
 
     with st.expander("🎯 Analisi Conversione Preventivi Globale"):
+        st.write("")
         with st.popover("ℹ️ Guida all'Analisi"):
             st.info("""
             #### Classificazione (STATO)

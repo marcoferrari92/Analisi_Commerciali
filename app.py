@@ -552,32 +552,37 @@ def analizza_performance_commerciali(df_report):
     st.header("🏆 Analisi Performance per Commerciale")
 
     # 1. PREPARAZIONE DATI
+    df_integro = df_report.copy()
     if 'Analisi_Integrita' in df_report.columns:
-        df_integro = df_report[df_report['Analisi_Integrita'] == "Dato Integro"].copy()
-    else:
-        df_integro = df_report.copy()
+        df_integro = df_integro[df_integro['Analisi_Integrita'] == "Dato Integro"]
 
-    # 2. CALCOLO METRICHE AGGREGATE
-    # Creiamo le colonne base necessarie al calcolo
-    performance = df_integro.groupby('CODICE GESTIONALE UTENTE').agg(
-        Nr_Prev       = ('ID DOCUMENTO', 'nunique'),
-        Vol_Prev      = ('TOTALE', 'sum'),
-        # Vinti Totali
-        Nr_Vinti      = ('STATO_FINALE', lambda x: x.str.contains("AGGIUDICATO").sum()),
-        Vol_Vinto     = ('TOTALE ORDINE', 'sum'),
-        # Dettaglio Chiusi
-        Nr_Chiusi     = ('STATO_FINALE', lambda x: (x == "AGGIUDICATO (CHIUSO)").sum()),
-        Vol_Chiusi    = ('TOTALE ORDINE', lambda x: df_integro.loc[x.index[x == "AGGIUDICATO (CHIUSO)"], 'TOTALE ORDINE'].sum()),
-        # Dettaglio Aperti
-        Nr_Aperti     = ('STATO_FINALE', lambda x: (x == "AGGIUDICATO (APERTO)").sum()),
-        Vol_Aperti    = ('TOTALE ORDINE', lambda x: df_integro.loc[x.index[x == "AGGIUDICATO (APERTO)"], 'TOTALE ORDINE'].sum())
+    # 2. CALCOLO AGGREGATO (Semplificato per evitare errori di indice)
+    # Calcoliamo prima i totali per utente e stato
+    gruppo_agente = df_integro.groupby('CODICE GESTIONALE UTENTE')
+    
+    performance = gruppo_agente.agg(
+        Nr_Prev=('ID DOCUMENTO', 'nunique'),
+        Vol_Prev=('TOTALE', 'sum'),
+        Nr_Vinti=('STATO_FINALE', lambda x: x.str.contains("AGGIUDICATO").sum()),
+        Vol_Vinto=('TOTALE ORDINE', 'sum')
     ).reset_index()
 
-    # 3. CALCOLO RATE E FORMATTAZIONE PERCENTUALI TRA PARENTESI
-    performance['Rate Nr.']  = (performance['Nr_Vinti'] / performance['Nr_Prev'] * 100).fillna(0)
+    # 3. CALCOLO DETTAGLI CHIUSI/APERTI (Logica corretta)
+    # Per evitare zeri, filtriamo i dataframe prima di sommare
+    chiusi = df_integro[df_integro['STATO_FINALE'] == "AGGIUDICATO (CHIUSO)"].groupby('CODICE GESTIONALE UTENTE')
+    aperti = df_integro[df_integro['STATO_FINALE'] == "AGGIUDICATO (APERTO)"].groupby('CODICE GESTIONALE UTENTE')
+
+    # Uniamo i dati alla tabella principale
+    performance = performance.merge(chiusi.agg(Nr_Chiusi=('ID DOCUMENTO', 'count'), Vol_Chiusi=('TOTALE ORDINE', 'sum')).reset_index(), on='CODICE GESTIONALE UTENTE', how='left')
+    performance = performance.merge(aperti.agg(Nr_Aperti=('ID DOCUMENTO', 'count'), Vol_Aperti=('TOTALE ORDINE', 'sum')).reset_index(), on='CODICE GESTIONALE UTENTE', how='left')
+
+    # Riempiamo i NA con zero per chi non ha ordini di un certo tipo
+    performance = performance.fillna(0)
+
+    # 4. CALCOLO RATE E ETICHETTE TESTUALI
+    performance['Rate Nr.'] = (performance['Nr_Vinti'] / performance['Nr_Prev'] * 100).fillna(0)
     performance['Rate Vol.'] = (performance['Vol_Vinto'] / performance['Vol_Prev'] * 100).fillna(0)
 
-    # Funzioni di supporto per le etichette composte
     def fmt_val_pct(val, total):
         pct = (val / total * 100) if total > 0 else 0
         return f"€ {val:,.2f} ({pct:.1f}%)"
@@ -586,28 +591,23 @@ def analizza_performance_commerciali(df_report):
         pct = (val / total * 100) if total > 0 else 0
         return f"{int(val)} ({pct:.1f}%)"
 
-    # Generazione colonne finali
     performance['Nr. Ord. (Chiusi)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Chiusi'], r['Nr_Vinti']), axis=1)
     performance['Vol. Ord. (Chiusi)'] = performance.apply(lambda r: fmt_val_pct(r['Vol_Chiusi'], r['Vol_Vinto']), axis=1)
     performance['Nr. Ord. (Aperti)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Aperti'], r['Nr_Vinti']), axis=1)
     performance['Vol. Ord. (Aperti)'] = performance.apply(lambda r: fmt_val_pct(r['Vol_Aperti'], r['Vol_Vinto']), axis=1)
 
-    # 4. VISUALIZZAZIONE TABELLA COMPARATIVA
-    st.subheader("📈 KPI Performance Comparativa")
-    
+    # 5. VISUALIZZAZIONE TABELLA
     df_comparativo = performance[[
         'CODICE GESTIONALE UTENTE', 'Nr_Prev', 'Nr_Vinti', 'Rate Nr.', 
         'Vol_Prev', 'Vol_Vinto', 'Rate Vol.',
         'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 
         'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)'
-    ]]
+    ]].copy()
 
     st.dataframe(
         df_comparativo.style.format({
-            'Rate Nr.': '{:.1f} %',
-            'Rate Vol.': '{:.1f} %',
-            'Vol_Prev': '€ {:,.2f}',
-            'Vol_Vinto': '€ {:,.2f}'
+            'Rate Nr.': '{:.1f} %', 'Rate Vol.': '{:.1f} %',
+            'Vol_Prev': '€ {:,.2f}', 'Vol_Vinto': '€ {:,.2f}'
         }).background_gradient(subset=['Rate Vol.'], cmap='Greens'),
         use_container_width=True, hide_index=True
     )

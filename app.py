@@ -549,7 +549,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
 
 def analizza_performance_commerciali(df_report):
-    st.header("🏆 Analisi Performance per Commerciale")
+    
 
     # 1. PREPARAZIONE DATI
     df_integro = df_report.copy()
@@ -854,7 +854,7 @@ if df_orders is not None:
     #  CONVERSIONE PREVENTIVI - GLOBALE
     # **********************************
 
-    with st.expander("🎯 Analisi Globale della Conversione dei Preventivi"):
+    with st.expander("🎯 Analisi Conversione Preventivi Globale"):
         with st.popover("ℹ️ Guida all'Analisi"):
             st.info("""
             #### Classificazione (STATO)
@@ -934,7 +934,7 @@ if df_orders is not None:
     #  CONVERSIONE PREVENTIVI - PER COMMERCIALE
     # ******************************************
     
-    with st.expander("🎯 Analisi Conversione dei Preventivi per Commerciale"):
+    with st.expander("🏆 Analisi Conversione Preventivi per Commerciale"):
         df_performance = analizza_performance_commerciali(df_report)
     
 

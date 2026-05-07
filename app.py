@@ -566,7 +566,7 @@ def analizza_performance_commerciali(df_report):
         Vol_Vinto=('TOTALE ORDINE', 'sum')
     ).reset_index()
 
-    # 3. CALCOLO DETTAGLI CHIUSI/APERTI (Per evitare gli zeri)
+    # 3. CALCOLO DETTAGLI CHIUSI/APERTI
     chiusi = df_integro[df_integro['STATO_FINALE'] == "AGGIUDICATO (CHIUSO)"].groupby('CODICE GESTIONALE UTENTE').agg(
         Nr_Chiusi=('ID DOCUMENTO', 'count'),
         Vol_Chiusi=('TOTALE ORDINE', 'sum')
@@ -577,15 +577,11 @@ def analizza_performance_commerciali(df_report):
         Vol_Aperti=('TOTALE ORDINE', 'sum')
     ).reset_index()
 
-    # Unione delle tabelle
     performance = performance.merge(chiusi, on='CODICE GESTIONALE UTENTE', how='left')
     performance = performance.merge(aperti, on='CODICE GESTIONALE UTENTE', how='left')
     performance = performance.fillna(0)
 
-    # 4. CALCOLO RATE E FORMATTAZIONE ETICHETTE (Valore + %)
-    performance['Rate Nr.'] = (performance['Nr_Vinti'] / performance['Nr_Prev'] * 100).fillna(0)
-    performance['Rate Vol.'] = (performance['Vol_Vinto'] / performance['Vol_Prev'] * 100).fillna(0)
-
+    # 4. FUNZIONI DI FORMATTAZIONE PER PARENTESI
     def fmt_val_pct(val, total):
         pct = (val / total * 100) if total > 0 else 0
         return f"€ {val:,.2f} ({pct:.1f}%)"
@@ -594,42 +590,45 @@ def analizza_performance_commerciali(df_report):
         pct = (val / total * 100) if total > 0 else 0
         return f"{int(val)} ({pct:.1f}%)"
 
-    # Creazione colonne combinate
+    # 5. CREAZIONE COLONNE COMBINATE (Vinti Totali, Chiusi e Aperti)
+    # Vinti Totali rispetto ai Preventivi Emessi
+    performance['Nr. Prev. Vinti (%)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Vinti'], r['Nr_Prev']), axis=1)
+    performance['Vol. Vinto (%)'] = performance.apply(lambda r: fmt_val_pct(r['Vol_Vinto'], r['Vol_Prev']), axis=1)
+
+    # Dettagli Chiusi/Aperti rispetto ai Vinti Totali
     performance['Nr. Ord. (Chiusi)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Chiusi'], r['Nr_Vinti']), axis=1)
     performance['Vol. Ord. (Chiusi)'] = performance.apply(lambda r: fmt_val_pct(r['Vol_Chiusi'], r['Vol_Vinto']), axis=1)
     performance['Nr. Ord. (Aperti)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Aperti'], r['Nr_Vinti']), axis=1)
     performance['Vol. Ord. (Aperti)'] = performance.apply(lambda r: fmt_val_pct(r['Vol_Aperti'], r['Vol_Vinto']), axis=1)
 
-    # 5. RINOMINA FINALE COLONNE
+    # 6. SELEZIONE E RINOMINA COLONNE
     df_final = performance[[
         'CODICE GESTIONALE UTENTE', 
-        'Nr_Prev', 'Nr_Vinti', 'Rate Nr.', 
-        'Vol_Prev', 'Vol_Vinto', 'Rate Vol.',
+        'Nr_Prev', 'Nr. Prev. Vinti (%)', 
+        'Vol_Prev', 'Vol. Vinto (%)',
         'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 
         'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)'
     ]].copy()
 
     df_final.columns = [
         'Utente', 
-        'Nr. Prev.', 'Nr. Prev. Vinti', 'Rate Nr.', 
-        'Vol. Prev.', 'Vol. Vinto', 'Rate Vol.',
+        'Nr. Prev.', 'Nr. Prev. Vinti (%)', 
+        'Vol. Prev.', 'Vol. Vinto (%)',
         'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 
         'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)'
     ]
 
-    # 6. VISUALIZZAZIONE
+    # 7. VISUALIZZAZIONE
     st.subheader("📈 KPI Performance Commerciale")
     st.dataframe(
         df_final.style.format({
-            'Rate Nr.': '{:.1f} %',
-            'Rate Vol.': '{:.1f} %',
-            'Vol. Prev.': '€ {:,.2f}',
-            'Vol. Vinto': '€ {:,.2f}'
-        }).background_gradient(subset=['Rate Vol.'], cmap='Greens'),
+            'Nr. Prev.': '{:,.0f}',
+            'Vol. Prev.': '€ {:,.2f}'
+        }),
         use_container_width=True, hide_index=True
     )
 
-    # --- SEZIONE DETTAGLIO SINGOLO UTENTE (MANTENUTA) ---
+    # --- SEZIONE DETTAGLIO SINGOLO UTENTE ---
     st.divider()
     utenti = df_report['CODICE GESTIONALE UTENTE'].unique()
     agente_sel = st.selectbox("Seleziona un Utente per il dettaglio:", utenti)

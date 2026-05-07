@@ -549,93 +549,105 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
 
 def analizza_performance_commerciali(df_report):
-    """
-    Analizza le performance dei commerciali basandosi sul report preventivi.
-    Calcola Hit Rate su numero, volumi economici e quantità di pezzi.
-    """
     st.header("🏆 Analisi Performance per Commerciale")
 
     # 1. PREPARAZIONE DATI
-    # Assicuriamoci di lavorare solo su dati validi se la colonna esiste
     if 'Analisi_Integrita' in df_report.columns:
         df_integro = df_report[df_report['Analisi_Integrita'] == "Dato Integro"].copy()
     else:
         df_integro = df_report.copy()
 
     # 2. CALCOLO METRICHE AGGREGATE
-    # Usiamo STATO_FINALE (che contiene AGGIUDICATO...) e le colonne di volume/QT
+    # Creiamo le colonne base necessarie al calcolo
     performance = df_integro.groupby('CODICE GESTIONALE UTENTE').agg(
-        Nr_Preventivi    = ('ID DOCUMENTO', 'nunique'),
-        Vol_Preventivi   = ('TOTALE', 'sum'),
-        Pezzi_Offerti    = ('QT', 'sum'),
-        Nr_Vinti         = ('STATO_FINALE', lambda x: x.str.contains("AGGIUDICATO").sum()),
-        Vol_Vinto        = ('TOTALE ORDINE', 'sum'),
-        Pezzi_Vinti      = ('NUM ART ORD', 'sum')
+        Nr_Prev       = ('ID DOCUMENTO', 'nunique'),
+        Vol_Prev      = ('TOTALE', 'sum'),
+        # Vinti Totali
+        Nr_Vinti      = ('STATO_FINALE', lambda x: x.str.contains("AGGIUDICATO").sum()),
+        Vol_Vinto     = ('TOTALE ORDINE', 'sum'),
+        # Dettaglio Chiusi
+        Nr_Chiusi     = ('STATO_FINALE', lambda x: (x == "AGGIUDICATO (CHIUSO)").sum()),
+        Vol_Chiusi    = ('TOTALE ORDINE', lambda x: df_integro.loc[x.index[x == "AGGIUDICATO (CHIUSO)"], 'TOTALE ORDINE'].sum()),
+        # Dettaglio Aperti
+        Nr_Aperti     = ('STATO_FINALE', lambda x: (x == "AGGIUDICATO (APERTO)").sum()),
+        Vol_Aperti    = ('TOTALE ORDINE', lambda x: df_integro.loc[x.index[x == "AGGIUDICATO (APERTO)"], 'TOTALE ORDINE'].sum())
     ).reset_index()
 
-    # Calcolo Tassi di Conversione (Hit Rate %)
-    performance['Nr_Rate']  = (performance['Nr_Vinti'] / performance['Nr_Preventivi'] * 100).fillna(0)
-    performance['Vol_Rate'] = (performance['Vol_Vinto'] / performance['Vol_Preventivi'] * 100).fillna(0)
-    performance['QT_Rate']  = (performance['Pezzi_Vinti'] / performance['Pezzi_Offerti'] * 100).fillna(0)
+    # 3. CALCOLO RATE E FORMATTAZIONE PERCENTUALI TRA PARENTESI
+    performance['Rate Nr.']  = (performance['Nr_Vinti'] / performance['Nr_Prev'] * 100).fillna(0)
+    performance['Rate Vol.'] = (performance['Vol_Vinto'] / performance['Vol_Prev'] * 100).fillna(0)
 
-    # --- RIORDINAMENTO COLONNE ---
-    ORDINE_colonne = [
-        'CODICE GESTIONALE UTENTE', 
-        'Nr_Preventivi', 'Nr_Vinti', 'Nr_Rate',          # Focus Numerico
-        'Vol_Preventivi', 'Vol_Vinto', 'Vol_Rate',       # Focus Economico
-        'Pezzi_Offerti', 'Pezzi_Vinti', 'QT_Rate'        # Focus Quantità
-    ]
-    
-    # Filtriamo solo le colonne effettivamente create
-    performance = performance[[c for c in ORDINE_colonne if c in performance.columns]]
+    # Funzioni di supporto per le etichette composte
+    def fmt_val_pct(val, total):
+        pct = (val / total * 100) if total > 0 else 0
+        return f"€ {val:,.2f} ({pct:.1f}%)"
 
-    # 3. VISUALIZZAZIONE KPI
-    st.subheader("📈 KPI di Conversione")
+    def fmt_nr_pct(val, total):
+        pct = (val / total * 100) if total > 0 else 0
+        return f"{int(val)} ({pct:.1f}%)"
+
+    # Generazione colonne finali
+    performance['Nr. Ord. (Chiusi)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Chiusi'], r['Nr_Vinti']), axis=1)
+    performance['Vol. Ord. (Chiusi)'] = performance.apply(lambda r: fmt_val_pct(r['Vol_Chiusi'], r['Vol_Vinto']), axis=1)
+    performance['Nr. Ord. (Aperti)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Aperti'], r['Nr_Vinti']), axis=1)
+    performance['Vol. Ord. (Aperti)'] = performance.apply(lambda r: fmt_val_pct(r['Vol_Aperti'], r['Vol_Vinto']), axis=1)
+
+    # 4. VISUALIZZAZIONE TABELLA COMPARATIVA
+    st.subheader("📈 KPI Performance Comparativa")
     
+    df_comparativo = performance[[
+        'CODICE GESTIONALE UTENTE', 'Nr_Prev', 'Nr_Vinti', 'Rate Nr.', 
+        'Vol_Prev', 'Vol_Vinto', 'Rate Vol.',
+        'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 
+        'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)'
+    ]]
+
     st.dataframe(
-        performance.style.format({
-            'Nr_Rate': '{:.1f} %',
-            'Vol_Rate': '{:.1f} %',
-            'QT_Rate': '{:.1f} %',
-            'Vol_Preventivi': '€ {:,.2f}',
-            'Vol_Vinto': '€ {:,.2f}',
-            'Pezzi_Offerti': '{:,.0f}',
-            'Pezzi_Vinti': '{:,.0f}'
-        }).background_gradient(subset=['Vol_Rate'], cmap='Greens'),
+        df_comparativo.style.format({
+            'Rate Nr.': '{:.1f} %',
+            'Rate Vol.': '{:.1f} %',
+            'Vol_Prev': '€ {:,.2f}',
+            'Vol_Vinto': '€ {:,.2f}'
+        }).background_gradient(subset=['Rate Vol.'], cmap='Greens'),
         use_container_width=True, hide_index=True
     )
 
-    # 4. ANALISI QUALITÀ DATI (Se presente colonna integrità)
-    if 'Analisi_Integrita' in df_report.columns:
-        st.divider()
-        st.subheader("🚩 Analisi Qualità Inserimento Dati")
-        anomalie_count = df_report[df_report['Analisi_Integrita'] != "Dato Integro"].groupby(
-            ['CODICE GESTIONALE UTENTE', 'Analisi_Integrita']
-        ).size().unstack(fill_value=0).reset_index()
-        
-        if not anomalie_count.empty:
-            st.dataframe(anomalie_count, use_container_width=True, hide_index=True)
-        else:
-            st.success("✅ Nessuna anomalia rilevata!")
-
-    # 5. DETTAGLIO AGENTE
+    # 5. DETTAGLIO SINGOLO COMMERCIALE (Mantieni analisi precedente)
     st.divider()
+    st.subheader("👤 Analisi Dettagliata per Commerciale")
+    
     utenti = df_report['CODICE GESTIONALE UTENTE'].unique()
-    agente_sel = st.selectbox("Seleziona un commerciale per il dettaglio:", utenti)
+    agente_sel = st.selectbox("Seleziona un commerciale per approfondire:", utenti)
     
     if agente_sel:
         df_agente = df_report[df_report['CODICE GESTIONALE UTENTE'] == agente_sel].copy()
         
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Preventivi Totali", len(df_agente['ID DOCUMENTO'].unique()))
-        c2.metric("Valore Offerto", f"€ {df_agente['TOTALE'].sum():,.2f}")
-        # Calcolo velocità media di chiusura (solo su quelli vinti)
-        velocita = df_agente[df_agente['STATO_FINALE'].str.contains("AGGIUDICATO")]['DURATA'].mean()
+        # Metriche principali in alto
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Preventivi Emessi", len(df_agente['ID DOCUMENTO'].unique()))
+        c2.metric("Valore Tot. Offerto", f"€ {df_agente['TOTALE'].sum():,.2f}")
+        
+        # Calcolo velocità media solo su vinti
+        vinti = df_agente[df_agente['STATO_FINALE'].str.contains("AGGIUDICATO")]
+        velocita = vinti['DURATA'].mean()
         c3.metric("Tempo Medio Chiusura", f"{velocita:.1f} gg" if pd.notnull(velocita) else "-")
         
-        # Tabella di dettaglio
+        # Hit Rate specifico dell'agente selezionato
+        hr_agente = (len(vinti['ID DOCUMENTO'].unique()) / len(df_agente['ID DOCUMENTO'].unique()) * 100)
+        c4.metric("Hit Rate (Nr)", f"{hr_agente:.1f}%")
+
+        # Tabella cronologica dei documenti dell'agente
+        st.write(f"**Elenco Documenti di {agente_sel}:**")
+        
+        # Prepariamo la tabella di dettaglio includendo la colonna INFO che abbiamo creato prima
         st.dataframe(
-            df_agente[['DATA', 'CLIENTE', 'TOTALE', 'STATO_FINALE', 'DURATA']].sort_values('DATA', ascending=False),
+            df_agente[['DATA', 'CLIENTE', 'TOTALE', 'STATO_FINALE', 'INFO', 'DURATA']]
+            .sort_values('DATA', ascending=False)
+            .style.format({
+                'DATA': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y'),
+                'TOTALE': '€ {:,.2f}',
+                'DURATA': lambda x: f"{int(x)} gg" if pd.notnull(x) else "-"
+            }).map(colora_stato, subset=['STATO_FINALE']),
             use_container_width=True, hide_index=True
         )
 

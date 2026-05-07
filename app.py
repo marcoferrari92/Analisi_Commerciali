@@ -556,7 +556,7 @@ def analizza_performance_commerciali(df_report):
     if 'Analisi_Integrita' in df_report.columns:
         df_integro = df_integro[df_integro['Analisi_Integrita'] == "Dato Integro"]
 
-    # 2. CALCOLO AGGREGATO BASE
+    # 2. CALCOLO AGGREGATO BASE (Tabella Generale)
     gruppo_agente = df_integro.groupby('CODICE GESTIONALE UTENTE')
     
     performance = gruppo_agente.agg(
@@ -568,20 +568,18 @@ def analizza_performance_commerciali(df_report):
 
     # 3. CALCOLO DETTAGLI CHIUSI/APERTI
     chiusi = df_integro[df_integro['STATO_FINALE'] == "AGGIUDICATO (CHIUSO)"].groupby('CODICE GESTIONALE UTENTE').agg(
-        Nr_Chiusi=('ID DOCUMENTO', 'count'),
-        Vol_Chiusi=('TOTALE ORDINE', 'sum')
+        Nr_Chiusi=('ID DOCUMENTO', 'count'), Vol_Chiusi=('TOTALE ORDINE', 'sum')
     ).reset_index()
 
     aperti = df_integro[df_integro['STATO_FINALE'] == "AGGIUDICATO (APERTO)"].groupby('CODICE GESTIONALE UTENTE').agg(
-        Nr_Aperti=('ID DOCUMENTO', 'count'),
-        Vol_Aperti=('TOTALE ORDINE', 'sum')
+        Nr_Aperti=('ID DOCUMENTO', 'count'), Vol_Aperti=('TOTALE ORDINE', 'sum')
     ).reset_index()
 
     performance = performance.merge(chiusi, on='CODICE GESTIONALE UTENTE', how='left')
     performance = performance.merge(aperti, on='CODICE GESTIONALE UTENTE', how='left')
     performance = performance.fillna(0)
 
-    # 4. FUNZIONI DI FORMATTAZIONE PER PARENTESI
+    # 4. FUNZIONI FORMATTAZIONE PARENTESI
     def fmt_val_pct(val, total):
         pct = (val / total * 100) if total > 0 else 0
         return f"€ {val:,.2f} ({pct:.1f}%)"
@@ -590,63 +588,56 @@ def analizza_performance_commerciali(df_report):
         pct = (val / total * 100) if total > 0 else 0
         return f"{int(val)} ({pct:.1f}%)"
 
-    # 5. CREAZIONE COLONNE COMBINATE (Vinti Totali, Chiusi e Aperti)
-    # Vinti Totali rispetto ai Preventivi Emessi
+    # 5. CREAZIONE COLONNE FORMATTATE
     performance['Nr. Prev. Vinti (%)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Vinti'], r['Nr_Prev']), axis=1)
     performance['Vol. Vinto (%)'] = performance.apply(lambda r: fmt_val_pct(r['Vol_Vinto'], r['Vol_Prev']), axis=1)
-
-    # Dettagli Chiusi/Aperti rispetto ai Vinti Totali
     performance['Nr. Ord. (Chiusi)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Chiusi'], r['Nr_Vinti']), axis=1)
     performance['Vol. Ord. (Chiusi)'] = performance.apply(lambda r: fmt_val_pct(r['Vol_Chiusi'], r['Vol_Vinto']), axis=1)
     performance['Nr. Ord. (Aperti)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Aperti'], r['Nr_Vinti']), axis=1)
     performance['Vol. Ord. (Aperti)'] = performance.apply(lambda r: fmt_val_pct(r['Vol_Aperti'], r['Vol_Vinto']), axis=1)
 
-    # 6. SELEZIONE E RINOMINA COLONNE
-    df_final = performance[[
-        'CODICE GESTIONALE UTENTE', 
-        'Nr_Prev', 'Nr. Prev. Vinti (%)', 
-        'Vol_Prev', 'Vol. Vinto (%)',
-        'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 
-        'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)'
-    ]].copy()
+    # 6. VISUALIZZAZIONE TABELLA GENERALE
+    st.subheader("📈 KPI Performance Comparativa")
+    df_gen = performance[['CODICE GESTIONALE UTENTE', 'Nr_Prev', 'Nr. Prev. Vinti (%)', 'Vol_Prev', 'Vol. Vinto (%)', 
+                          'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)']].copy()
+    df_gen.columns = ['Utente', 'Nr. Prev.', 'Nr. Prev. Vinti (%)', 'Vol. Prev.', 'Vol. Vinto (%)', 
+                      'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)']
+    
+    st.dataframe(df_gen.style.format({'Nr. Prev.': '{:,.0f}', 'Vol. Prev.': '€ {:,.2f}'}), use_container_width=True, hide_index=True)
 
-    df_final.columns = [
-        'Utente', 
-        'Nr. Prev.', 'Nr. Prev. Vinti (%)', 
-        'Vol. Prev.', 'Vol. Vinto (%)',
-        'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 
-        'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)'
-    ]
-
-    # 7. VISUALIZZAZIONE
-    st.subheader("📈 KPI Performance Commerciale")
-    st.dataframe(
-        df_final.style.format({
-            'Nr. Prev.': '{:,.0f}',
-            'Vol. Prev.': '€ {:,.2f}'
-        }),
-        use_container_width=True, hide_index=True
-    )
-
-    # --- SEZIONE DETTAGLIO SINGOLO UTENTE ---
+    # --- 7. SEZIONE DETTAGLIO SINGOLO UTENTE ---
     st.divider()
+    st.subheader("👤 Analisi Dettagliata per Utente")
+    
     utenti = df_report['CODICE GESTIONALE UTENTE'].unique()
-    agente_sel = st.selectbox("Seleziona un Utente per il dettaglio:", utenti)
+    agente_sel = st.selectbox("Seleziona un Utente per approfondire:", utenti)
     
     if agente_sel:
-        df_agente = df_report[df_report['CODICE GESTIONALE UTENTE'] == agente_sel].copy()
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Preventivi Totali", len(df_agente['ID DOCUMENTO'].unique()))
-        c2.metric("Valore Offerto", f"€ {df_agente['TOTALE'].sum():,.2f}")
+        # Recuperiamo la riga corrispondente dalla tabella performance già calcolata
+        perf_agente = performance[performance['CODICE GESTIONALE UTENTE'] == agente_sel].copy()
         
-        vinti = df_agente[df_agente['STATO_FINALE'].str.contains("AGGIUDICATO")]
+        # Prepariamo la tabella KPI identica alla generale (senza colonna Utente)
+        df_kpi_agente = perf_agente[['Nr_Prev', 'Nr. Prev. Vinti (%)', 'Vol_Prev', 'Vol. Vinto (%)', 
+                                    'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)']].copy()
+        df_kpi_agente.columns = ['Nr. Prev.', 'Nr. Prev. Vinti (%)', 'Vol. Prev.', 'Vol. Vinto (%)', 
+                                 'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)']
+
+        st.write(f"**Riepilogo Performance di {agente_sel}:**")
+        st.dataframe(df_kpi_agente.style.format({'Nr. Prev.': '{:,.0f}', 'Vol. Prev.': '€ {:,.2f}'}), use_container_width=True, hide_index=True)
+
+        # Metriche accessorie (Velocità)
+        df_agente_full = df_report[df_report['CODICE GESTIONALE UTENTE'] == agente_sel].copy()
+        vinti = df_agente_full[df_agente_full['STATO_FINALE'].str.contains("AGGIUDICATO")]
         velocita = vinti['DURATA'].mean()
-        c3.metric("Tempo Medio Chiusura", f"{velocita:.1f} gg" if pd.notnull(velocita) else "-")
-        
+        st.metric("Tempo Medio Chiusura", f"{velocita:.1f} gg" if pd.notnull(velocita) else "-")
+
+        # Elenco Cronologico
+        st.write(f"**Registro Documenti:**")
         st.dataframe(
-            df_agente[['DATA', 'CLIENTE', 'TOTALE', 'STATO_FINALE', 'INFO', 'DURATA']]
+            df_agente_full[['DATA', 'CLIENTE', 'TOTALE', 'STATO_FINALE', 'INFO', 'DURATA']]
             .sort_values('DATA', ascending=False)
             .style.format({
+                'DATA': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y'),
                 'TOTALE': '€ {:,.2f}',
                 'DURATA': lambda x: f"{int(x)} gg" if pd.notnull(x) else "-"
             }).map(colora_stato, subset=['STATO_FINALE']),

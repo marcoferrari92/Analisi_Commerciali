@@ -544,6 +544,8 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
         hide_index=True
     )
 
+    st.write("")
+    st.write("")
     return report_prev
 
 

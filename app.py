@@ -661,11 +661,11 @@ def analizza_performance_commerciali(df_report):
         df_kpi_agente.columns = ['Nr. Prev.', 'Nr. Prev. Vinti (%)', 'Vol. Prev.', 'Vol. Vinto (%)', 
                                  'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)']
 
-        st.write(f"**Riepilogo Performance di {agente_sel}:**")
+        st.write(f"**Riepilogo Performance:**")
         st.dataframe(df_kpi_agente.style.format({'Nr. Prev.': '{:,.0f}', 'Vol. Prev.': '€ {:,.2f}'}), use_container_width=True, hide_index=True)
 
         # Registro Documenti (Analitico)
-        st.write(f"**Registro Documenti Analitico:**")
+        st.write(f"**Registro:**")
         df_agente_full = df_report[df_report['CODICE GESTIONALE UTENTE'] == agente_sel].copy()
         df_display_agente = df_agente_full[[
             'DATA', 'DATA ORDINE', 'DURATA', 'STATO_FINALE', 'INFO', 

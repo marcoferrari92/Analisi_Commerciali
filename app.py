@@ -588,7 +588,7 @@ def analizza_performance_commerciali(df_report):
         pct = (val / total * 100) if total > 0 else 0
         return f"{int(val)} ({pct:.1f}%)"
 
-    # 5. CREAZIONE COLONNE FORMATTATE
+    # 5. CREAZIONE COLONNE FORMATTATE PER TABELLA KPI
     performance['Nr. Prev. Vinti (%)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Vinti'], r['Nr_Prev']), axis=1)
     performance['Vol. Vinto (%)'] = performance.apply(lambda r: fmt_val_pct(r['Vol_Vinto'], r['Vol_Prev']), axis=1)
     performance['Nr. Ord. (Chiusi)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Chiusi'], r['Nr_Vinti']), axis=1)
@@ -613,10 +613,8 @@ def analizza_performance_commerciali(df_report):
     agente_sel = st.selectbox("Seleziona un Utente per approfondire:", utenti)
     
     if agente_sel:
-        # Recuperiamo la riga corrispondente dalla tabella performance già calcolata
+        # Riepilogo KPI (Riga singola)
         perf_agente = performance[performance['CODICE GESTIONALE UTENTE'] == agente_sel].copy()
-        
-        # Prepariamo la tabella KPI identica alla generale (senza colonna Utente)
         df_kpi_agente = perf_agente[['Nr_Prev', 'Nr. Prev. Vinti (%)', 'Vol_Prev', 'Vol. Vinto (%)', 
                                     'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)']].copy()
         df_kpi_agente.columns = ['Nr. Prev.', 'Nr. Prev. Vinti (%)', 'Vol. Prev.', 'Vol. Vinto (%)', 
@@ -625,22 +623,35 @@ def analizza_performance_commerciali(df_report):
         st.write(f"**Riepilogo Performance di {agente_sel}:**")
         st.dataframe(df_kpi_agente.style.format({'Nr. Prev.': '{:,.0f}', 'Vol. Prev.': '€ {:,.2f}'}), use_container_width=True, hide_index=True)
 
-        # Metriche accessorie (Velocità)
+        # Registro Documenti (Analitico) - QUI HO AGGIORNATO LE COLONNE
+        st.write(f"**Registro Documenti Analitico:**")
+        
         df_agente_full = df_report[df_report['CODICE GESTIONALE UTENTE'] == agente_sel].copy()
-        vinti = df_agente_full[df_agente_full['STATO_FINALE'].str.contains("AGGIUDICATO")]
-        velocita = vinti['DURATA'].mean()
-        st.metric("Tempo Medio Chiusura", f"{velocita:.1f} gg" if pd.notnull(velocita) else "-")
+        
+        # Preparazione DataFrame con i nomi colonne richiesti
+        df_display_agente = df_agente_full[[
+            'DATA', 'DATA ORDINE', 'DURATA', 'STATO_FINALE', 'INFO', 
+            'CLIENTE', 'CODICE GESTIONALE UTENTE', 'QT', 'NUM ART ORD', 'TOTALE', 'TOTALE ORDINE',
+            'ID DOCUMENTO', 'ID ORDINE'
+        ]].copy()
 
-        # Elenco Cronologico
-        st.write(f"**Registro Documenti:**")
+        df_display_agente.columns = [
+            'Data Prev.', 'Data Ord.', 'Durata', 'Stato', 'Info', 
+            'Cliente', 'Utente', 'Q.tà Prev.', 'Q.tà Ord.', 'Tot. Prev.', 'Tot. Ord.', 
+            'ID Prev.', 'ID Ord.'
+        ]
+
         st.dataframe(
-            df_agente_full[['DATA', 'CLIENTE', 'TOTALE', 'STATO_FINALE', 'INFO', 'DURATA']]
-            .sort_values('DATA', ascending=False)
+            df_display_agente.sort_values(by=['Data Prev.'], ascending=False)
             .style.format({
-                'DATA': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y'),
-                'TOTALE': '€ {:,.2f}',
-                'DURATA': lambda x: f"{int(x)} gg" if pd.notnull(x) else "-"
-            }).map(colora_stato, subset=['STATO_FINALE']),
+                'Data Prev.': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y'),
+                'Data Ord.': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y') if pd.notnull(x) else "-",
+                'Tot. Prev.': '{:,.2f} €',
+                'Tot. Ord.': '{:,.2f} €',
+                'Durata': lambda x: f"{int(x)} gg" if pd.notnull(x) else "-",
+                'Q.tà Prev.': '{:,.0f}', 
+                'Q.tà Ord.': '{:,.0f}'   
+            }).map(colora_stato, subset=['Stato']),
             use_container_width=True, hide_index=True
         )
 

@@ -550,47 +550,44 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
 
 
+
+
 def analizza_performance_commerciali(df_report):
-    
+    st.header("🏆 Analisi Performance per Commerciale")
 
     # 1. PREPARAZIONE DATI
     df_integro = df_report.copy()
     if 'Analisi_Integrita' in df_report.columns:
         df_integro = df_integro[df_integro['Analisi_Integrita'] == "Dato Integro"]
 
-    # 2. CALCOLO AGGREGATO BASE (Tabella Generale)
+    # 2. CALCOLO AGGREGATO BASE
     gruppo_agente = df_integro.groupby('CODICE GESTIONALE UTENTE')
-    
     performance = gruppo_agente.agg(
         Nr_Prev=('ID DOCUMENTO', 'nunique'),
         Vol_Prev=('TOTALE', 'sum'),
         Nr_Vinti=('STATO_FINALE', lambda x: x.str.contains("AGGIUDICATO").sum()),
-        Vol_Vinto=('TOTALE ORDINE', 'sum')
+        Vol_Vinto=('TOTALE ORDINE', 'sum'),
+        Rate_Nr_Num=('STATO_FINALE', lambda x: (x.str.contains("AGGIUDICATO").sum() / x.nunique() * 100)) # Per grafici
     ).reset_index()
 
     # 3. CALCOLO DETTAGLI CHIUSI/APERTI
     chiusi = df_integro[df_integro['STATO_FINALE'] == "AGGIUDICATO (CHIUSO)"].groupby('CODICE GESTIONALE UTENTE').agg(
         Nr_Chiusi=('ID DOCUMENTO', 'count'), Vol_Chiusi=('TOTALE ORDINE', 'sum')
     ).reset_index()
-
     aperti = df_integro[df_integro['STATO_FINALE'] == "AGGIUDICATO (APERTO)"].groupby('CODICE GESTIONALE UTENTE').agg(
         Nr_Aperti=('ID DOCUMENTO', 'count'), Vol_Aperti=('TOTALE ORDINE', 'sum')
     ).reset_index()
 
-    performance = performance.merge(chiusi, on='CODICE GESTIONALE UTENTE', how='left')
-    performance = performance.merge(aperti, on='CODICE GESTIONALE UTENTE', how='left')
-    performance = performance.fillna(0)
+    performance = performance.merge(chiusi, on='CODICE GESTIONALE UTENTE', how='left').merge(aperti, on='CODICE GESTIONALE UTENTE', how='left').fillna(0)
 
-    # 4. FUNZIONI FORMATTAZIONE PARENTESI
+    # 4. FUNZIONI FORMATTAZIONE
     def fmt_val_pct(val, total):
         pct = (val / total * 100) if total > 0 else 0
         return f"€ {val:,.2f} ({pct:.1f}%)"
-
     def fmt_nr_pct(val, total):
         pct = (val / total * 100) if total > 0 else 0
         return f"{int(val)} ({pct:.1f}%)"
 
-    # 5. CREAZIONE COLONNE FORMATTATE PER TABELLA KPI
     performance['Nr. Prev. Vinti (%)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Vinti'], r['Nr_Prev']), axis=1)
     performance['Vol. Vinto (%)'] = performance.apply(lambda r: fmt_val_pct(r['Vol_Vinto'], r['Vol_Prev']), axis=1)
     performance['Nr. Ord. (Chiusi)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Chiusi'], r['Nr_Vinti']), axis=1)
@@ -598,64 +595,73 @@ def analizza_performance_commerciali(df_report):
     performance['Nr. Ord. (Aperti)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Aperti'], r['Nr_Vinti']), axis=1)
     performance['Vol. Ord. (Aperti)'] = performance.apply(lambda r: fmt_val_pct(r['Vol_Aperti'], r['Vol_Vinto']), axis=1)
 
-    # 6. VISUALIZZAZIONE TABELLA GENERALE
+    # 5. TABELLA GENERALE
     st.subheader("📈 KPI Performance Comparativa")
     df_gen = performance[['CODICE GESTIONALE UTENTE', 'Nr_Prev', 'Nr. Prev. Vinti (%)', 'Vol_Prev', 'Vol. Vinto (%)', 
                           'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)']].copy()
     df_gen.columns = ['Utente', 'Nr. Prev.', 'Nr. Prev. Vinti (%)', 'Vol. Prev.', 'Vol. Vinto (%)', 
                       'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)']
-    
     st.dataframe(df_gen.style.format({'Nr. Prev.': '{:,.0f}', 'Vol. Prev.': '€ {:,.2f}'}), use_container_width=True, hide_index=True)
 
-    # --- 7. SEZIONE DETTAGLIO SINGOLO UTENTE ---
-    st.divider()
-    st.subheader("👤 Analisi Dettagliata per Utente")
+    # --- GRAFICI DI SQUADRA ---
+    col_g1, col_g2 = st.columns(2)
+    with col_g1:
+        # Grafico 2: Offerto vs Vinto
+        fig2 = px.bar(performance, x='CODICE GESTIONALE UTENTE', y=['Vol_Prev', 'Vol_Vinto'],
+                     barmode='group', title="Volume Preventivato vs Vinto",
+                     labels={'value': 'Euro (€)', 'variable': 'Tipo'},
+                     color_discrete_map={'Vol_Prev': '#A2D2FF', 'Vol_Vinto': '#4E944F'})
+        st.plotly_chart(fig2, use_container_width=True)
     
+    with col_g2:
+        # Grafico 4: Scatter Plot Efficienza
+        fig4 = px.scatter(performance, x='Nr_Prev', y='Rate_Nr_Num',
+                         size='Vol_Vinto', color='CODICE GESTIONALE UTENTE',
+                         title="Efficienza: N. Prev vs Hit Rate (Dimensione = Fatturato)",
+                         labels={'Nr_Prev': 'N. Preventivi', 'Rate_Nr_Num': 'Hit Rate %'})
+        st.plotly_chart(fig4, use_container_width=True)
+
+    # --- 6. DETTAGLIO UTENTE ---
+    st.divider()
     utenti = df_report['CODICE GESTIONALE UTENTE'].unique()
     agente_sel = st.selectbox("Seleziona un Utente per approfondire:", utenti)
     
     if agente_sel:
-        # Riepilogo KPI (Riga singola)
-        perf_agente = performance[performance['CODICE GESTIONALE UTENTE'] == agente_sel].copy()
-        df_kpi_agente = perf_agente[['Nr_Prev', 'Nr. Prev. Vinti (%)', 'Vol_Prev', 'Vol. Vinto (%)', 
-                                    'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)']].copy()
-        df_kpi_agente.columns = ['Nr. Prev.', 'Nr. Prev. Vinti (%)', 'Vol. Prev.', 'Vol. Vinto (%)', 
-                                 'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)']
-
-        st.write(f"**Riepilogo Performance di {agente_sel}:**")
-        st.dataframe(df_kpi_agente.style.format({'Nr. Prev.': '{:,.0f}', 'Vol. Prev.': '€ {:,.2f}'}), use_container_width=True, hide_index=True)
-
-        # Registro Documenti (Analitico) - QUI HO AGGIORNATO LE COLONNE
-        st.write(f"**Registro Documenti Analitico:**")
-        
+        perf_agente = performance[performance['CODICE GESTIONALE UTENTE'] == agente_sel].iloc[0]
         df_agente_full = df_report[df_report['CODICE GESTIONALE UTENTE'] == agente_sel].copy()
-        
-        # Preparazione DataFrame con i nomi colonne richiesti
-        df_display_agente = df_agente_full[[
-            'DATA', 'DATA ORDINE', 'DURATA', 'STATO_FINALE', 'INFO', 
-            'CLIENTE', 'CODICE GESTIONALE UTENTE', 'QT', 'NUM ART ORD', 'TOTALE', 'TOTALE ORDINE',
-            'ID DOCUMENTO', 'ID ORDINE'
-        ]].copy()
 
-        df_display_agente.columns = [
-            'Data Prev.', 'Data Ord.', 'Durata', 'Stato', 'Info', 
-            'Cliente', 'Utente', 'Q.tà Prev.', 'Q.tà Ord.', 'Tot. Prev.', 'Tot. Ord.', 
-            'ID Prev.', 'ID Ord.'
-        ]
+        # Grafici di dettaglio
+        col_det1, col_det2 = st.columns([1, 2])
+        with col_det1:
+            # Grafico 1: Funnel
+            fig1 = go.Figure(go.Funnel(
+                y = ["Preventivi", "Aggiudicati", "Chiusi"],
+                x = [perf_agente['Nr_Prev'], perf_agente['Nr_Vinti'], perf_agente['Nr_Chiusi']],
+                textinfo = "value+percent initial", marker = {"color": ["#A2D2FF", "#B4E197", "#4E944F"]}))
+            fig1.update_layout(title="Funnel di Conversione", margin=dict(l=20, r=20, t=40, b=20))
+            st.plotly_chart(fig1, use_container_width=True)
 
-        st.dataframe(
-            df_display_agente.sort_values(by=['Data Prev.'], ascending=False)
-            .style.format({
-                'Data Prev.': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y'),
-                'Data Ord.': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y') if pd.notnull(x) else "-",
-                'Tot. Prev.': '{:,.2f} €',
-                'Tot. Ord.': '{:,.2f} €',
-                'Durata': lambda x: f"{int(x)} gg" if pd.notnull(x) else "-",
-                'Q.tà Prev.': '{:,.0f}', 
-                'Q.tà Ord.': '{:,.0f}'   
-            }).map(colora_stato, subset=['Stato']),
-            use_container_width=True, hide_index=True
-        )
+        with col_det2:
+            # Grafico 3: Distribuzione Tempi (Box Plot)
+            vinti_agente = df_agente_full[df_agente_full['STATO_FINALE'].str.contains("AGGIUDICATO")]
+            if not vinti_agente.empty:
+                fig3 = px.box(vinti_agente, y='DURATA', points="all", title="Distribuzione Tempi di Chiusura (GG)",
+                             color_discrete_sequence=['#4E944F'], labels={'DURATA': 'Giorni'})
+                st.plotly_chart(fig3, use_container_width=True)
+            else:
+                st.warning("Dati insufficienti per il grafico dei tempi.")
+
+        # Tabella Registro Analitico (come richiesto)
+        st.write(f"**Registro Documenti Analitico di {agente_sel}:**")
+        df_display_agente = df_agente_full[['DATA', 'DATA ORDINE', 'DURATA', 'STATO_FINALE', 'INFO', 'CLIENTE', 'CODICE GESTIONALE UTENTE', 'QT', 'NUM ART ORD', 'TOTALE', 'TOTALE ORDINE', 'ID DOCUMENTO', 'ID ORDINE']].copy()
+        df_display_agente.columns = ['Data Prev.', 'Data Ord.', 'Durata', 'Stato', 'Info', 'Cliente', 'Utente', 'Q.tà Prev.', 'Q.tà Ord.', 'Tot. Prev.', 'Tot. Ord.', 'ID Prev.', 'ID Ord.']
+        st.dataframe(df_display_agente.sort_values(by=['Data Prev.'], ascending=False).style.format({
+            'Data Prev.': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y'),
+            'Data Ord.': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y') if pd.notnull(x) else "-",
+            'Tot. Prev.': '{:,.2f} €', 'Tot. Ord.': '{:,.2f} €',
+            'Durata': lambda x: f"{int(x)} gg" if pd.notnull(x) else "-",
+            'Q.tà Prev.': '{:,.0f}', 'Q.tà Ord.': '{:,.0f}'   
+        }).map(colora_stato, subset=['Stato']), use_container_width=True, hide_index=True)
 
     return performance
 

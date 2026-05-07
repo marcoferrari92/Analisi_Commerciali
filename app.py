@@ -336,6 +336,8 @@ def colora_stato(val):
     }
     return colori.get(val, "color: black;")
 
+
+
 def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
     # NOTA: df è già passato per validazione_importi(), quindi ha già la colonna 'TOTALE'
     
@@ -552,15 +554,15 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
 
 
-def analizza_performance_commerciali(df_report):
-    
+import plotly.express as px
 
+def analizza_performance_commerciali(df_report):
     # 1. PREPARAZIONE DATI
     df_integro = df_report.copy()
     if 'Analisi_Integrita' in df_report.columns:
         df_integro = df_integro[df_integro['Analisi_Integrita'] == "Dato Integro"]
 
-    # 2. CALCOLO AGGREGATO BASE (Tabella Generale)
+    # 2. CALCOLO AGGREGATO BASE
     gruppo_agente = df_integro.groupby('CODICE GESTIONALE UTENTE')
     
     performance = gruppo_agente.agg(
@@ -579,11 +581,12 @@ def analizza_performance_commerciali(df_report):
         Nr_Aperti=('ID DOCUMENTO', 'count'), Vol_Aperti=('TOTALE ORDINE', 'sum')
     ).reset_index()
 
-    performance = performance.merge(chiusi, on='CODICE GESTIONALE UTENTE', how='left')
-    performance = performance.merge(aperti, on='CODICE GESTIONALE UTENTE', how='left')
-    performance = performance.fillna(0)
+    performance = performance.merge(chiusi, on='CODICE GESTIONALE UTENTE', how='left').merge(aperti, on='CODICE GESTIONALE UTENTE', how='left').fillna(0)
 
-    # 4. FUNZIONI FORMATTAZIONE PARENTESI
+    # 4. CALCOLO RATE NUMERICI (Necessari per il grafico)
+    performance['Hit_Rate_Nr'] = (performance['Nr_Vinti'] / performance['Nr_Prev'] * 100).fillna(0)
+
+    # 5. FUNZIONI FORMATTAZIONE PARENTESI (Per la tabella)
     def fmt_val_pct(val, total):
         pct = (val / total * 100) if total > 0 else 0
         return f"€ {val:,.2f} ({pct:.1f}%)"
@@ -592,7 +595,6 @@ def analizza_performance_commerciali(df_report):
         pct = (val / total * 100) if total > 0 else 0
         return f"{int(val)} ({pct:.1f}%)"
 
-    # 5. CREAZIONE COLONNE FORMATTATE PER TABELLA KPI
     performance['Nr. Prev. Vinti (%)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Vinti'], r['Nr_Prev']), axis=1)
     performance['Vol. Vinto (%)'] = performance.apply(lambda r: fmt_val_pct(r['Vol_Vinto'], r['Vol_Prev']), axis=1)
     performance['Nr. Ord. (Chiusi)'] = performance.apply(lambda r: fmt_nr_pct(r['Nr_Chiusi'], r['Nr_Vinti']), axis=1)
@@ -608,6 +610,22 @@ def analizza_performance_commerciali(df_report):
                       'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)']
     
     st.dataframe(df_gen.style.format({'Nr. Prev.': '{:,.0f}', 'Vol. Prev.': '€ {:,.2f}'}), use_container_width=True, hide_index=True)
+
+    # --- AGGIUNTA SCATTER PLOT ---
+    st.write("")
+    fig_scatter = px.scatter(
+        performance, 
+        x='Nr_Prev', 
+        y='Hit_Rate_Nr',
+        size='Vol_Vinto', 
+        color='CODICE GESTIONALE UTENTE',
+        hover_name='CODICE GESTIONALE UTENTE',
+        title="Efficienza Commerciale: Numero Preventivi vs Hit Rate (Dimensione = Volume Vinto)",
+        labels={'Nr_Prev': 'Numero Preventivi Emessi', 'Hit_Rate_Nr': 'Tasso Conversione (%)', 'Vol_Vinto': 'Volume Vinto (€)'},
+        text='CODICE GESTIONALE UTENTE'
+    )
+    fig_scatter.update_traces(textposition='top center')
+    st.plotly_chart(fig_scatter, use_container_width=True)
 
     # --- 7. SEZIONE DETTAGLIO SINGOLO UTENTE ---
     st.divider()
@@ -627,12 +645,9 @@ def analizza_performance_commerciali(df_report):
         st.write(f"**Riepilogo Performance di {agente_sel}:**")
         st.dataframe(df_kpi_agente.style.format({'Nr. Prev.': '{:,.0f}', 'Vol. Prev.': '€ {:,.2f}'}), use_container_width=True, hide_index=True)
 
-        # Registro Documenti (Analitico) - QUI HO AGGIORNATO LE COLONNE
+        # Registro Documenti (Analitico)
         st.write(f"**Registro Documenti Analitico:**")
-        
         df_agente_full = df_report[df_report['CODICE GESTIONALE UTENTE'] == agente_sel].copy()
-        
-        # Preparazione DataFrame con i nomi colonne richiesti
         df_display_agente = df_agente_full[[
             'DATA', 'DATA ORDINE', 'DURATA', 'STATO_FINALE', 'INFO', 
             'CLIENTE', 'CODICE GESTIONALE UTENTE', 'QT', 'NUM ART ORD', 'TOTALE', 'TOTALE ORDINE',
@@ -659,7 +674,7 @@ def analizza_performance_commerciali(df_report):
             use_container_width=True, hide_index=True
         )
 
-    return performance 
+    return performance
 
 
 

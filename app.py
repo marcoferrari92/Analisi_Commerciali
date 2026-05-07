@@ -553,9 +553,6 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
 
 
-
-import plotly.express as px
-
 def analizza_performance_commerciali(df_report):
     # 1. PREPARAZIONE DATI
     df_integro = df_report.copy()
@@ -583,10 +580,10 @@ def analizza_performance_commerciali(df_report):
 
     performance = performance.merge(chiusi, on='CODICE GESTIONALE UTENTE', how='left').merge(aperti, on='CODICE GESTIONALE UTENTE', how='left').fillna(0)
 
-    # 4. CALCOLO RATE NUMERICI (Necessari per il grafico)
+    # 4. CALCOLO RATE NUMERICI (Per i Grafici)
     performance['Hit_Rate_Nr'] = (performance['Nr_Vinti'] / performance['Nr_Prev'] * 100).fillna(0)
 
-    # 5. FUNZIONI FORMATTAZIONE PARENTESI (Per la tabella)
+    # 5. FUNZIONI FORMATTAZIONE PARENTESI (Per le Tabelle)
     def fmt_val_pct(val, total):
         pct = (val / total * 100) if total > 0 else 0
         return f"€ {val:,.2f} ({pct:.1f}%)"
@@ -611,21 +608,39 @@ def analizza_performance_commerciali(df_report):
     
     st.dataframe(df_gen.style.format({'Nr. Prev.': '{:,.0f}', 'Vol. Prev.': '€ {:,.2f}'}), use_container_width=True, hide_index=True)
 
-    # --- AGGIUNTA SCATTER PLOT ---
+    # --- 📊 SEZIONE GRAFICI COMPARATIVI (Side-by-Side) ---
     st.write("")
-    fig_scatter = px.scatter(
-        performance, 
-        x='Nr_Prev', 
-        y='Hit_Rate_Nr',
-        size='Vol_Vinto', 
-        color='CODICE GESTIONALE UTENTE',
-        hover_name='CODICE GESTIONALE UTENTE',
-        title="Efficienza Commerciale: Numero Preventivi vs Hit Rate (Dimensione = Volume Vinto)",
-        labels={'Nr_Prev': 'Numero Preventivi Emessi', 'Hit_Rate_Nr': 'Tasso Conversione (%)', 'Vol_Vinto': 'Volume Vinto (€)'},
-        text='CODICE GESTIONALE UTENTE'
-    )
-    fig_scatter.update_traces(textposition='top center')
-    st.plotly_chart(fig_scatter, use_container_width=True)
+    col1, col2 = st.columns(2)
+
+    with col1:
+        # Grafico a Barre: Offerto vs Vinto
+        fig_bar = px.bar(
+            performance, 
+            x='CODICE GESTIONALE UTENTE', 
+            y=['Vol_Prev', 'Vol_Vinto'],
+            barmode='group',
+            title="Volume Preventivato vs Vinto",
+            labels={'value': 'Euro (€)', 'variable': 'Tipo Volume', 'CODICE GESTIONALE UTENTE': 'Utente'},
+            color_discrete_map={'Vol_Prev': '#A2D2FF', 'Vol_Vinto': '#4E944F'}
+        )
+        fig_bar.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+        st.plotly_chart(fig_bar, use_container_width=True)
+
+    with col2:
+        # Scatter Plot: Efficienza
+        fig_scatter = px.scatter(
+            performance, 
+            x='Nr_Prev', 
+            y='Hit_Rate_Nr',
+            size='Vol_Vinto', 
+            color='CODICE GESTIONALE UTENTE',
+            title="Efficienza: N. Prev vs Hit Rate (%)",
+            labels={'Nr_Prev': 'N. Preventivi', 'Hit_Rate_Nr': 'Hit Rate (%)', 'Vol_Vinto': 'Volume (€)'},
+            template="plotly_white"
+        )
+        fig_scatter.update_layout(showlegend=False) # Legenda già presente nel grafico a fianco o implicita
+        st.plotly_chart(fig_scatter, use_container_width=True)
+
 
     # --- 7. SEZIONE DETTAGLIO SINGOLO UTENTE ---
     st.divider()

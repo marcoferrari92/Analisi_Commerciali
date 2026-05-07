@@ -637,8 +637,8 @@ def analizza_performance_commerciali(df_report):
             y='Hit_Rate_Nr',
             size='Vol_Vinto', 
             color='CODICE GESTIONALE UTENTE',
-            title="Efficienza: N. Prev vs Hit Rate (%)",
-            labels={'Nr_Prev': 'N. Preventivi', 'Hit_Rate_Nr': 'Hit Rate (%)', 'Vol_Vinto': 'Volume (€)'},
+            title="Efficienza: N. Prev vs Tasso Conversione (%)",
+            labels={'Nr_Prev': 'N. Preventivi', 'Hit_Rate_Nr': 'Tasso Conversione (%)', 'Vol_Vinto': 'Volume (€)'},
             template="plotly_white"
         )
         fig_scatter.update_layout(showlegend=False) # Legenda già presente nel grafico a fianco o implicita

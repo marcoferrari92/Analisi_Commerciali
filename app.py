@@ -773,6 +773,8 @@ if df_orders is not None:
     #   PANORAMICA
     # ************
 
+    st.write("")
+    
     # 1. COMPATTAZIONE PER ID DOCUMENTO
     # Creaiamo un DATAframe suddiviso per l'ID dei documenti.
     # Per ogni ID avremo la tipologia di documento (PREVENTIVO, ORDINE APERTO, ORDINE)
@@ -873,6 +875,7 @@ if df_orders is not None:
     #  CONVERSIONE PREVENTIVI - GLOBALE
     # **********************************
 
+    st.write("")
     with st.expander("🎯 Analisi Conversione Preventivi Globale"):
         st.write("")
         with st.popover("ℹ️ Guida all'Analisi"):
@@ -953,7 +956,8 @@ if df_orders is not None:
     # ******************************************
     #  CONVERSIONE PREVENTIVI - PER COMMERCIALE
     # ******************************************
-    
+
+    st.write("")
     with st.expander("🏆 Analisi Conversione Preventivi per Commerciale"):
         df_performance = analizza_performance_commerciali(df_report)
     

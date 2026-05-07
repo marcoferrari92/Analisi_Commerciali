@@ -554,6 +554,7 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
 
 def analizza_performance_commerciali(df_report):
+    
     # 1. PREPARAZIONE DATI
     df_integro = df_report.copy()
     if 'Analisi_Integrita' in df_report.columns:
@@ -600,7 +601,7 @@ def analizza_performance_commerciali(df_report):
     performance['Vol. Ord. (Aperti)'] = performance.apply(lambda r: fmt_val_pct(r['Vol_Aperti'], r['Vol_Vinto']), axis=1)
 
     # 6. VISUALIZZAZIONE TABELLA GENERALE
-    st.subheader("📈 KPI Performance Comparativa")
+    st.write("####📈 Comparativa")
     df_gen = performance[['CODICE GESTIONALE UTENTE', 'Nr_Prev', 'Nr. Prev. Vinti (%)', 'Vol_Prev', 'Vol. Vinto (%)', 
                           'Nr. Ord. (Chiusi)', 'Vol. Ord. (Chiusi)', 'Nr. Ord. (Aperti)', 'Vol. Ord. (Aperti)']].copy()
     df_gen.columns = ['Utente', 'Nr. Prev.', 'Nr. Prev. Vinti (%)', 'Vol. Prev.', 'Vol. Vinto (%)', 
@@ -644,7 +645,7 @@ def analizza_performance_commerciali(df_report):
 
     # --- 7. SEZIONE DETTAGLIO SINGOLO UTENTE ---
     st.divider()
-    st.subheader("👤 Analisi Dettagliata per Utente")
+    st.write("####👤 Analisi Dettagliata per Utente")
     
     utenti = df_report['CODICE GESTIONALE UTENTE'].unique()
     agente_sel = st.selectbox("Seleziona un Utente per approfondire:", utenti)

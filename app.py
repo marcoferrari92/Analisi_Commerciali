@@ -1146,7 +1146,7 @@ if df_events is not None:
         st.write("#### Analisi della Densità di Attività per Azienda")
         
         # 1. Calcolo frequenze
-        frequenza_aziende = df_events['Ragione Sociale'].value_counts().reset_index()
+        frequenza_aziende = df_events['RAGIONE SOCIALE'].value_counts().reset_index()
         frequenza_aziende.columns = ['Azienda', 'Conteggio']
         
         # 2. Metriche
@@ -1206,15 +1206,15 @@ if df_events is not None:
             
         # 1. Preparazione dati per il Treemap
         # Troviamo per ogni azienda chi è il commerciale che ha fatto più attività
-        df_top_comm = df_events.groupby(['Ragione Sociale', 'Utente']).size().reset_index(name='Conteggio')
+        df_top_comm = df_events.groupby(['RAGIONE SOCIALE', 'Utente']).size().reset_index(name='Conteggio')
         
         # Per ogni azienda, prendiamo solo la riga del commerciale con il conteggio massimo
-        df_color = df_top_comm.sort_values('Conteggio', ascending=False).drop_duplicates('Ragione Sociale')
-        df_color = df_color[['Ragione Sociale', 'Utente']]
+        df_color = df_top_comm.sort_values('Conteggio', ascending=False).drop_duplicates('RAGIONE SOCIALE')
+        df_color = df_color[['RAGIONE SOCIALE', 'Utente']]
         df_color.columns = ['Azienda', 'Commerciale Prevalente']
     
         # 2. Uniamo con i totali per azienda
-        stats_aziende = df_events['Ragione Sociale'].value_counts().reset_index()
+        stats_aziende = df_events['RAGIONE SOCIALE'].value_counts().reset_index()
         stats_aziende.columns = ['Azienda', 'Numero Attività']
         
         df_tree = pd.merge(stats_aziende.head(50), df_color, on='Azienda')
@@ -1259,21 +1259,21 @@ if df_events is not None:
         st.write("#### Dettaglio Attività per Azienda")
         
         pivot_aziende = df_events.pivot_table(
-            index='Ragione Sociale', 
-            columns='Tipo Evento', 
+            index='RAGIONE SOCIALE', 
+            columns='TIPO EVENTO', 
             values='Utente', 
             aggfunc='count', 
             fill_value=0
         ).reset_index()
     
-        colonne_attivita = [c for c in pivot_aziende.columns if c != 'Ragione Sociale']
+        colonne_attivita = [c for c in pivot_aziende.columns if c != 'RAGIONE SOCIALE']
         pivot_aziende['TOTALE'] = pivot_aziende[colonne_attivita].sum(axis=1)
     
-        comm_riferimento = df_events.groupby('Ragione Sociale')['Utente'].unique().apply(lambda x: ", ".join(x)).reset_index()
-        comm_riferimento.columns = ['Ragione Sociale', 'Commerciali']
+        comm_riferimento = df_events.groupby('RAGIONE SOCIALE')['Utente'].unique().apply(lambda x: ", ".join(x)).reset_index()
+        comm_riferimento.columns = ['RAGIONE SOCIALE', 'Commerciali']
     
-        df_finale_aziende = pd.merge(pivot_aziende, comm_riferimento, on='Ragione Sociale')
-        cols = ['Ragione Sociale', 'TOTALE'] + list(colonne_attivita) + ['Commerciali']
+        df_finale_aziende = pd.merge(pivot_aziende, comm_riferimento, on='RAGIONE SOCIALE')
+        cols = ['RAGIONE SOCIALE', 'TOTALE'] + list(colonne_attivita) + ['Commerciali']
         df_finale_aziende = df_finale_aziende[cols].sort_values(by='TOTALE', ascending=False)
     
         st.DATAframe(df_finale_aziende, hide_index=True, use_container_width=True)
@@ -1330,7 +1330,7 @@ if df_events is not None:
         st.write(f"### Dettaglio eventi ({len(df_events)} record)")
         
         # Aggiungiamo 'Note' alla lista delle colonne da visualizzare
-        col_view = ['Utente', 'DATA Evento', 'Ora Evento', 'Tipo Evento', 'Ragione Sociale', 'Note']
+        col_view = ['UTENTE', 'DATA', 'ORA EVENTO', 'TIPO EVENTO', 'RAGIONE SOCIALE', 'NOTE']
         
         # Verifichiamo quali colonne sono effettivamente presenti nel file per evitare errori
         col_presenti = [c for c in col_view if c in df_events.columns]

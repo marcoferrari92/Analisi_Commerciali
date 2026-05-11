@@ -56,7 +56,7 @@ def carica_dati_eventi(file):
         
 
 @st.cache_data
-def carica_dati_commerciali(file):
+def carica_dati_ordini(file):
     
     try:
         # 1. Lettura file
@@ -777,7 +777,7 @@ with col1:
     st.write("#### Eventi")
     uploaded_file_events = st.file_uploader("Carica file eventi (formato CSV)", type="csv")
     if uploaded_file_events:
-        df_events = carica_dati_commerciali(uploaded_file_events)
+        df_events = carica_dati_eventi(uploaded_file_events)
         date_min, date_max = DATA_range(df_events)
 
 # ORDINI
@@ -786,7 +786,7 @@ with col2:
     uploaded_file_orders = st.file_uploader("Carica file ordini e preventivi (formato CSV)", type="csv")
     
 if uploaded_file_orders:
-    df_raw = carica_dati_commerciali(uploaded_file_orders)
+    df_raw = carica_dati_ordini(uploaded_file_orders)
     
     # Check importi
     if df_raw is not None:

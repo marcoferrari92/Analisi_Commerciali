@@ -12,46 +12,41 @@ st.set_page_config(layout="wide")
 @st.cache_data
 def carica_dati_eventi(file):
     try:
-        # 1. Lettura file con gestione doppio separatore (punto e virgola o virgola)
+        # 1. Lettura file
         df = pd.read_csv(file, sep=';', encoding='utf-8-sig')
         if df.shape[1] <= 1:
             file.seek(0)
             df = pd.read_csv(file, sep=',', encoding='utf-8-sig')
 
-        # 2. Pulizia nomi colonne (rimozione spazi bianchi e BOM)
+        # 2. Pulizia preliminare spazi e caratteri invisibili
         df.columns = df.columns.str.strip().str.replace('ï»¿', '', regex=False)
 
-        # 3. Controllo colonne obbligatorie basato sul TUO file eventi.csv
-        colonne_necessarie = [
-            'Tipo Anagrafica', 'ID Clienti', 'Ragione Sociale', 
-            'Data Evento', 'Ora Evento', 'Tipo Evento', 'Utente'
-        ]
-        
+        # 3. RINOMINA SPECIFICA PER IL TUO FILE
+        # Rinominiamo 'Data Evento' in 'DATA' per compatibilità con le tue funzioni
+        if 'Data Evento' in df.columns:
+            df = df.rename(columns={'Data Evento': 'DATA'})
+
+        # 4. Controllo colonne obbligatorie (adeguato al tuo nuovo standard)
+        # Ho rimosso quelle che non sono presenti nel CSV eventi per evitare errori
+        colonne_necessarie = ['DATA', 'ID Clienti', 'Ragione Sociale', 'Utente']
         mancanti = [c for c in colonne_necessarie if c not in df.columns]
+        
         if mancanti:
-            st.error(f"⚠️ Il file caricato non è compatibile. Colonne mancanti: {mancanti}")
-            st.info(f"Colonne trovate: {list(df.columns)}")
+            st.error(f"Mancano colonne fondamentali: {mancanti}")
             return None
 
-        # 4. Gestione della DATA EVENTO
-        # Usiamo dayfirst=True perché il tuo file ha formato GG/MM/AAAA
-        df['Data Evento'] = pd.to_datetime(df['Data Evento'], dayfirst=True, errors='coerce')
+        # 5. Gestione specifica della DATA
+        df['DATA'] = pd.to_datetime(df['DATA'], dayfirst=True, errors='coerce')
+        righe_nulle = df['DATA'].isna().sum()
+        df = df.dropna(subset=['DATA'])
         
-        # Conteggio e rimozione date non valide
-        righe_nulle = df['Data Evento'].isna().sum()
         if righe_nulle > 0:
-            st.warning(f"⚠️ Rimosse {righe_nulle} righe con Data Evento non valida.")
-            df = df.dropna(subset=['Data Evento'])
-
-        # 5. Pulizia stringhe (opzionale ma consigliata)
-        # Rimuove spazi extra dai nomi utenti e tipi evento per evitare duplicati nei filtri
-        df['Utente'] = df['Utente'].astype(str).str.strip()
-        df['Tipo Evento'] = df['Tipo Evento'].astype(str).str.strip()
+            st.warning(f"⚠️ Rimosse {righe_nulle} righe con DATA non valida.")
 
         return df
 
     except Exception as e:
-        st.error(f"❌ Errore critico durante il caricamento: {e}")
+        st.error(f"Errore critico caricamento: {e}")
         return None
         
 

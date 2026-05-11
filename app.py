@@ -1049,223 +1049,92 @@ if uploaded_file_events:
     df_events = carica_dati_eventi(uploaded_file_events)
     
     if df_events is not None:
+    
+    # --- SEZIONE 2: RESOCONTO ---
+    st.divider()
+    # Usiamo df_filtrato (che deve essere il risultato della tua funzione DATA_filtering)
+    with st.expander("⚖️ Volume e Tipologia Eventi"):
+    
+        # --- PREPARAZIONE DATI ---
+        # 1. Dati per Tipologia (Colonna ora in MAIUSCOLO)
+        stats_tipo = df_filtrato['TIPO EVENTO'].value_counts().reset_index()
+        stats_tipo.columns = ['TIPO EVENTO', 'CONTEGGIO']
         
-        # --- SEZIONE 2: RESOCONTO ---
-        st.divider()
-        with st.expander("⚖️ Volume e Tipologia Eventi"):
+        # 2. Dati per Qualità Note (Colonna ora in MAIUSCOLO)
+        df_qualita = df_filtrato.copy()
+        df_qualita['QUALITÀ'] = df_qualita['NOTE'].apply(
+            lambda x: "UTILE (Con Note)" if pd.notnull(x) and str(x).strip() != "" else "MUTO (Senza Note)"
+        )
+        stats_qualita = df_qualita['QUALITÀ'].value_counts().reset_index()
+        stats_qualita.columns = ['STATO NOTA', 'CONTEGGIO']
         
-            # --- PREPARAZIONE DATI ---
-            # 1. Dati per Tipologia
-            stats_tipo = df_filtrato['Tipo Evento'].value_counts().reset_index()
-            stats_tipo.columns = ['Tipo Evento', 'Conteggio']
-            
-            # 2. Dati per Qualità Note
-            df_qualita = df_filtrato.copy()
-            df_qualita['Qualità'] = df_qualita['Note'].apply(
-                lambda x: "UTILE (Con Note)" if pd.notnull(x) and str(x).strip() != "" else "MUTO (Senza Note)"
+        # --- PRIMA RIGA: GRAFICO A TORTA TIPOLOGIE ---
+        col1, col2, col3 = st.columns([2.5, 1.5, 0.25]) 
+        with col1:
+            st.write("#### Tipologie Eventi")
+            fig_pie_tipo = px.pie(
+                stats_tipo, 
+                values='CONTEGGIO', 
+                names='TIPO EVENTO', 
+                hole=0.4,
+                color_discrete_sequence=px.colors.qualitative.Pastel
             )
-            stats_qualita = df_qualita['Qualità'].value_counts().reset_index()
-            stats_qualita.columns = ['Stato Nota', 'Conteggio']
-            
-            # --- PRIMA RIGA: GRAFICO A TORTA TIPOLOGIE ---
-            col1, col2, col3 = st.columns([2.5, 1.5, 0.25]) 
-            with col1:
-                st.write("#### Tipologie Eventi")
-                fig_pie_tipo = px.pie(
-                    stats_tipo, 
-                    values='Conteggio', 
-                    names='Tipo Evento', 
-                    hole=0.4,
-                    color_discrete_sequence=px.colors.qualitative.Pastel
-                )
-                fig_pie_tipo.update_traces(textinfo='percent+label')
-             
-                fig_pie_tipo.update_layout(
-                    # Riduciamo i margini esterni del grafico per eliminare il bianco
-                    margin=dict(t=30, l=10, r=10, b=10), 
-                    
-                    # GESTIONE LEGENDA (Non coloraxis)
-                    legend=dict(
-                        orientation="h",      # Legenda orizzontale
-                        yanchor="bottom",     # Ancorata al fondo della legenda
-                        y=1.02,               # Posizionata appena sopra il grafico (1.0 è il limite)
-                        xanchor="center",     # Centrata orizzontalmente
-                        x=0.5
-                    ),
-                    height=450 # Altezza fissa per evitare che si allunghi troppo
-                )
-                st.plotly_chart(fig_pie_tipo, use_container_width=True)
+            fig_pie_tipo.update_traces(textinfo='percent+label')
+         
+            fig_pie_tipo.update_layout(
+                margin=dict(t=30, l=10, r=10, b=10), 
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="center",
+                    x=0.5
+                ),
+                height=450
+            )
+            st.plotly_chart(fig_pie_tipo, use_container_width=True)
 
-            with col2: 
-                st.write("#### Vulume Eventi")
-                TOTALE_attivita = len(df_filtrato)
-                st.write("")
-                st.metric("TOTALE Attività", TOTALE_attivita)
-                st.DATAframe(stats_tipo, hide_index=True, use_container_width=True)
-
-            with col3:
-                st.write("")
-
-            # --- SECONDA RIGA (DENTRO L'EXPANDER): COUNTPLOT ---
+        with col2: 
+            st.write("#### Volume Eventi")
+            TOTALE_attivita = len(df_filtrato)
             st.write("")
+            st.metric("TOTALE Attività", TOTALE_attivita)
+            # Corretto in .dataframe (minuscolo)
+            st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
+
+        with col3:
             st.write("")
-            st.write("#### Confronto Volumi per Tipologia")
-            
-            # Ordiniamo i dati per una visualizzazione migliore (dal più frequente al meno)
-            stats_tipo_sorted = stats_tipo.sort_values(by='Conteggio', ascending=False)
-            
-            fig_count = px.bar(
-                stats_tipo_sorted,
-                x='Tipo Evento',
-                y='Conteggio',
-                text='Conteggio',
-                color='Tipo Evento',
-                color_discrete_sequence=px.colors.qualitative.Pastel,
-                labels={'Conteggio': 'Numero di Attività', 'Tipo Evento': ''}
-            )
-            
-            fig_count.update_traces(
-                textposition='outside',
-                cliponaxis=False # Evita che il testo sopra le barre venga tagliato
-            )
-            
-            fig_count.update_layout(
-                showlegend=False, # Inutile avendo già le etichette sull'asse X
-                margin=dict(t=30, l=10, r=10, b=10),
-                height=400,
-                xaxis={'categoryorder':'total descending'}
-            )
-            
-            st.plotly_chart(fig_count, use_container_width=True)
 
-            
-
-        # --- QUALITÀ NOTE E PERCENTUALE ---
+        # --- SECONDA RIGA: COUNTPLOT ---
         st.write("")
-        with st.expander("💎 Qualità Eventi"):
-            st.write("Controlliamo la qualità degli eventi inseriti per evitare la problematica: *Garbage In, Garbage Out* (**GIGO**)")
-            st.write("")
-            st.write("### Analisi *Mutismo*")
-            st.info("""
-                    ⚠️ Se gli eventi sono privi della nota descrittiva, non apportano contenuto informativo ma aggiungo confusione (Eventi MUTI).
-                    * 💡*Tip 1:* tenere traccia della mole di questi eventi e individuarne le cause.
-                    * 💡*Tip 2:* mettere un vincolo nel CRM per cui eventi senza note non possono essere caricati.
-                    """)
-            st.write("")
-
-            # Creazione delle due colonne
-            col_stats, col_grafico = st.columns([1, 1.5])
+        st.write("#### Confronto Volumi per Tipologia")
         
-            with col_stats:
-
-                st.write("")
-                st.write("")
-                st.write("")
-                st.write("")
-                # Piccolo istogramma per il confronto rapido dei volumi
-                fig_bar_qual = px.bar(
-                    stats_qualita,
-                    x='Stato Nota',
-                    y='Conteggio',
-                    text='Conteggio',
-                    color='Stato Nota',
-                    color_discrete_map={
-                        "UTILI (Con Note)": "#2ecc71", 
-                        "MUTI (Senza Note)": "#e74c3c"
-                    }
-                )
-                fig_bar_qual.update_layout(
-                    showlegend=False,
-                    height=250,
-                    margin=dict(t=10, l=10, r=10, b=10),
-                    xaxis_title="",
-                    yaxis_title=""
-                )
-                st.plotly_chart(fig_bar_qual, use_container_width=True)
+        stats_tipo_sorted = stats_tipo.sort_values(by='CONTEGGIO', ascending=False)
         
-            with col_grafico:
-
-                fig_pie_qual = px.pie(
-                    stats_qualita, 
-                    values='Conteggio', 
-                    names='Stato Nota', 
-                    hole=0.4,
-                    color='Stato Nota',
-                    color_discrete_map={
-                        "UTILI (Con Note)": "#2ecc71", 
-                        "MUTI (Senza Note)": "#e74c3c"
-                    }
-                )
-                fig_pie_qual.update_traces(textinfo='percent+label')
-                fig_pie_qual.update_layout(
-                    margin=dict(t=30, l=10, r=10, b=10),
-                    height=400,
-                    legend=dict(orientation="h", yanchor="bottom", y=-0.1, xanchor="center", x=0.5)
-                )
-                st.plotly_chart(fig_pie_qual, use_container_width=True)
-
-
-            # --- ANALISI EVENTI MUTI (Senza Note) ---
-
-            # 1. Lista completa di tutti i commerciali che hanno caricato qualcosa
-            TOTALE_per_utente = df_filtrato['Utente'].value_counts().reset_index()
-            TOTALE_per_utente.columns = ['Utente', 'TOTALE Eventi']
-            
-            # 2. Filtriamo gli eventi senza note
-            df_muti = df_filtrato[
-                df_filtrato['Note'].isnull() | (df_filtrato['Note'].str.strip() == "")
-            ].copy()
-            
-            # 3. Conteggio eventi muti per utente
-            stats_muti_raw = df_muti['Utente'].value_counts().reset_index()
-            stats_muti_raw.columns = ['Utente', 'N. Eventi Muti']
-            
-            # 4. UNIONE: Partiamo da tutti i commerciali e aggiungiamo i muti (chi non ne ha avrà NaN)
-            stats_muti = TOTALE_per_utente.merge(stats_muti_raw, on='Utente', how='left')
-            
-            # 5. Pulizia: trasformiamo i NaN in 0 e calcoliamo la percentuale
-            stats_muti['N. Eventi Muti'] = stats_muti['N. Eventi Muti'].fillna(0).astype(int)
-            stats_muti['Percentuale'] = (stats_muti['N. Eventi Muti'] / stats_muti['TOTALE Eventi'] * 100).round(1)
-            
-            # Ordiniamo: chi ha più errori in alto, chi ne ha zero in basso
-            stats_muti = stats_muti.sort_values('N. Eventi Muti', ascending=True)
-            
-            # --- LAYOUT ---
-            col_grafico, col_vuota = st.columns([5, 3])
-            
-            with col_grafico: 
-                fig_muti = px.bar(
-                    stats_muti,
-                    x='N. Eventi Muti',
-                    y='Utente',
-                    orientation='h',
-                    title="Incidenza Attività senza descrizione (%)",
-                    color_discrete_sequence=['#EF553B'], 
-                    text=stats_muti['Percentuale'].apply(lambda x: f'{x}%'),
-                    labels={'N. Eventi Muti': 'N. Eventi Muti'}
-                )
-            
-                fig_muti.update_traces(
-                    textposition='outside',
-                    cliponaxis=False
-                )
-            
-                fig_muti.update_layout(
-                    height=350 + (len(stats_muti) * 20), 
-                    margin=dict(t=50, l=10, r=50, b=10),
-                    xaxis_title="Quota eventi MUTI sul TOTALE personale",
-                    yaxis_title=None,
-                    showlegend=False
-                )
-            
-                st.plotly_chart(fig_muti, use_container_width=True)
-           
-
+        fig_count = px.bar(
+            stats_tipo_sorted,
+            x='TIPO EVENTO',
+            y='CONTEGGIO',
+            text='CONTEGGIO',
+            color='TIPO EVENTO',
+            color_discrete_sequence=px.colors.qualitative.Pastel,
+            labels={'CONTEGGIO': 'Numero di Attività', 'TIPO EVENTO': ''}
+        )
         
-
-
+        fig_count.update_traces(
+            textposition='outside',
+            cliponaxis=False 
+        )
         
-
+        fig_count.update_layout(
+            showlegend=False,
+            margin=dict(t=30, l=10, r=10, b=10),
+            height=400,
+            xaxis={'categoryorder':'total descending'}
+        )
+        
+        st.plotly_chart(fig_count, use_container_width=True)
+            
 
     # --- SEZIONE COINVOLGIMENTO MEDIO ---
     st.write("")

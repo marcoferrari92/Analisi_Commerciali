@@ -1053,12 +1053,12 @@ if df_orders is not None:
 
 
 
-st.subheader("Analisi Eventi")
 
 if df_events is not None:
     
     # --- SEZIONE 2: RESOCONTO ---
     st.divider()
+    st.subheader("Analisi Eventi")
     with st.expander("⚖️ Volume e Tipologia Eventi"):
     
         # --- PREPARAZIONE DATI ---

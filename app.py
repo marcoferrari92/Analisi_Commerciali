@@ -1276,7 +1276,7 @@ if df_events is not None:
         cols = ['RAGIONE SOCIALE', 'TOTALE'] + list(colonne_attivita) + ['Commerciali']
         df_finale_aziende = df_finale_aziende[cols].sort_values(by='TOTALE', ascending=False)
     
-        st.DATAframe(df_finale_aziende, hide_index=True, use_container_width=True)
+        st.dataframe(df_finale_aziende, hide_index=True, use_container_width=True)
 
         
         
@@ -1335,7 +1335,7 @@ if df_events is not None:
         # Verifichiamo quali colonne sono effettivamente presenti nel file per evitare errori
         col_presenti = [c for c in col_view if c in df_events.columns]
         
-        st.DATAframe(
+        st.dataframe(
             df_events[col_presenti].sort_values(by=['DATA Evento', 'Ora Evento'], ascending=False),
             use_container_width=True
         )

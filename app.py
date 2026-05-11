@@ -1062,11 +1062,11 @@ if df_events is not None:
     
         # --- PREPARAZIONE DATI ---
         # 1. Dati per Tipologia (Colonna ora in MAIUSCOLO)
-        stats_tipo = df_filtrato['TIPO EVENTO'].value_counts().reset_index()
+        stats_tipo = df_events['TIPO EVENTO'].value_counts().reset_index()
         stats_tipo.columns = ['TIPO EVENTO', 'CONTEGGIO']
         
         # 2. Dati per Qualità Note (Colonna ora in MAIUSCOLO)
-        df_qualita = df_filtrato.copy()
+        df_qualita = df_events.copy()
         df_qualita['QUALITÀ'] = df_qualita['NOTE'].apply(
             lambda x: "UTILE (Con Note)" if pd.notnull(x) and str(x).strip() != "" else "MUTO (Senza Note)"
         )

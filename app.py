@@ -794,7 +794,7 @@ with col1:
     st.write("#### Eventi")
     uploaded_file_events = st.file_uploader("Carica file eventi (formato CSV)", type="csv")
     if uploaded_file_events:
-        df_events = carica_dati_commerciali(uploaded_file_events) # Usa la funzione normalizzata creata prima
+        df_events = carica_dati_eventi(uploaded_file_events) # Usa la funzione normalizzata creata prima
         if df_events is not None:
             d_min_ev, d_max_ev = DATA_range(df_events)
             # Inizializziamo il range globale

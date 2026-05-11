@@ -346,7 +346,7 @@ def plot_distribuzione_ordini(df_target):
                     "<b>ID:</b> %{customdata[1]}<br>" +
                     "<b>CLIENTE:</b> %{customdata[2]}<br>" +
                     "<b>Titolo:</b> %{customdata[3]}<br>" +
-                    "<b>Utente:</b> %{customdata[4]}<br>" +
+                    "<b>UTENTE:</b> %{customdata[4]}<br>" +
                     "<extra></extra>" # Rimuove la scritta "trace name" a lato
                 )
             ),
@@ -1206,7 +1206,7 @@ if df_events is not None:
             
         # 1. Preparazione dati per il Treemap
         # Troviamo per ogni azienda chi è il commerciale che ha fatto più attività
-        df_top_comm = df_events.groupby(['RAGIONE SOCIALE', 'Utente']).size().reset_index(name='Conteggio')
+        df_top_comm = df_events.groupby(['RAGIONE SOCIALE', 'UTENTE']).size().reset_index(name='Conteggio')
         
         # Per ogni azienda, prendiamo solo la riga del commerciale con il conteggio massimo
         df_color = df_top_comm.sort_values('Conteggio', ascending=False).drop_duplicates('RAGIONE SOCIALE')
@@ -1269,7 +1269,7 @@ if df_events is not None:
         colonne_attivita = [c for c in pivot_aziende.columns if c != 'RAGIONE SOCIALE']
         pivot_aziende['TOTALE'] = pivot_aziende[colonne_attivita].sum(axis=1)
     
-        comm_riferimento = df_events.groupby('RAGIONE SOCIALE')['Utente'].unique().apply(lambda x: ", ".join(x)).reset_index()
+        comm_riferimento = df_events.groupby('RAGIONE SOCIALE')['UTENTE'].unique().apply(lambda x: ", ".join(x)).reset_index()
         comm_riferimento.columns = ['RAGIONE SOCIALE', 'Commerciali']
     
         df_finale_aziende = pd.merge(pivot_aziende, comm_riferimento, on='RAGIONE SOCIALE')
@@ -1281,7 +1281,7 @@ if df_events is not None:
         
         
         # 1. Preparazione dei dati
-        stats = df_events['Utente'].value_counts().reset_index()
+        stats = df_events['UTENTE'].value_counts().reset_index()
         stats.columns = ['UTENTE', 'Numero Attività']
         
         # Ordiniamo per far apparire il più alto in alto

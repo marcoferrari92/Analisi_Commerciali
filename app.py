@@ -780,62 +780,76 @@ date_max = None
 # CARICAMENTO FILE 
 # *****************
 
+# 1. Inizializzazione variabili all'inizio dello script per evitare NameError
+df_events = None
+df_orders = None
+date_min = None
+date_max = None
+
 st.subheader("Caricamento File")
 col1, col2, col3 = st.columns(3)
 
-# EVENTI
+# --- SEZIONE EVENTI ---
 with col1:
     st.write("#### Eventi")
     uploaded_file_events = st.file_uploader("Carica file eventi (formato CSV)", type="csv")
     if uploaded_file_events:
-        df_events = carica_dati_eventi(uploaded_file_events)
-        date_min, date_max = DATA_range(df_events)
+        df_events = carica_dati_commerciali(uploaded_file_events) # Usa la funzione normalizzata creata prima
+        if df_events is not None:
+            d_min_ev, d_max_ev = DATA_range(df_events)
+            # Inizializziamo il range globale
+            date_min, date_max = d_min_ev, d_max_ev
 
-# ORDINI
+# --- SEZIONE ORDINI ---
 with col2:
     st.write("#### Ordini")
-    uploaded_file_orders = st.file_uploader("Carica file ordini e preventivi (formato CSV)", type="csv")
-    
-if uploaded_file_orders:
-    df_raw = carica_dati_ordini(uploaded_file_orders)
-    
-    # Check importi
-    if df_raw is not None:
-        df_orders, df_errori = validazione_importi(df_raw)
-        if df_orders is not None:
-            st.write(f"✅ Validazione conclusa: {len(df_orders)} righe pulite, {len(df_errori)} scartate.")
-    else:
-        st.error("Il caricamento del file ha restituito None. Controlla il formato del CSV.")
+    uploaded_file_orders = st.file_uploader("Carica file ordini (formato CSV)", type="csv")
+    if uploaded_file_orders:
+        df_raw = carica_dati_ordini(uploaded_file_orders)
+        if df_raw is not None:
+            df_orders, df_errori = validazione_importi(df_raw)
+            if df_orders is not None:
+                st.write(f"✅ Validazione conclusa: {len(df_orders)} righe.")
+                d_min_ord, d_max_ord = DATA_range(df_orders)
+                
+                # Logica per unire i range di date se entrambi i file sono presenti
+                if date_min is None:
+                    date_min, date_max = d_min_ord, d_max_ord
+                else:
+                    date_min = min(date_min, d_min_ord)
+                    date_max = max(date_max, d_max_ord)
 
-    # Range date
-    date_min, date_max = DATA_range(df_orders)
-        
-
-# ***************
-# FILTRO PERIODO 
-# ***************
-
-# Eseguiamo il filtro solo se almeno un file è caricato
-
-if date_min and date_max:
-
+# --- SEZIONE FILTRO PERIODO ---
+# Attiviamo i filtri solo se almeno uno dei due DF è stato creato
+if date_min is not None and date_max is not None:
     with col3:
         st.write("#### Periodo Analisi")
         period = st.date_input(
             "Seleziona date:",
             value=(date_min, date_max),
-            min_value = date_min,
-            max_value = date_max
+            min_value=date_min,
+            max_value=date_max
         )
 
-    if df_events is not None:
-        df_events = DATA_filtering(period, df_events)
-
-    if df_orders is not None:
-        df_orders = DATA_filtering(period, df_orders)
+    # Applichiamo il filtraggio solo se l'utente ha selezionato un range completo (inizio e fine)
+    if isinstance(period, tuple) and len(period) == 2:
+        if df_events is not None:
+            # Creiamo df_filtrato per il blocco statistiche eventi
+            df_filtrato = DATA_filtering(period, df_events)
         
+        if df_orders is not None:
+            # Sovrascriviamo df_orders con la versione filtrata
+            df_orders = DATA_filtering(period, df_orders)
+    else:
+        st.warning("Completa la selezione del periodo (Data inizio e Data fine).")
+        df_filtrato = df_events # Fallback per evitare NameError sotto
 else:
     st.info("Carica almeno un file per attivare i filtri temporali.")
+
+# **************************************************
+# Ora puoi inserire il blocco "Volume e Tipologia Eventi"
+# usando la variabile df_filtrato
+# **************************************************
 
 
 

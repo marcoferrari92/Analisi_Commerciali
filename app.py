@@ -1057,7 +1057,6 @@ if df_events is not None:
     
     # --- SEZIONE 2: RESOCONTO ---
     st.divider()
-    # Usiamo df_filtrato (che deve essere il risultato della tua funzione DATA_filtering)
     with st.expander("⚖️ Volume e Tipologia Eventi"):
     
         # --- PREPARAZIONE DATI ---
@@ -1101,7 +1100,7 @@ if df_events is not None:
 
         with col2: 
             st.write("#### Volume Eventi")
-            TOTALE_attivita = len(df_filtrato)
+            TOTALE_attivita = len(df_events)
             st.write("")
             st.metric("TOTALE Attività", TOTALE_attivita)
             # Corretto in .dataframe (minuscolo)
@@ -1147,7 +1146,7 @@ if df_events is not None:
         st.write("#### Analisi della Densità di Attività per Azienda")
         
         # 1. Calcolo frequenze
-        frequenza_aziende = df_filtrato['Ragione Sociale'].value_counts().reset_index()
+        frequenza_aziende = df_events['Ragione Sociale'].value_counts().reset_index()
         frequenza_aziende.columns = ['Azienda', 'Conteggio']
         
         # 2. Metriche
@@ -1207,7 +1206,7 @@ if df_events is not None:
             
         # 1. Preparazione dati per il Treemap
         # Troviamo per ogni azienda chi è il commerciale che ha fatto più attività
-        df_top_comm = df_filtrato.groupby(['Ragione Sociale', 'Utente']).size().reset_index(name='Conteggio')
+        df_top_comm = df_events.groupby(['Ragione Sociale', 'Utente']).size().reset_index(name='Conteggio')
         
         # Per ogni azienda, prendiamo solo la riga del commerciale con il conteggio massimo
         df_color = df_top_comm.sort_values('Conteggio', ascending=False).drop_duplicates('Ragione Sociale')
@@ -1215,7 +1214,7 @@ if df_events is not None:
         df_color.columns = ['Azienda', 'Commerciale Prevalente']
     
         # 2. Uniamo con i totali per azienda
-        stats_aziende = df_filtrato['Ragione Sociale'].value_counts().reset_index()
+        stats_aziende = df_events['Ragione Sociale'].value_counts().reset_index()
         stats_aziende.columns = ['Azienda', 'Numero Attività']
         
         df_tree = pd.merge(stats_aziende.head(50), df_color, on='Azienda')
@@ -1259,7 +1258,7 @@ if df_events is not None:
         # --- TABELLA DETTAGLIATA (Quella di prima, con l'aggiunta della pivot) ---
         st.write("#### Dettaglio Attività per Azienda")
         
-        pivot_aziende = df_filtrato.pivot_table(
+        pivot_aziende = df_events.pivot_table(
             index='Ragione Sociale', 
             columns='Tipo Evento', 
             values='Utente', 
@@ -1270,7 +1269,7 @@ if df_events is not None:
         colonne_attivita = [c for c in pivot_aziende.columns if c != 'Ragione Sociale']
         pivot_aziende['TOTALE'] = pivot_aziende[colonne_attivita].sum(axis=1)
     
-        comm_riferimento = df_filtrato.groupby('Ragione Sociale')['Utente'].unique().apply(lambda x: ", ".join(x)).reset_index()
+        comm_riferimento = df_events.groupby('Ragione Sociale')['Utente'].unique().apply(lambda x: ", ".join(x)).reset_index()
         comm_riferimento.columns = ['Ragione Sociale', 'Commerciali']
     
         df_finale_aziende = pd.merge(pivot_aziende, comm_riferimento, on='Ragione Sociale')
@@ -1282,7 +1281,7 @@ if df_events is not None:
         
         
         # 1. Preparazione dei dati
-        stats = df_filtrato['Utente'].value_counts().reset_index()
+        stats = df_events['Utente'].value_counts().reset_index()
         stats.columns = ['Utente', 'Numero Attività']
         
         # Ordiniamo per far apparire il più alto in alto
@@ -1327,16 +1326,16 @@ if df_events is not None:
     
         
         
-        # 5. TABELLA (basata su df_filtrato)
-        st.write(f"### Dettaglio eventi ({len(df_filtrato)} record)")
+        # 5. TABELLA (basata su df_events)
+        st.write(f"### Dettaglio eventi ({len(df_events)} record)")
         
         # Aggiungiamo 'Note' alla lista delle colonne da visualizzare
         col_view = ['Utente', 'DATA Evento', 'Ora Evento', 'Tipo Evento', 'Ragione Sociale', 'Note']
         
         # Verifichiamo quali colonne sono effettivamente presenti nel file per evitare errori
-        col_presenti = [c for c in col_view if c in df_filtrato.columns]
+        col_presenti = [c for c in col_view if c in df_events.columns]
         
         st.DATAframe(
-            df_filtrato[col_presenti].sort_values(by=['DATA Evento', 'Ora Evento'], ascending=False),
+            df_events[col_presenti].sort_values(by=['DATA Evento', 'Ora Evento'], ascending=False),
             use_container_width=True
         )

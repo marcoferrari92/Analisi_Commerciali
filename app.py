@@ -9,9 +9,6 @@ import numpy as np
 st.set_page_config(layout="wide")
 
 
-@st.cache_data
-import streamlit as st
-import pandas as pd
 
 @st.cache_data
 def carica_dati_eventi(file):

@@ -853,7 +853,7 @@ else:
 # ***********************************************************************
 
 st.divider()
-st.subheader("💰 Analisi Ordini e Preventivi")
+st.subheader("Analisi Ordini e Preventivi")
 st.write("")
 
 if df_orders is not None: 
@@ -1052,7 +1052,9 @@ if df_orders is not None:
     
 
 
-    
+
+st.subheader("Analisi Eventi")
+
 if df_events is not None:
     
     # --- SEZIONE 2: RESOCONTO ---

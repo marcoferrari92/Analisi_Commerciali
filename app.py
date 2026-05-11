@@ -8,6 +8,53 @@ import numpy as np
 
 st.set_page_config(layout="wide")
 
+
+@st.cache_data
+def carica_dati_eventi(file):
+    try:
+        # 1. Lettura file con gestione doppio separatore (punto e virgola o virgola)
+        df = pd.read_csv(file, sep=';', encoding='utf-8-sig')
+        if df.shape[1] <= 1:
+            file.seek(0)
+            df = pd.read_csv(file, sep=',', encoding='utf-8-sig')
+
+        # 2. Pulizia nomi colonne (rimozione spazi bianchi e BOM)
+        df.columns = df.columns.str.strip().str.replace('ï»¿', '', regex=False)
+
+        # 3. Controllo colonne obbligatorie basato sul TUO file eventi.csv
+        colonne_necessarie = [
+            'Tipo Anagrafica', 'ID Clienti', 'Ragione Sociale', 
+            'Data Evento', 'Ora Evento', 'Tipo Evento', 'Utente'
+        ]
+        
+        mancanti = [c for c in colonne_necessarie if c not in df.columns]
+        if mancanti:
+            st.error(f"⚠️ Il file caricato non è compatibile. Colonne mancanti: {mancanti}")
+            st.info(f"Colonne trovate: {list(df.columns)}")
+            return None
+
+        # 4. Gestione della DATA EVENTO
+        # Usiamo dayfirst=True perché il tuo file ha formato GG/MM/AAAA
+        df['Data Evento'] = pd.to_datetime(df['Data Evento'], dayfirst=True, errors='coerce')
+        
+        # Conteggio e rimozione date non valide
+        righe_nulle = df['Data Evento'].isna().sum()
+        if righe_nulle > 0:
+            st.warning(f"⚠️ Rimosse {righe_nulle} righe con Data Evento non valida.")
+            df = df.dropna(subset=['Data Evento'])
+
+        # 5. Pulizia stringhe (opzionale ma consigliata)
+        # Rimuove spazi extra dai nomi utenti e tipi evento per evitare duplicati nei filtri
+        df['Utente'] = df['Utente'].astype(str).str.strip()
+        df['Tipo Evento'] = df['Tipo Evento'].astype(str).str.strip()
+
+        return df
+
+    except Exception as e:
+        st.error(f"❌ Errore critico durante il caricamento: {e}")
+        return None
+        
+
 @st.cache_data
 def carica_dati_commerciali(file):
     
@@ -988,7 +1035,7 @@ if df_orders is not None:
 
 
 if uploaded_file_events:
-    df_events = carica_dati_commerciali(uploaded_file_events)
+    df_events = carica_dati_eventi(uploaded_file_events)
     
     if df_events is not None:
         
@@ -1203,173 +1250,10 @@ if uploaded_file_events:
                 st.plotly_chart(fig_muti, use_container_width=True)
            
 
-            
-            # --- ANALISI ESAUSTIVITÀ (Conteggio Parole) ---
-            st.divider()
-            st.write("### Analisi Esaustività")
-            st.write("Analisi degli eventi con almeno una parola nelle note")
-            st.write("")
-            st.info("""
-                ⚠️ Note troppo sintentiche sono poco comprensibili
-                * *💡 Tip 1:* tenere traccia della lunghezza delle note.
-                * *💡 Tip 2:* impostare una formattazione nelle note nel CRM con le 5 W del giornalismo, sarebbe molto utile
-                """)
-            st.write("")
-            
-            # Prepariamo i dati calcolando il numero di parole
-            df_esaustivita = df_filtrato.copy()
-            # Gestiamo i valori nulli e contiamo le parole
-            df_esaustivita['Lunghezza Nota'] = df_esaustivita['Note'].apply(
-                lambda x: len(str(x).split()) if pd.notnull(x) and str(x).strip() != "" else 0
-            )
-            
-            # Filtriamo solo quelle che hanno almeno una parola per non schiacciare il grafico sugli zeri
-            df_note_vere = df_esaustivita[df_esaustivita['Lunghezza Nota'] > 0]
-            
-            if not df_note_vere.empty:
-                # Calcolo metriche medie di esaustività
-                parole_medie = df_note_vere['Lunghezza Nota'].mean()
-                parole_mediane = df_note_vere['Lunghezza Nota'].median()
-                
-                col_e1, col_e2 = st.columns(2)
-                with col_e1:
-                    st.metric("Media parole per nota", f"{parole_medie:.1f}")
-                with col_e2:
-                    st.metric("Mediana parole per nota", f"{parole_mediane:.0f}")
-            
-                # Istogramma con Box Plot marginale per vedere la distribuzione
-                fig_parole = px.histogram(
-                    df_note_vere, 
-                    x="Lunghezza Nota",
-                    marginal="box", # Aggiunge il box plot sopra l'istogramma
-                    nbins=30,
-                    title="Distribuzione lunghezza note (numero parole)",
-                    color_discrete_sequence=['#2ecc71'],
-                    labels={'Lunghezza Nota': 'Numero di Parole'},
-                    text_auto=True
-                )
-            
-                fig_parole.update_layout(
-                    bargap=0.1,
-                    xaxis_title="Conteggio Parole",
-                    yaxis_title="Frequenza (N. Eventi)",
-                    margin=dict(t=50, l=10, r=10, b=10),
-                    height=500
-                )
-                
-                st.plotly_chart(fig_parole, use_container_width=True)
-
-                
-                # --- DETTAGLIO PER COMMERCIALE ---
-                st.write("#### Esaustività media per Commerciale")
-                
-                # Calcoliamo sia la media (Lunghezza) che il conteggio (Volume Note)
-                stats_comm_parole = df_note_vere.groupby('Utente')['Lunghezza Nota'].agg(['mean', 'count']).reset_index()
-                stats_comm_parole.columns = ['Utente', 'Media Parole', 'Volume Note']
-                
-                # Ordiniamo per la media parole (lunghezza barre)
-                stats_comm_parole = stats_comm_parole.sort_values('Media Parole', ascending=False)
-                
-                fig_comm_parole = px.bar(
-                    stats_comm_parole,
-                    x='Media Parole',
-                    y='Utente',
-                    orientation='h',
-                    text_auto='.1f',
-                    color='Volume Note', # <--- IL COLORE ORA INDICA QUANTE NOTE HA SCRITTO
-                    color_continuous_scale='Greens',
-                    labels={
-                        'Media Parole': 'Lunghezza Media (Parole)',
-                        'Volume Note': 'N. Note Scritte'
-                    },
-                    # Aggiungiamo il dettaglio nel tooltip al passaggio del mouse
-                    hover_DATA={'Media Parole': True, 'Volume Note': True, 'Utente': True}
-                )
-                
-                fig_comm_parole.update_layout(
-                    height=400, 
-                    showlegend=True,
-                    coloraxis_colorbar=dict(title="N. Note"),
-                    margin=dict(t=30, l=10, r=10, b=10)
-                )
-                
-                st.plotly_chart(fig_comm_parole, use_container_width=True)
+        
 
 
-        # --- SEZIONE HEATMAP ORARIA ---
-        st.write("")
-        with st.expander("🕒 Heatmap Oraria"):        
-            
-            # Prepariamo i dati
-            df_heat_base = df_filtrato.copy()
-            if not df_heat_base.empty:
-                df_heat_base['Ora'] = pd.to_datetime(df_heat_base['Ora Evento'], format='%H:%M').dt.hour
-                df_heat_base['Giorno'] = pd.to_datetime(df_heat_base['DATA Evento']).dt.day_name()
-            
-                # 1. CALCOLO LIMITI DINAMICI (AUTO-CROP)
-                # Troviamo la prima e l'ultima ora in cui esiste almeno un evento nel set filtrato
-                ora_min = int(df_heat_base['Ora'].min())
-                ora_max = int(df_heat_base['Ora'].max())
-                ore_dinamiche = list(range(ora_min, ora_max + 1))
-            
-                # Troviamo i giorni della settimana che hanno almeno un evento
-                giorni_ORDINE_std = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-                giorni_presenti = [g for g in giorni_ORDINE_std if g in df_heat_base['Giorno'].unique()]
-                
-                traduzione_giorni = {
-                    'Monday': 'Lunedì', 'Tuesday': 'Martedì', 'Wednesday': 'Mercoledì', 
-                    'Thursday': 'Giovedì', 'Friday': 'Venerdì', 'Saturday': 'Sabato', 'Sunday': 'Domenica'
-                }
-            
-                # 2. FUNZIONE DI GENERAZIONE CON FRAME DINAMICO FISSO
-                def genera_heatmap_crop(df_input, altezza=450):
-                    # Raggruppamento
-                    h_DATA = df_input.groupby(['Giorno', 'Ora']).size().reset_index(name='Conteggio')
-                    
-                    # Pivot
-                    pivot = h_DATA.pivot(index='Giorno', columns='Ora', values='Conteggio').fillna(0)
-                    
-                    # FORZATURA LAYOUT SUI LIMITI DINAMICI CALCOLATI PRIMA
-                    # Questo garantisce che anche se una specifica attività non ha dati in certe ore/giorni,
-                    # il grafico avrà lo stesso identico frame di quello globale
-                    pivot = pivot.reindex(index=giorni_presenti, columns=ore_dinamiche, fill_value=0)
-                    
-                    # Traduzione nomi giorni
-                    pivot.index = [traduzione_giorni[g] for g in pivot.index]
-                    
-                    fig = px.imshow(
-                        pivot,
-                        labels=dict(x="Ora", y="Giorno", color="Attività"),
-                        x=pivot.columns,
-                        y=pivot.index,
-                        color_continuous_scale='Viridis',
-                        text_auto=True,
-                        aspect="auto"
-                    )
-                    fig.update_layout(
-                        height=altezza, 
-                        margin=dict(l=20, r=20, t=30, b=20),
-                        xaxis=dict(tickmode='array', tickvals=ore_dinamiche)
-                    )
-                    return fig
-            
-                # 3. VISUALIZZAZIONE
-                st.write(f"#### 🌍 Distribuzione Oraria Globale delle Attività")
-                st.write(f"Range orario trovato: {ora_min}:00 - {ora_max}:00")
-                st.plotly_chart(genera_heatmap_crop(df_heat_base), use_container_width=True)
-            
-                st.write("---")
-                st.write("#### 🔍 Dettaglio per Singola Attività")
-            
-                lista_attivita = sorted(df_heat_base['Tipo Evento'].unique())
-            
-                for attivita in lista_attivita:
-                    df_tipo = df_heat_base[df_heat_base['Tipo Evento'] == attivita]
-                    with st.expander(f"Dettaglio: {attivita}"):
-                        # Usiamo la stessa funzione: il layout sarà identico a quella globale
-                        st.plotly_chart(genera_heatmap_crop(df_tipo, altezza=400), use_container_width=True)
-            else:
-                st.warning("Nessun dato disponibile per generare le heatmap nel periodo selezionato.")
+        
 
 
     # --- SEZIONE COINVOLGIMENTO MEDIO ---

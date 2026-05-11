@@ -1336,6 +1336,6 @@ if df_events is not None:
         col_presenti = [c for c in col_view if c in df_events.columns]
         
         st.dataframe(
-            df_events[col_presenti].sort_values(by=['DATA Evento', 'Ora Evento'], ascending=False),
+            df_events[col_presenti].sort_values(by=['DATA', 'Ora Evento'], ascending=False),
             use_container_width=True
         )

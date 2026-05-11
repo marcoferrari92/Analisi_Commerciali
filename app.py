@@ -1210,7 +1210,7 @@ if df_events is not None:
         
         # Per ogni azienda, prendiamo solo la riga del commerciale con il conteggio massimo
         df_color = df_top_comm.sort_values('Conteggio', ascending=False).drop_duplicates('RAGIONE SOCIALE')
-        df_color = df_color[['RAGIONE SOCIALE', 'Utente']]
+        df_color = df_color[['RAGIONE SOCIALE', 'UTENTE']]
         df_color.columns = ['Azienda', 'Commerciale Prevalente']
     
         # 2. Uniamo con i totali per azienda
@@ -1261,7 +1261,7 @@ if df_events is not None:
         pivot_aziende = df_events.pivot_table(
             index='RAGIONE SOCIALE', 
             columns='TIPO EVENTO', 
-            values='Utente', 
+            values='UTENTE', 
             aggfunc='count', 
             fill_value=0
         ).reset_index()
@@ -1282,7 +1282,7 @@ if df_events is not None:
         
         # 1. Preparazione dei dati
         stats = df_events['Utente'].value_counts().reset_index()
-        stats.columns = ['Utente', 'Numero Attività']
+        stats.columns = ['UTENTE', 'Numero Attività']
         
         # Ordiniamo per far apparire il più alto in alto
         stats = stats.sort_values(by='Numero Attività', ascending=True)
@@ -1294,7 +1294,7 @@ if df_events is not None:
         fig = px.bar(
             stats, 
             x='Numero Attività',      # Crescita verso DESTRA
-            y='Utente',              # Commerciali in verticale
+            y='UTENTE',              # Commerciali in verticale
             orientation='h',         # Forza l'orientamento orizzontale
             text='Numero Attività',   # Mostra il numero sulla barra
             color='Numero Attività', # Opzionale: colore variabile

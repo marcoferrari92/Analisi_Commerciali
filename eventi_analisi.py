@@ -9,10 +9,10 @@ per le categorie CLIENTE, LEAD e PROSPECT.
 
 def distribuzione_eventi(df_events):
 
+    df_temp = df_events.copy()
     if 'TIPO ANAGRAFICA' in df_temp.columns:
         
         # Conteggio eventi nelle tre categorie: Cliente, Lead, Prospect
-        df_temp = df_events.copy()
         counts = df_temp['TIPO ANAGRAFICA'].value_counts()
         target_categories = ['CLIENTE', 'LEAD', 'PROSPECT']
         filtered_counts = counts.reindex(target_categories, fill_value=0)

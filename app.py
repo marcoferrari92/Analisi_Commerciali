@@ -21,8 +21,7 @@ def carica_dati_eventi(file):
 
         # 2. Pulizia preliminare spazi e caratteri invisibili (BOM)
         df.columns = df.columns.str.strip().str.replace('ï»¿', '', regex=False)
-
-        # 3. RINOMINA DATA E TUTTO IN MAIUSCOLO
+        
         # Rinominiamo 'Data Evento' in 'DATA' per le tue funzioni di filtraggio
         if 'Data Evento' in df.columns:
             df = df.rename(columns={'Data Evento': 'DATA'})
@@ -1063,14 +1062,14 @@ if df_events is not None:
 
         # Verifica se la colonna esiste
         column_name = 'TIPO ANAGRAFICA'
-        print(df.head(5))
+        
         if column_name in df_events.columns:
             
             # Conteggio occorrenze
             counts = df_events[column_name].value_counts()
             
             # Filtriamo solo le categorie di interesse
-            target_categories = ['Cliente', 'Lead', 'Prospect']
+            target_categories = ['CLIENTE', 'LEAD', 'PROSPECT']
             filtered_counts = counts.reindex(target_categories, fill_value=0)
 
             # Layout a due colonne: Metriche e Grafico

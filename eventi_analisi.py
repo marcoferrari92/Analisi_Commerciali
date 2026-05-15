@@ -17,12 +17,12 @@ def distribuzione_eventi(df_events):
         filtered_counts = counts.reindex(target_categories, fill_value=0)
         
         # Layout Streamlit: 2 colonne
-        col1, col2 = st.columns([2, 1])
+        col0, col1, col2, col3, col4 = st.columns([0.5, 0.5, 0.5, 1, 0.5])
         
         with col1:
             st.dataframe(filtered_counts)
         
-        with col2:
+        with col3:
             
             # Creazione grafico con Matplotlib
             fig, ax = plt.subplots(figsize=(8, 8))

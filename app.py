@@ -1062,7 +1062,7 @@ if df_events is not None:
     with st.expander("⚖️ Volume e Tipologia Eventi"):
 
         # Verifica se la colonna esiste
-        column_name = 'Tipo Anagrafica'
+        column_name = 'TIPO ANAGRAFICA'
         if column_name in df_events.columns:
             
             # Conteggio occorrenze

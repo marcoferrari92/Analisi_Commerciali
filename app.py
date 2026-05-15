@@ -1063,6 +1063,7 @@ if df_events is not None:
 
         # Verifica se la colonna esiste
         column_name = 'TIPO ANAGRAFICA'
+        print(df.head(5))
         if column_name in df_events.columns:
             
             # Conteggio occorrenze

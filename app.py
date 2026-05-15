@@ -1061,33 +1061,6 @@ if df_events is not None:
     st.subheader("Analisi Eventi")
     with st.expander("⚖️ Volume e Tipologia Eventi"):
         
-        # Conteggio eventi
-        counts = df_events['TIPO ANAGRAFICA'].value_counts()
-        
-        # Filtriamo le tre categorie
-        target_categories = ['CLIENTE', 'LEAD', 'PROSPECT']
-        filtered_counts = counts.reindex(target_categories, fill_value=0)
-
-
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            st.dataframe(filtered_counts, column_config={"value": "Totale Eventi"})
-
-        with col2:
-            st.subheader("Distribuzione Eventi")
-            
-            fig, ax = plt.subplots(figsize=(8, 8))
-            colors = ['#5dade2', '#58d68d', '#ec7063'] # Colori personalizzati
-            ax.pie(
-                filtered_counts, 
-                labels=filtered_counts.index, 
-                autopct='%1.1f%%', 
-                startangle=140, 
-                colors=colors,
-                textprops={'fontsize': 12}
-            )
-            ax.axis('equal')  # Assicura che il grafico sia un cerchio
-            st.pyplot(fig)
 
 
     # --- SEZIONE AZIENDE PIÙ COINVOLTE ---

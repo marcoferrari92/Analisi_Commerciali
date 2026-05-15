@@ -2,43 +2,37 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-"""
-Riceve il dataframe degli eventi e visualizza metriche e grafico a torta
-per le categorie CLIENTE, LEAD e PROSPECT.
-"""
-
 def distribuzione_eventi(df_events):
-
-    import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-
-def distribuzione_eventi(df_events):
-    
-    # 1. Controllo corretto: verifichiamo le colonne nel dataframe ricevuto in input
-    if 'TIPO ANAGRAFICA' in df_events.columns      
-        
-        # Conteggio eventi nelle tre categorie
+    """
+    Analisi della distribuzione eventi per tipo anagrafica.
+    """
+    # Verifichiamo che la colonna esista nel dataframe ricevuto
+    if 'TIPO ANAGRAFICA' in df_events.columns:
+        # Creiamo una copia locale per l'elaborazione
         df_temp = df_events.copy()
+        
+        # Conteggio delle occorrenze
         counts = df_temp['TIPO ANAGRAFICA'].value_counts()
+        
+        # Categorie target (maiuscole come nel tuo file caricato)
         target_categories = ['CLIENTE', 'LEAD', 'PROSPECT']
         filtered_counts = counts.reindex(target_categories, fill_value=0)
         
-        # 3. Interfaccia Streamlit
+        # Layout Streamlit: 2 colonne
         col1, col2 = st.columns([1, 2])
         
         with col1:
             st.subheader("Dati Numerici")
-            # Nota: filtered_counts è una Serie, Streamlit la visualizza bene
-            st.dataframe(filtered_counts, column_config={"value": "Totale Eventi"})
+            st.dataframe(filtered_counts)
             
-            # Metriche dashboard
+            # Metriche visuali
             for cat in target_categories:
                 st.metric(label=cat.capitalize(), value=int(filtered_counts[cat]))
         
         with col2:
             st.subheader("Distribuzione Percentuale")
             
+            # Creazione grafico con Matplotlib
             fig, ax = plt.subplots(figsize=(8, 8))
             colors = ['#5dade2', '#58d68d', '#ec7063'] 
             
@@ -51,8 +45,7 @@ def distribuzione_eventi(df_events):
                 textprops={'fontsize': 14}
             )
             ax.axis('equal') 
-            fig.patch.set_alpha(0) # Rende lo sfondo del grafico trasparente
+            fig.patch.set_alpha(0) # Sfondo trasparente
             st.pyplot(fig)
-            
     else:
-        st.error("⚠️ La colonna 'TIPO ANAGRAFICA' non è stata trovata nel file.")
+        st.error(f"Colonna 'TIPO ANAGRAFICA' non trovata. Colonne presenti: {list(df_events.columns)}")

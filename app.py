@@ -1060,7 +1060,7 @@ if df_events is not None:
     st.divider()
     st.subheader("Analisi Eventi")
     with st.expander("⚖️ Volume e Tipologia Eventi"):
-        
+
         # Verifica se la colonna esiste
         column_name = 'Tipo Anagrafica'
         if column_name in df.columns:
@@ -1104,12 +1104,6 @@ if df_events is not None:
 
         else:
             st.error(f"Errore: La colonna '{column_name}' non è stata trovata nel file.")
-
-    except Exception as e:
-        st.error(f"Si è verificato un errore durante l'elaborazione: {e}")
-
-else:
-    st.info("In attesa del caricamento del file...")
 
 
     # --- SEZIONE AZIENDE PIÙ COINVOLTE ---

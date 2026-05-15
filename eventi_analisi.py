@@ -14,7 +14,7 @@ def distribuzione_eventi(df_events):
     counts = df_temp['TIPO ANAGRAFICA'].value_counts()
     target_categories = ['CLIENTE', 'LEAD', 'PROSPECT']
     filtered_counts = counts.reindex(target_categories, fill_value=0)
-
+    
     # 4. Creazione Interfaccia Streamlit
     col1, col2 = st.columns([2, 1])
     
@@ -26,14 +26,13 @@ def distribuzione_eventi(df_events):
         # Opzionale: Aggiunta di metriche rapide per un look più "dashboard"
         for cat in target_categories:
             st.metric(label=cat.capitalize(), value=int(filtered_counts[cat]))
-
+    
     with col2:
         st.subheader("Distribuzione Percentuale")
         
-        # Creazione del grafico con Matplotlib
+    
         fig, ax = plt.subplots(figsize=(8, 8))
-        colors = ['#5dade2', '#58d68d', '#ec7063'] # Azzurro, Verde, Rosso soft
-        
+        colors = ['#5dade2', '#58d68d', '#ec7063'] 
         ax.pie(
             filtered_counts, 
             labels=[c.capitalize() for c in filtered_counts.index], 
@@ -43,8 +42,5 @@ def distribuzione_eventi(df_events):
             textprops={'fontsize': 14}
         )
         ax.axis('equal')  # Cerchio perfetto
-        
-        # Rimozione dello sfondo bianco della figura per integrarsi meglio in Streamlit
         fig.patch.set_alpha(0)
-        
         st.pyplot(fig)

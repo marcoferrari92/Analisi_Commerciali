@@ -1060,51 +1060,34 @@ if df_events is not None:
     st.divider()
     st.subheader("Analisi Eventi")
     with st.expander("⚖️ Volume e Tipologia Eventi"):
-
-        # Verifica se la colonna esiste
-        column_name = 'TIPO ANAGRAFICA'
         
-        if column_name in df_events.columns:
+        # Conteggio eventi
+        counts = df_events['TIPO ANAGRAFICA'].value_counts()
+        
+        # Filtriamo le tre categorie
+        target_categories = ['CLIENTE', 'LEAD', 'PROSPECT']
+        filtered_counts = counts.reindex(target_categories, fill_value=0)
+
+
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            st.dataframe(filtered_counts, column_config={"value": "Totale Eventi"})
+
+        with col2:
+            st.subheader("Distribuzione Eventi")
             
-            # Conteggio occorrenze
-            counts = df_events[column_name].value_counts()
-            
-            # Filtriamo solo le categorie di interesse
-            target_categories = ['CLIENTE', 'LEAD', 'PROSPECT']
-            filtered_counts = counts.reindex(target_categories, fill_value=0)
-
-            # Layout a due colonne: Metriche e Grafico
-            col1, col2 = st.columns([1, 2])
-
-            with col1:
-                st.subheader("Conteggio Eventi")
-                for cat in target_categories:
-                    st.metric(label=cat, value=int(filtered_counts[cat]))
-                
-                st.write("---")
-                st.dataframe(filtered_counts, column_config={"value": "Totale Eventi"})
-
-            with col2:
-                st.subheader("Distribuzione Percentuale")
-                
-                # Creazione del grafico con Matplotlib
-                fig, ax = plt.subplots(figsize=(8, 8))
-                colors = ['#5dade2', '#58d68d', '#ec7063'] # Colori personalizzati
-                
-                ax.pie(
-                    filtered_counts, 
-                    labels=filtered_counts.index, 
-                    autopct='%1.1f%%', 
-                    startangle=140, 
-                    colors=colors,
-                    textprops={'fontsize': 12}
-                )
-                ax.axis('equal')  # Assicura che il grafico sia un cerchio
-                
-                st.pyplot(fig)
-
-        else:
-            st.error(f"Errore: La colonna '{column_name}' non è stata trovata nel file.")
+            fig, ax = plt.subplots(figsize=(8, 8))
+            colors = ['#5dade2', '#58d68d', '#ec7063'] # Colori personalizzati
+            ax.pie(
+                filtered_counts, 
+                labels=filtered_counts.index, 
+                autopct='%1.1f%%', 
+                startangle=140, 
+                colors=colors,
+                textprops={'fontsize': 12}
+            )
+            ax.axis('equal')  # Assicura che il grafico sia un cerchio
+            st.pyplot(fig)
 
 
     # --- SEZIONE AZIENDE PIÙ COINVOLTE ---

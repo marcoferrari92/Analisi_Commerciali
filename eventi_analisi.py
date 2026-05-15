@@ -9,38 +9,41 @@ import matplotlib.pyplot as plt
 
 def distribuzione_eventi(df_events):
 
-    # Conteggio eventi per le tre categorie: Cliente, Prospect e Lead
-    df_temp = df_events.copy()
-    counts = df_temp['TIPO ANAGRAFICA'].value_counts()
-    target_categories = ['CLIENTE', 'LEAD', 'PROSPECT']
-    filtered_counts = counts.reindex(target_categories, fill_value=0)
-    
-    # 4. Creazione Interfaccia Streamlit
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        st.subheader("Dati Numerici")
-        # Visualizzazione tabella pulita
-        st.dataframe(filtered_counts, column_config={"value": "Totale Eventi"})
+    if 'TIPO ANAGRAFICA' in df_temp.columns:
         
-        # Opzionale: Aggiunta di metriche rapide per un look più "dashboard"
-        for cat in target_categories:
-            st.metric(label=cat.capitalize(), value=int(filtered_counts[cat]))
-    
-    with col2:
-        st.subheader("Distribuzione Percentuale")
+        # Conteggio eventi nelle tre categorie: Cliente, Lead, Prospect
+        df_temp = df_events.copy()
+        counts = df_temp['TIPO ANAGRAFICA'].value_counts()
+        target_categories = ['CLIENTE', 'LEAD', 'PROSPECT']
+        filtered_counts = counts.reindex(target_categories, fill_value=0)
         
-    
-        fig, ax = plt.subplots(figsize=(8, 8))
-        colors = ['#5dade2', '#58d68d', '#ec7063'] 
-        ax.pie(
-            filtered_counts, 
-            labels=[c.capitalize() for c in filtered_counts.index], 
-            autopct='%1.1f%%', 
-            startangle=140, 
-            colors=colors,
-            textprops={'fontsize': 14}
-        )
-        ax.axis('equal')  # Cerchio perfetto
-        fig.patch.set_alpha(0)
-        st.pyplot(fig)
+        # Interfaccia Streamlit
+        col1, col2 = st.columns([1, 2])
+        
+        with col1:
+            st.subheader("Dati Numerici")
+            st.dataframe(filtered_counts, column_config={"value": "Totale Eventi"})
+            
+            # Metriche dashboard
+            for cat in target_categories:
+                st.metric(label=cat.capitalize(), value=int(filtered_counts[cat]))
+        
+        with col2:
+            st.subheader("Distribuzione Percentuale")
+            
+            fig, ax = plt.subplots(figsize=(8, 8))
+            colors = ['#5dade2', '#58d68d', '#ec7063'] 
+            
+            ax.pie(
+                filtered_counts, 
+                labels=[c.capitalize() for c in filtered_counts.index], 
+                autopct='%1.1f%%', 
+                startangle=140, 
+                colors=colors,
+                textprops={'fontsize': 14}
+            )
+            ax.axis('equal') 
+            fig.patch.set_alpha(0) # Sfondo trasparente
+            st.pyplot(fig)
+    else:
+        st.error("Colonna 'TIPO ANAGRAFICA' non trovata nel DataFrame.")

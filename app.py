@@ -1063,10 +1063,10 @@ if df_events is not None:
 
         # Verifica se la colonna esiste
         column_name = 'Tipo Anagrafica'
-        if column_name in df.columns:
+        if column_name in df_events.columns:
             
             # Conteggio occorrenze
-            counts = df[column_name].value_counts()
+            counts = df_events[column_name].value_counts()
             
             # Filtriamo solo le categorie di interesse
             target_categories = ['Cliente', 'Lead', 'Prospect']

@@ -1060,11 +1060,11 @@ if df_events is not None:
     st.divider()
     st.subheader("Analisi Eventi")
     with st.expander("⚖️ Volume e Tipologia Eventi"):
-        
         distribuzione_eventi(df_events)
-    st.write("")
 
+    
     # --- SEZIONE AZIENDE PIÙ COINVOLTE ---
+    st.write("")
     st.write("")
     with st.expander("🏢 Analisi Coinvolgimento Aziende"):
         st.write("#### Top Aziende per Commerciale")

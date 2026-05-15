@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-    """
-    Riceve il dataframe degli eventi e visualizza metriche e grafico a torta
-    per le categorie CLIENTE, LEAD e PROSPECT.
-    """
+"""
+Riceve il dataframe degli eventi e visualizza metriche e grafico a torta
+per le categorie CLIENTE, LEAD e PROSPECT.
+"""
 
 def distribuzione_eventi(df_events):
 
@@ -33,7 +33,6 @@ def distribuzione_eventi(df_events):
             
             fig, ax = plt.subplots(figsize=(8, 8))
             colors = ['#5dade2', '#58d68d', '#ec7063'] 
-            
             ax.pie(
                 filtered_counts, 
                 labels=[c.capitalize() for c in filtered_counts.index], 

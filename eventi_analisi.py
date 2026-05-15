@@ -2,25 +2,21 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def visualizza_distribuzione_eventi(df_events):
     """
     Riceve il dataframe degli eventi e visualizza metriche e grafico a torta
     per le categorie CLIENTE, LEAD e PROSPECT.
     """
-    # 1. Pulizia e normalizzazione (opzionale ma consigliata)
-    # Assicuriamoci che i valori siano confrontabili convertendoli in maiuscolo
-    df_temp = df_events.copy()
-    df_temp['TIPO ANAGRAFICA'] = df_temp['TIPO ANAGRAFICA'].astype(str).str.upper()
 
-    # 2. Conteggio eventi
+def distribuzione_eventi(df_events):
+
+    # Conteggio eventi per le tre categorie: Cliente, Prospect e Lead
+    df_temp = df_events.copy()
     counts = df_temp['TIPO ANAGRAFICA'].value_counts()
-    
-    # 3. Filtriamo le tre categorie richieste
     target_categories = ['CLIENTE', 'LEAD', 'PROSPECT']
     filtered_counts = counts.reindex(target_categories, fill_value=0)
 
     # 4. Creazione Interfaccia Streamlit
-    col1, col2 = st.columns([1, 2])
+    col1, col2 = st.columns([2, 1])
     
     with col1:
         st.subheader("Dati Numerici")
@@ -52,7 +48,3 @@ def visualizza_distribuzione_eventi(df_events):
         fig.patch.set_alpha(0)
         
         st.pyplot(fig)
-
-# Esempio di utilizzo all'interno della tua app:
-# if df_events is not None:
-#     visualizza_distribuzione_eventi(df_events)

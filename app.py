@@ -9,7 +9,7 @@ import numpy as np
 
 st.set_page_config(layout="wide")
 
-from eventi_analisi import distribuzione_eventi 
+
 
 @st.cache_data
 def carica_dati_eventi(file):
@@ -1060,6 +1060,7 @@ if df_events is not None:
     st.divider()
     st.subheader("Analisi Eventi")
     with st.expander("⚖️ Volume e Tipologia Eventi"):
+        from eventi_analisi import distribuzione_eventi 
         distribuzione_eventi(df_events)
     st.write("")
 

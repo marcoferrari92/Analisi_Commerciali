@@ -1060,145 +1060,56 @@ if df_events is not None:
     st.divider()
     st.subheader("Analisi Eventi")
     with st.expander("⚖️ Volume e Tipologia Eventi"):
-    
-        # --- PREPARAZIONE DATI ---
-        # 1. Dati per Tipologia (Colonna ora in MAIUSCOLO)
-        stats_tipo = df_events['TIPO EVENTO'].value_counts().reset_index()
-        stats_tipo.columns = ['TIPO EVENTO', 'CONTEGGIO']
         
-        # 2. Dati per Qualità Note (Colonna ora in MAIUSCOLO)
-        df_qualita = df_events.copy()
-        df_qualita['QUALITÀ'] = df_qualita['NOTE'].apply(
-            lambda x: "UTILE (Con Note)" if pd.notnull(x) and str(x).strip() != "" else "MUTO (Senza Note)"
-        )
-        stats_qualita = df_qualita['QUALITÀ'].value_counts().reset_index()
-        stats_qualita.columns = ['STATO NOTA', 'CONTEGGIO']
-        
-        # --- PRIMA RIGA: GRAFICO A TORTA TIPOLOGIE ---
-        col1, col2, col3 = st.columns([2.5, 1.5, 0.25]) 
-        with col1:
-            st.write("#### Tipologie Eventi")
-            fig_pie_tipo = px.pie(
-                stats_tipo, 
-                values='CONTEGGIO', 
-                names='TIPO EVENTO', 
-                hole=0.4,
-                color_discrete_sequence=px.colors.qualitative.Pastel
-            )
-            fig_pie_tipo.update_traces(textinfo='percent+label')
-         
-            fig_pie_tipo.update_layout(
-                margin=dict(t=30, l=10, r=10, b=10), 
-                legend=dict(
-                    orientation="h",
-                    yanchor="bottom",
-                    y=1.02,
-                    xanchor="center",
-                    x=0.5
-                ),
-                height=450
-            )
-            st.plotly_chart(fig_pie_tipo, use_container_width=True)
-
-        with col2: 
-            st.write("#### Volume Eventi")
-            TOTALE_attivita = len(df_events)
-            st.write("")
-            st.metric("TOTALE Attività", TOTALE_attivita)
-            # Corretto in .dataframe (minuscolo)
-            st.dataframe(stats_tipo, hide_index=True, use_container_width=True)
-
-        with col3:
-            st.write("")
-
-        # --- SECONDA RIGA: COUNTPLOT ---
-        st.write("")
-        st.write("#### Confronto Volumi per Tipologia")
-        
-        stats_tipo_sorted = stats_tipo.sort_values(by='CONTEGGIO', ascending=False)
-        
-        fig_count = px.bar(
-            stats_tipo_sorted,
-            x='TIPO EVENTO',
-            y='CONTEGGIO',
-            text='CONTEGGIO',
-            color='TIPO EVENTO',
-            color_discrete_sequence=px.colors.qualitative.Pastel,
-            labels={'CONTEGGIO': 'Numero di Attività', 'TIPO EVENTO': ''}
-        )
-        
-        fig_count.update_traces(
-            textposition='outside',
-            cliponaxis=False 
-        )
-        
-        fig_count.update_layout(
-            showlegend=False,
-            margin=dict(t=30, l=10, r=10, b=10),
-            height=400,
-            xaxis={'categoryorder':'total descending'}
-        )
-        
-        st.plotly_chart(fig_count, use_container_width=True)
+        # Verifica se la colonna esiste
+        column_name = 'Tipo Anagrafica'
+        if column_name in df.columns:
             
+            # Conteggio occorrenze
+            counts = df[column_name].value_counts()
+            
+            # Filtriamo solo le categorie di interesse
+            target_categories = ['Cliente', 'Lead', 'Prospect']
+            filtered_counts = counts.reindex(target_categories, fill_value=0)
 
-    # --- SEZIONE COINVOLGIMENTO MEDIO ---
-    st.write("")
-    with st.expander("📊 Distribuzione Coinvolgimento"):
-        st.write("#### Analisi della Densità di Attività per Azienda")
-        
-        # 1. Calcolo frequenze
-        frequenza_aziende = df_events['RAGIONE SOCIALE'].value_counts().reset_index()
-        frequenza_aziende.columns = ['Azienda', 'Conteggio']
-        
-        # 2. Metriche
-        media_attivita = frequenza_aziende['Conteggio'].mean()
-        mediana_attivita = frequenza_aziende['Conteggio'].median()
-        
-        col_stat1, col_stat2, col_stat3 = st.columns(3)
-        with col_stat1:
-            st.metric("Media Attività/Azienda", f"{media_attivita:.1f}")
-        with col_stat2:
-            st.metric("Mediana (Punto Centrale)", f"{mediana_attivita:.0f}")
-        with col_stat3:
-            st.metric("Max Attività su 1 Azienda", frequenza_aziende['Conteggio'].max())
-    
-        # 3. Grafico combinato: Istogramma + Box Plot marginale
-        fig_dist = px.histogram(
-            frequenza_aziende, 
-            x="Conteggio",
-            marginal="box",
-            title="Distribuzione Coinvolgimento (Istogramma + Box Plot)",
-            labels={'Conteggio': 'N. Attività Ricevute', 'count': 'N. Aziende'},
-            color_discrete_sequence=['#3498db'],
-            text_auto=True
-        )
-        
-        # --- FIX: Applichiamo xbins SOLO alla traccia dell'istogramma ---
-        fig_dist.update_traces(
-            xbins=dict(
-                start=0.5,
-                end=frequenza_aziende['Conteggio'].max() + 0.5,
-                size=1
-            ),
-            selector=dict(type='histogram') # <--- Fondamentale: ignora il box plot
-        )
-        
-        fig_dist.update_layout(
-            bargap=0, 
-            xaxis_title="Numero di Attività per singola Azienda",
-            yaxis_title="Quantità di Aziende",
-            margin=dict(t=50, l=10, r=10, b=10),
-            height=550,
-            xaxis = dict(
-                tickmode = 'linear',
-                tick0 = 1,
-                dtick = 1
-            )
-        )
-        
-        st.plotly_chart(fig_dist, use_container_width=True)
+            # Layout a due colonne: Metriche e Grafico
+            col1, col2 = st.columns([1, 2])
 
+            with col1:
+                st.subheader("Conteggio Eventi")
+                for cat in target_categories:
+                    st.metric(label=cat, value=int(filtered_counts[cat]))
+                
+                st.write("---")
+                st.dataframe(filtered_counts, column_config={"value": "Totale Eventi"})
+
+            with col2:
+                st.subheader("Distribuzione Percentuale")
+                
+                # Creazione del grafico con Matplotlib
+                fig, ax = plt.subplots(figsize=(8, 8))
+                colors = ['#5dade2', '#58d68d', '#ec7063'] # Colori personalizzati
+                
+                ax.pie(
+                    filtered_counts, 
+                    labels=filtered_counts.index, 
+                    autopct='%1.1f%%', 
+                    startangle=140, 
+                    colors=colors,
+                    textprops={'fontsize': 12}
+                )
+                ax.axis('equal')  # Assicura che il grafico sia un cerchio
+                
+                st.pyplot(fig)
+
+        else:
+            st.error(f"Errore: La colonna '{column_name}' non è stata trovata nel file.")
+
+    except Exception as e:
+        st.error(f"Si è verificato un errore durante l'elaborazione: {e}")
+
+else:
+    st.info("In attesa del caricamento del file...")
 
 
     # --- SEZIONE AZIENDE PIÙ COINVOLTE ---

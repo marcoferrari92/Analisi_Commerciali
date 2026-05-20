@@ -1066,7 +1066,7 @@ if df_events is not None:
     # PERFORMANCE TEAM ---
     st.write("")
     st.write("")
-    with st.expander("⚡️ Performance team"):
+    with st.expander("⚡️ Performance Team"):
         analisi_performance_utenti(df_events)
 
     

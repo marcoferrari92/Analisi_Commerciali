@@ -21,12 +21,30 @@ def distribuzione_eventi(df_events):
         # Formattiamo i nomi per l'estetica della legenda (es. Cliente)
         filtered_counts['Anagrafica'] = filtered_counts['TIPO ANAGRAFICA'].str.capitalize()
         
+        totale_eventi = filtered_counts['CONTEGGIO'].sum()
+        if totale_eventi > 0:
+            filtered_counts['QUOTA'] = (filtered_counts['CONTEGGIO'] / totale_eventi) * 100
+        else:
+            filtered_counts['QUOTA'] = 0.0
+        
         # Layout Streamlit: Colonne per la prima riga (Tabella + Torta Interattiva)
-        col1, col2, col3 = st.columns([0.6, 0.1, 1.3])
+        col1, col2, col3 = st.columns([0.8, 0.1, 1.1]) # Allargata leggermente col1 per far spazio alla nuova colonna
         
         with col1:
             st.write("**Totale per Categoria:**")
-            st.dataframe(filtered_counts.set_index('Anagrafica')[['CONTEGGIO']])
+            
+            # Prepariamo il dataframe impostando 'Anagrafica' come indice e prendendo Conteggio e Quota
+            df_da_mostrare = filtered_counts.set_index('Anagrafica')[['CONTEGGIO', 'QUOTA']]
+            
+            # Mostriamo il dataframe formattando la colonna QUOTA con il simbolo % e 1 decimale
+            st.dataframe(
+                df_da_mostrare,
+                column_config={
+                    "CONTEGGIO": st.column_config.NumberColumn("Eventi", format="%d"),
+                    "QUOTA": st.column_config.NumberColumn("Quota (%)", format="%.1f%%")
+                },
+                use_container_width=True
+            )
         
         with col3:
             # Torta Interattiva con Plotly Express

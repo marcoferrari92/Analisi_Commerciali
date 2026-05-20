@@ -126,7 +126,7 @@ def distribuzione_eventi(df_events):
                     barmode='group',
                     orientation='h',
                     color_discrete_map={'Cliente': '#5dade2', 'Lead': '#58d68d', 'Prospect': '#ec7063'},
-                    title="Ripartizione percentuale di ogni attività sui Target",
+                    title="Ripartizione Attività per Anagrafica",
                     hover_data=['Target Anagrafica'] # Forziamo il passaggio della colonna corretta a customdata
                 )
                 
@@ -152,7 +152,7 @@ def distribuzione_eventi(df_events):
                     barmode='relative',
                     orientation='h',
                     color_discrete_map=color_mapping_eventi,
-                    title="Volume Assoluto Attività svolte per Target",
+                    title="Volume Attività per Anagrafica",
                     hover_data=['Tipo Evento'] # Forziamo il passaggio della colonna corretta a customdata
                 )
                 

@@ -13,7 +13,7 @@ def analisi_performance_utenti(df_events):
     
     # Verifichiamo che le colonne necessarie esistano nel dataset
     if colonna_utente in df_events.columns and colonna_evento in df_events.columns:
-        st.markdown("## 📊 Performance del Team Utenti")
+        st.markdown("## Performance del Team")
         
         # 1. PULIZIA DATI ALLA FONTE
         df_temp = df_events.copy()

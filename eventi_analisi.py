@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 def distribuzione_eventi(df_events):
     """
     Analisi della distribuzione eventi per tipo anagrafica e dettaglio tipo evento.
-    Inclusa selezione di filtri specifici per le attività e calcolo delle quote di allocazione.
+    Include un pulsante/checkbox per filtrare rapidamente solo le 3 attività principali.
     """
     
     # Verifichiamo che la colonna principale esista
@@ -46,38 +46,34 @@ def distribuzione_eventi(df_events):
             st.markdown("---")
             st.subheader("Dettaglio Tipologia di Evento per Anagrafica")
             
-            # 1. SOLUZIONE DEL TYPEERROR: Convertiamo subito tutto rigidamente in stringa testuale
+            # Pulizia dati iniziale e messa in sicurezza stringhe
             df_temp['TIPO EVENTO'] = df_temp['TIPO EVENTO'].astype(str).str.strip()
-            
-            # Ora applichiamo la pulizia in totale sicurezza
             df_temp['TIPO EVENTO'] = df_temp['TIPO EVENTO'].str.replace('TELEFONATO -', 'TELEFONATO', regex=False)
-            
-            # Rimuoviamo i record che erano vuoti (NaN) o non validi
             df_temp = df_temp[~df_temp['TIPO EVENTO'].isin(['nan', 'None', '', 'NaN'])]
             
             # ---------------------------------------------------------
-            # Filtro Multiselect Attività
+            # MODIFICA: Pulsante Filtro (Checkbox/Toggle)
             # ---------------------------------------------------------
-            elenco_attivita_disponibili = sorted([str(x) for x in df_temp['TIPO EVENTO'].unique() if x])
-            
-            attivita_default = [att for att in ['TELEFONATO', 'VISITATO', 'INVIATA MAIL'] if att in elenco_attivita_disponibili]
-            
-            attivita_selezionate = st.multiselect(
-                "Filtra la tipologia di eventi da analizzare nel grafico:",
-                options=elenco_attivita_disponibili,
-                default=attivita_default
+            # Se attivo, isola solo le tre categorie, se disattivo mostra tutto
+            mostra_solo_principali = st.checkbox(
+                "Mostra solo le attività principali (Telefonato, Visitato, Inviata Mail)", 
+                value=True  # Parte già attivato di default
             )
             
-            # Applichiamo i filtri (Target Anagrafica + Attività Selezionate)
-            df_filtered_types = df_temp[
-                (df_temp['TIPO ANAGRAFICA'].isin(target_categories)) & 
-                (df_temp['TIPO EVENTO'].isin(attivita_selezionate))
-            ]
+            if mostra_solo_principali:
+                attivita_da_considerare = ['TELEFONATO', 'VISITATO', 'INVIATA MAIL']
+                df_filtered_types = df_temp[
+                    (df_temp['TIPO ANAGRAFICA'].isin(target_categories)) & 
+                    (df_temp['TIPO EVENTO'].isin(attivita_da_considerare))
+                ]
+            else:
+                # Mostra tutte le tipologie di evento senza filtri
+                df_filtered_types = df_temp[df_temp['TIPO ANAGRAFICA'].isin(target_categories)]
             # ---------------------------------------------------------
             
-            # Controllo di sicurezza nel caso il filtro svuoti i dati
+            # Controllo di sicurezza nel caso il dataset sia vuoto
             if df_filtered_types.empty:
-                st.warning("Nessun dato disponibile per le attività selezionate.")
+                st.warning("Nessun dato disponibile con i filtri selezionati.")
                 return
             
             # Creiamo la tabella pivot (Crosstab)

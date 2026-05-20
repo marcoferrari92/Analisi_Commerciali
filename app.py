@@ -9,7 +9,7 @@ import numpy as np
 
 st.set_page_config(layout="wide")
 
-from eventi_analisi import distribuzione_eventi
+from eventi_analisi import distribuzione_eventi, analisi_performance_utenti
 
 @st.cache_data
 def carica_dati_eventi(file):
@@ -1056,11 +1056,18 @@ if df_orders is not None:
 
 if df_events is not None:
     
-    # --- SEZIONE 2: RESOCONTO ---
+    # PANORAMICA EVENTI ---
     st.divider()
     st.subheader("Analisi Eventi")
     with st.expander("👁️ Panoramica Eventi"):
         distribuzione_eventi(df_events)
+
+
+    # PERFORMANCE TEAM ---
+    st.write("")
+    st.write("")
+    with st.expander("⚡️ Performance team"):
+        analisi_performance_utenti(df_events)
 
     
     # --- SEZIONE AZIENDE PIÙ COINVOLTE ---

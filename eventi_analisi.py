@@ -186,10 +186,14 @@ def distribuzione_eventi(df_events):
 
 
 
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+
 def analisi_performance_utenti(df_events):
     """
     Analisi delle performance del team di utenti/commerciali.
-    Mostra i volumi di attività gestiti da ciascun membro del team con filtro anagrafica.
+    Mostra due grafici: uno per volumi assoluti impilati e uno per percentuali sul totale globale.
     """
     colonna_utente = 'UTENTE'
     colonna_evento = 'TIPO EVENTO'
@@ -213,21 +217,19 @@ def analisi_performance_utenti(df_events):
         df_temp = df_temp[~df_temp[colonna_utente].isin(['nan', 'None', '', 'NaN'])]
         
         # ---------------------------------------------------------
-        # AGGIUNTA: Filtro di Selezione Target Anagrafica
+        # FILTRO: Selezione Target Anagrafica
         # ---------------------------------------------------------
         scelta_anagrafica = st.selectbox(
             "Seleziona il target di anagrafica da analizzare:",
             ["Tutte le anagrafiche", "Clienti", "Lead", "Prospect"]
         )
         
-        # Applichiamo il filtro sul target prima di procedere con gli altri passaggi
         if scelta_anagrafica == "Clienti":
             df_temp = df_temp[df_temp[colonna_anagrafica] == 'CLIENTE']
         elif scelta_anagrafica == "Lead":
             df_temp = df_temp[df_temp[colonna_anagrafica] == 'LEAD']
         elif scelta_anagrafica == "Prospect":
             df_temp = df_temp[df_temp[colonna_anagrafica] == 'PROSPECT']
-        # ---------------------------------------------------------
         
         # FILTRI SECONDARI (Attività + Selezione Utenti)
         col_f1, col_f2 = st.columns(2)
@@ -272,11 +274,21 @@ def analisi_performance_utenti(df_events):
         st.dataframe(pivot_utenti, use_container_width=True)
         
         # ---------------------------------------------------------
-        # GRAFICO INTERATTIVO PLOTLY
+        # PREPARAZIONE DATI PER I GRAFICI (Melt in formato lungo)
         # ---------------------------------------------------------
         df_chart = pivot_utenti.drop(columns=['TOTALE ATTIVITÀ']).reset_index()
         df_long = df_chart.melt(id_vars=colonna_utente, var_name='Tipo Evento', value_name='Conteggio')
         
+        # Calcolo del Totale Globale di tutti gli eventi filtrati (Tutti i commerciali insieme)
+        totale_globale_eventi = df_long['Conteggio'].sum()
+        
+        # Calcoliamo la percentuale sul totale complessivo del team
+        if totale_globale_eventi > 0:
+            df_long['Percentuale Globale'] = (df_long['Conteggio'] / totale_globale_eventi) * 100
+        else:
+            df_long['Percentuale Globale'] = 0.0
+            
+        # Palette Colori Coerente
         color_mapping_eventi = {
             'VISITARE': '#ffff00',       
             'VISITATO': '#ffcc00',       
@@ -289,32 +301,69 @@ def analisi_performance_utenti(df_events):
             'SOLLECITARE OFFERTA COMMERCIALE': '#000000' 
         }
         
-        fig_utenti = px.bar(
+        st.markdown("---")
+        
+        # ---------------------------------------------------------
+        # GRAFICO 1: VOLUME ASSOLUTO (BARRE IMPILATE)
+        # ---------------------------------------------------------
+        st.subheader("1. Volume Assoluto di Attività Svolte")
+        fig_volume = px.bar(
             df_long,
             x=colonna_utente,
             y='Conteggio',
             color='Tipo Evento',
-            barmode='group',
+            barmode='relative', # Impilate una sull'altra
             color_discrete_map=color_mapping_eventi,
-            title=f"Confronto operativo del team - Target: {scelta_anagrafica}",
+            title=f"Totale eventi gestiti per commerciale - Target: {scelta_anagrafica}",
             hover_data=['Tipo Evento']
         )
         
-        fig_utenti.update_traces(
+        fig_volume.update_traces(
             hovertemplate="<b>Utente: %{x}</b><br>Attività: %{customdata[0]}<br>Quantità: %{y}<extra></extra>"
         )
         
-        fig_utenti.update_layout(
+        fig_volume.update_layout(
             xaxis_title="Membro del Team",
-            yaxis_title="Numero di Attività Svolte",
+            yaxis_title="Numero di Attività",
             legend_title="Tipo Evento",
             paper_bgcolor='rgba(0,0,0,0)', 
             plot_bgcolor='rgba(0,0,0,0)',
-            height=500
+            height=400
         )
-        fig_utenti.update_yaxes(showgrid=True, gridcolor='rgba(200,200,200,0.2)')
+        fig_volume.update_yaxes(showgrid=True, gridcolor='rgba(200,200,200,0.2)')
+        st.plotly_chart(fig_volume, use_container_width=True)
         
-        st.plotly_chart(fig_utenti, use_container_width=True)
+        # ---------------------------------------------------------
+        # GRAFICO 2: PERCENTUALE SUL TOTALE COMPLESSIVO (BARRE IMPILATE O AFFIANCATE)
+        # ---------------------------------------------------------
+        st.subheader("2. Impatto Percentuale sul Totale Globale del Team")
+        st.caption(f"Le percentuali sono calcolate sul totale di tutti i commerciali uniti (Totale eventi: {totale_globale_eventi})")
+        
+        fig_percentuale = px.bar(
+            df_long,
+            x=colonna_utente,
+            y='Percentuale Globale',
+            color='Tipo Evento',
+            barmode='relative', # Mantengo impilato così vedi la quota totale del commerciale sull'azienda
+            color_discrete_map=color_mapping_eventi,
+            title=f"Quota di contribuzione sul totale delle attività del team (%)",
+            hover_data=['Tipo Evento']
+        )
+        
+        fig_percentuale.update_traces(
+            hovertemplate="<b>Utente: %{x}</b><br>Attività: %{customdata[0]}<br>Quota sul Totale Team: %{y:.1f}%<extra></extra>"
+        )
+        
+        fig_percentuale.update_layout(
+            xaxis_title="Membro del Team",
+            yaxis_title="Percentuale sul totale complessivo (%)",
+            legend_title="Tipo Evento",
+            paper_bgcolor='rgba(0,0,0,0)', 
+            plot_bgcolor='rgba(0,0,0,0)',
+            height=400
+        )
+        fig_percentuale.update_yaxes(showgrid=True, gridcolor='rgba(200,200,200,0.2)', ticksuffix="%")
+        st.plotly_chart(fig_percentuale, use_container_width=True)
         
     else:
         st.error(f"Colonne richieste non trovate. Assicurati che nel file ci siano 'UTENTE', 'TIPO EVENTO' e 'TIPO ANAGRAFICA'.")

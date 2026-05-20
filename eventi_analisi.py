@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 def distribuzione_eventi(df_events):
     """
     Analisi della distribuzione eventi per tipo anagrafica e dettaglio tipo evento.
-    In modalità percentuale mostra la quota di ogni attività (colonna) distribuita sui target.
+    Inclusa selezione di filtri specifici per le attività e calcolo delle quote di allocazione.
     """
     
     # Verifichiamo che la colonna principale esista
@@ -50,17 +50,38 @@ def distribuzione_eventi(df_events):
             df_temp['TIPO EVENTO'] = df_temp['TIPO EVENTO'].astype(str).str.replace('TELEFONATO -', 'TELEFONATO', regex=False)
             df_temp['TIPO EVENTO'] = df_temp['TIPO EVENTO'].str.strip() 
             
-            # Filtriamo il dataframe solo per le 3 categorie target per pulizia
-            df_filtered_types = df_temp[df_temp['TIPO ANAGRAFICA'].isin(target_categories)]
+            # ---------------------------------------------------------
+            # AGGIUNTA: Filtro Multiselect Attività (Pre-popolato con le tue 3 preferite)
+            # ---------------------------------------------------------
+            elenco_attivita_disponibili = sorted(df_temp['TIPO EVENTO'].unique())
+            attivita_default = [att for att in ['TELEFONATO', 'VISITATO', 'INVIATA MAIL'] if att in elenco_attivita_disponibili']
             
-            # Creiamo una tabella pivot (Crosstab)
+            attivita_selezionate = st.multiselect(
+                "Filtra la tipologia di eventi da analizzare nel grafico:",
+                options=elenco_attivita_disponibili,
+                default=attivita_default
+            )
+            
+            # Applichiamo i filtri (Target Anagrafica + Attività Selezionate)
+            df_filtered_types = df_temp[
+                (df_temp['TIPO ANAGRAFICA'].isin(target_categories)) & 
+                (df_temp['TIPO EVENTO'].isin(attivita_selezionate))
+            ]
+            # ---------------------------------------------------------
+            
+            # Controllo di sicurezza nel caso il filtro svuoti i dati
+            if df_filtered_types.empty:
+                st.warning("Nessun dato disponibile per le attività selezionate.")
+                return
+            
+            # Creiamo la tabella pivot (Crosstab)
             pivot_df = pd.crosstab(df_filtered_types['TIPO ANAGRAFICA'], df_filtered_types['TIPO EVENTO'])
             
             # Reindicizziamo le righe
             pivot_df = pivot_df.reindex(target_categories, fill_value=0)
             pivot_df.index = [idx.capitalize() for idx in pivot_df.index]
             
-            # DEFINIZIONE COLORI ACCOPPIATI (Tua mappa per valori assoluti)
+            # DEFINIZIONE COLORI ACCOPPIATI
             color_mapping_eventi = {
                 'VISITARE': '#ffff00',       
                 'VISITATO': '#ffcc00',       
@@ -73,9 +94,7 @@ def distribuzione_eventi(df_events):
                 'SOLLECITARE OFFERTA COMMERCIALE': '#000000' 
             }
             
-            # ---------------------------------------------------------
             # SELEZIONE TIPO DI VISUALIZZAZIONE
-            # ---------------------------------------------------------
             tipo_visualizzazione = st.radio(
                 "Seleziona la modalità di visualizzazione del grafico:",
                 ["Valori Assoluti (Impilati)", "Percentuale di allocazione Attività (Affiancati per Evento)"],
@@ -83,17 +102,17 @@ def distribuzione_eventi(df_events):
             )
             
             if tipo_visualizzazione == "Percentuale di allocazione Attività (Affiancati per Evento)":
-                # Calcoliamo le percentuali per colonna (ogni attività fa 100% in totale sui 3 target)
+                # Calcoliamo le percentuali in verticale (per colonna)
                 pivot_perc = pivot_df.div(pivot_df.sum(axis=0), axis=1) * 100
                 
-                # Trasponiamo per avere le attività sull'asse Y e i gruppi anagrafica come barre affiancate
+                # Trasponiamo per avere le attività sull'asse Y
                 plot_data = pivot_perc.T
                 
-                # Usiamo i colori coordinati con la torta iniziale per identificare i target (Cliente, Lead, Prospect)
+                # Colori target coordinati con la torta iniziale
                 colors_target = ['#5dade2', '#58d68d', '#ec7063']
                 
-                fig_bar, ax_bar = plt.subplots(figsize=(12, 8))
-                plot_data.plot(kind='barh', stacked=False, ax=ax_bar, color=colors_target, width=0.8)
+                fig_bar, ax_bar = plt.subplots(figsize=(12, 6))
+                plot_data.plot(kind='barh', stacked=False, ax=ax_bar, color=colors_target, width=0.7)
                 
                 ax_bar.set_xlabel("Quota di allocazione dell'attività (%)", fontsize=12)
                 ax_bar.set_ylabel("Tipo Evento", fontsize=12)
@@ -102,7 +121,7 @@ def distribuzione_eventi(df_events):
                 ax_bar.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{int(x)}%'))
                 
             else:
-                # Modalità classica assoluta impilata (Mantiene l'anagrafica sull'asse Y)
+                # Modalità classica assoluta impilata
                 plot_data = pivot_df
                 colors_list = [color_mapping_eventi.get(col, '#bdc3c7') for col in plot_data.columns]
                 
@@ -112,7 +131,6 @@ def distribuzione_eventi(df_events):
                 ax_bar.set_xlabel("Numero di Eventi", fontsize=12)
                 ax_bar.set_ylabel("Tipo Anagrafica", fontsize=12)
                 ax_bar.legend(title="Tipo Evento", bbox_to_anchor=(1.05, 1), loc='upper left')
-            # ---------------------------------------------------------
             
             # Estetica del grafico comune
             ax_bar.set_title("Distribuzione delle attività", fontsize=14, pad=15)

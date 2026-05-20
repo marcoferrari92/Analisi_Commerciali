@@ -179,3 +179,124 @@ def distribuzione_eventi(df_events):
             
     else:
         st.error(f"Colonna 'TIPO ANAGRAFICA' non trovata. Colonne presenti: {list(df_events.columns)}")
+
+
+
+
+
+def analisi_performance_utenti(df_events):
+    """
+    Analisi delle performance del team di utenti/commerciali.
+    Mostra i volumi di attività gestiti da ciascun membro del team.
+    """
+    colonna_utente = 'UTENTE'
+    colonna_evento = 'TIPO EVENTO'
+    
+    # Verifichiamo che le colonne necessarie esistano nel dataset
+    if colonna_utente in df_events.columns and colonna_evento in df_events.columns:
+        st.markdown("## 📊 Performance del Team Utenti")
+        
+        # 1. PULIZIA DATI ALLA FONTE (Stessa logica usata per le anagrafiche)
+        df_temp = df_events.copy()
+        df_temp[colonna_evento] = df_temp[colonna_evento].astype(str).str.strip()
+        df_temp[colonna_evento] = df_temp[colonna_evento].str.replace('TELEFONATO -', 'TELEFONATO', regex=False)
+        df_temp[colonna_utente] = df_temp[colonna_utente].astype(str).str.strip()
+        
+        # Rimuoviamo i valori nulli o spuri
+        df_temp = df_temp[~df_temp[colonna_evento].isin(['nan', 'None', '', 'NaN'])]
+        df_temp = df_temp[~df_temp[colonna_utente].isin(['nan', 'None', '', 'NaN'])]
+        
+        # ---------------------------------------------------------
+        # FILTRI IN ALTO (Filtro rapido attività + Selezione Utenti)
+        # ---------------------------------------------------------
+        col_f1, col_f2 = st.columns(2)
+        
+        with col_f1:
+            mostra_solo_principali = st.checkbox(
+                "Mostra solo attività principali (Telefonato, Visitato, Inviata Mail)", 
+                value=True,
+                key="utenti_filtro_attivita"
+            )
+            if mostra_solo_principali:
+                attivita_target = ['TELEFONATO', 'VISITATO', 'INVIATA MAIL']
+                df_temp = df_temp[df_temp[colonna_evento].isin(attivita_target)]
+        
+        with col_f2:
+            elenco_utenti = sorted(df_temp[colonna_utente].unique())
+            utenti_selezionati = st.multiselect(
+                "Filtra o isola utenti specifici:",
+                options=elenco_utenti,
+                default=elenco_utenti,
+                key="utenti_filtro_nomi"
+            )
+            df_filtered = df_temp[df_temp[colonna_utente].isin(utenti_selezionati)]
+            
+        if df_filtered.empty:
+            st.warning("Nessun dato disponibile con i filtri selezionati.")
+            return
+            
+        # ---------------------------------------------------------
+        # TABELLA RIASSUNTIVA DELLE CLASSIFICHE
+        # ---------------------------------------------------------
+        st.markdown("---")
+        
+        # Creiamo la tabella Pivot (Righe: Utenti, Colonne: Attività)
+        pivot_utenti = pd.crosstab(df_filtered[colonna_utente], df_filtered[colonna_evento])
+        
+        # Calcoliamo il totale complessivo per utente per fare la classifica ordinata
+        pivot_utenti['TOTALE ATTIVITÀ'] = pivot_utenti.sum(axis=1)
+        pivot_utenti = pivot_utenti.sort_values(by='TOTALE ATTIVITÀ', ascending=False)
+        
+        st.write("**Riepilogo Attività per Utente:**")
+        st.dataframe(pivot_utenti, use_container_width=True)
+        
+        # ---------------------------------------------------------
+        # GRAFICO INTERATTIVO PLOTLY (Barre Affiancate per Utente)
+        # ---------------------------------------------------------
+        # Prepariamo il formato lungo per Plotly togliendo la colonna 'TOTALE ATTIVITÀ' dal grafico
+        df_chart = pivot_utenti.drop(columns=['TOTALE ATTIVITÀ']).reset_index()
+        df_long = df_chart.melt(id_vars=colonna_utente, var_name='Tipo Evento', value_name='Conteggio')
+        
+        # Mappa colori custom coerente con quella usata nell'altra pagina
+        color_mapping_eventi = {
+            'VISITARE': '#ffff00',       
+            'VISITATO': '#ffcc00',       
+            'TELEFONARE': '#ff66ff',     
+            'TELEFONATO': '#af7ac5',     
+            'INVIARE EMAIL': '#66ff66',   
+            'INVIATA MAIL': '#009900',    
+            'INVIO E-MAIL SFC': '#009900', 
+            'PARTECIPAZIONE WEBINAR': '#3498db', 
+            'SOLLECITARE OFFERTA COMMERCIALE': '#000000' 
+        }
+        
+        fig_utenti = px.bar(
+            df_long,
+            x=colonna_utente,
+            y='Conteggio',
+            color='Tipo Evento',
+            barmode='group', # Barre affiancate a gruppetti per ogni utente
+            color_discrete_map=color_mapping_eventi,
+            title="Confronto operativo tra i membri del team",
+            hover_data=['Tipo Evento']
+        )
+        
+        # Hover interattivo bloccato e preciso!
+        fig_utenti.update_traces(
+            hovertemplate="<b>Utente: %{x}</b><br>Attività: %{customdata[0]}<br>Quantità: %{y}<extra></extra>"
+        )
+        
+        fig_utenti.update_layout(
+            xaxis_title="Membro del Team",
+            yaxis_title="Numero di Attività Svolte",
+            legend_title="Tipo Evento",
+            paper_bgcolor='rgba(0,0,0,0)', 
+            plot_bgcolor='rgba(0,0,0,0)',
+            height=500
+        )
+        fig_utenti.update_yaxes(showgrid=True, gridcolor='rgba(200,200,200,0.2)')
+        
+        st.plotly_chart(fig_utenti, use_container_width=True)
+        
+    else:
+        st.error(f"Colonne richieste non trovate. Assicurati che nel file ci siano 'UTENTE' e 'TIPO EVENTO'.")

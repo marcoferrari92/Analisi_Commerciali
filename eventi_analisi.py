@@ -46,20 +46,19 @@ def distribuzione_eventi(df_events):
             st.markdown("---")
             st.subheader("Dettaglio Tipologia di Evento per Anagrafica")
             
-            # 1. PULIZIA DATI ALLA FONTE: Rimuoviamo i valori nulli reali prima della conversione
-            df_temp = df_temp.dropna(subset=['TIPO EVENTO'])
-            
-            # Convertiamo tutto rigidamente in stringa pulita
+            # 1. SOLUZIONE DEL TYPEERROR: Convertiamo subito tutto rigidamente in stringa testuale
             df_temp['TIPO EVENTO'] = df_temp['TIPO EVENTO'].astype(str).str.strip()
             
-            # Rimuoviamo il trattino da 'TELEFONATO -' e le eventuali stringhe 'nan' testuali repentine
+            # Ora applichiamo la pulizia in totale sicurezza
             df_temp['TIPO EVENTO'] = df_temp['TIPO EVENTO'].str.replace('TELEFONATO -', 'TELEFONATO', regex=False)
-            df_temp = df_temp[df_temp['TIPO EVENTO'] != 'nan']
+            
+            # Rimuoviamo i record che erano vuoti (NaN) o non validi
+            df_temp = df_temp[~df_temp['TIPO EVENTO'].isin(['nan', 'None', '', 'NaN'])]
             
             # ---------------------------------------------------------
-            # AGGIUNTA: Filtro Multiselect Attività (Ora sicuro al 100% da TypeError)
+            # Filtro Multiselect Attività
             # ---------------------------------------------------------
-            elenco_attivita_disponibili = sorted([str(x) for x in df_temp['TIPO EVENTO'].unique()])
+            elenco_attivita_disponibili = sorted([str(x) for x in df_temp['TIPO EVENTO'].unique() if x])
             
             attivita_default = [att for att in ['TELEFONATO', 'VISITATO', 'INVIATA MAIL'] if att in elenco_attivita_disponibili]
             

@@ -45,22 +45,50 @@ def distribuzione_eventi(df_events):
             st.markdown("---")
             st.subheader("Dettaglio Tipologia di Evento per Anagrafica")
             
+            # 1. PULIZIA DATI: Rimuoviamo il trattino da 'TELEFONATO -' e normalizziamo gli spazi
+            df_temp['TIPO EVENTO'] = df_temp['TIPO EVENTO'].astype(str).str.replace('TELEFONATO -', 'TELEFONATO', regex=False)
+            df_temp['TIPO EVENTO'] = df_temp['TIPO EVENTO'].str.strip() # Rimuove eventuali spazi bianchi finali residui
+            
             # Filtriamo il dataframe solo per le 3 categorie target per pulizia
             df_filtered_types = df_temp[df_temp['TIPO ANAGRAFICA'].isin(target_categories)]
             
-            # Creiamo una tabella pivot (Crosstab) tra le due colonne
-            # Righe: Tipo Anagrafica, Colonne: Tipo Evento
+            # Creiamo una tabella pivot (Crosstab) - Ora 'TELEFONATO' sarà un'unica colonna pulita
             pivot_df = pd.crosstab(df_filtered_types['TIPO ANAGRAFICA'], df_filtered_types['TIPO EVENTO'])
             
-            # Reindicizziamo le righe per mantenere l'ordine precedente (capitalizzato per l'estetica del grafico)
+            # Reindicizziamo le righe
             pivot_df = pivot_df.reindex(target_categories, fill_value=0)
             pivot_df.index = [idx.capitalize() for idx in pivot_df.index]
             
-            # Disegniamo il grafico a barre impilate orizzontali (stacked=True)
+            # ---------------------------------------------------------
+            # DEFINIZIONE COLORI ACCOPPIATI (Chiaro per l'azione, Scuro per il completato)
+            # ---------------------------------------------------------
+            color_mapping = {
+                # Coppia Visite (Giallo)
+                'VISITARE': '#fef9e7',       # Giallo molto chiaro
+                'VISITATO': '#f4d03f',       # Giallo scuro / dorato
+                
+                # Coppia Telefonate (Rosa / Viola)
+                'TELEFONARE': '#fdedec',     # Rosa chiaro
+                'TELEFONATO': '#af7ac5',     # Viola / Rosa scuro (Trattino rimosso definitivamente)
+                
+                # Coppia Email (Azzurro / Blu)
+                'INVIARE EMAIL': '#e8f8f5',   # Acqua/Azzurro chiaro
+                'INVIATA MAIL': '#a3e4d7',    # Acqua medio
+                'INVIO E-MAIL SFC': '#48c9b0', # Verde acqua / Blu più intenso
+                
+                # Altri eventi singoli
+                'PARTECIPAZIONE WEBINAR': '#3498db', # Blu
+                'SOLLECITARE OFFERTA COMMERCIALE': '#58d68d' # Verde
+            }
+            
+            # Creiamo la lista dei colori nell'ordine ESATTO delle colonne della pivot
+            colors_list = [color_mapping.get(col, '#bdc3c7') for col in pivot_df.columns]
+            # ---------------------------------------------------------
+            
+            # Disegniamo il grafico passando la lista di colori personalizzata
             fig_bar, ax_bar = plt.subplots(figsize=(10, 5))
             
-            # Usiamo una colormap integrata per differenziare i vari tipi di evento (es. Telefonata, Visita...)
-            pivot_df.plot(kind='barh', stacked=True, ax=ax_bar, colormap='Set3')
+            pivot_df.plot(kind='barh', stacked=True, ax=ax_bar, color=colors_list)
             
             # Estetica del grafico
             ax_bar.set_title("Distribuzione delle attività", fontsize=14, pad=15)
@@ -76,8 +104,6 @@ def distribuzione_eventi(df_events):
             
             # Mostriamo il grafico a tutta larghezza
             st.pyplot(fig_bar)
-        else:
-            st.warning("Colonna 'TIPO EVENTO' non trovata. Impossibile mostrare il dettaglio delle attività.")
             
     else:
         st.error(f"Colonna 'TIPO ANAGRAFICA' non trovata. Colonne presenti: {list(df_events.columns)}")

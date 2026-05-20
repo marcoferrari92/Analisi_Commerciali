@@ -5,7 +5,7 @@ import plotly.express as px
 def analisi_performance_utenti(df_events):
     """
     Analisi delle performance del team di utenti/commerciali.
-    Mostra due grafici: uno per volumi assoluti impilati e uno per percentuali sul totale globale.
+    Mostra due grafici (Volume e Percentuale globale) e in fondo la tabella dettagliata con le quote.
     """
     colonna_utente = 'UTENTE'
     colonna_evento = 'TIPO EVENTO'
@@ -69,32 +69,19 @@ def analisi_performance_utenti(df_events):
         if df_filtered.empty:
             st.warning("Nessun dato disponibile con i filtri selezionati.")
             return
-            
+
         # ---------------------------------------------------------
-        # TABELLA RIASSUNTIVA DELLE CLASSIFICHE
+        # PREPARAZIONE DATI GENERALE (Melt in formato lungo)
         # ---------------------------------------------------------
-        st.markdown("---")
+        # Generiamo la pivot di base per i conteggi
+        pivot_base = pd.crosstab(df_filtered[colonna_utente], df_filtered[colonna_evento])
+        totale_globale_eventi = pivot_base.sum().sum()
         
-        # Creiamo la tabella Pivot (Righe: Utenti, Colonne: Attività)
-        pivot_utenti = pd.crosstab(df_filtered[colonna_utente], df_filtered[colonna_evento])
-        
-        # Calcoliamo il totale complessivo per utente per fare la classifica ordinata
-        pivot_utenti['TOTALE ATTIVITÀ'] = pivot_utenti.sum(axis=1)
-        pivot_utenti = pivot_utenti.sort_values(by='TOTALE ATTIVITÀ', ascending=False)
-        
-        st.write(f"**Riepilogo Attività per Utente ({scelta_anagrafica}):**")
-        st.dataframe(pivot_utenti, use_container_width=True)
-        
-        # ---------------------------------------------------------
-        # PREPARAZIONE DATI PER I GRAFICI (Melt in formato lungo)
-        # ---------------------------------------------------------
-        df_chart = pivot_utenti.drop(columns=['TOTALE ATTIVITÀ']).reset_index()
+        # Struttura dati per i grafici Plotly
+        df_chart = pivot_base.reset_index()
         df_long = df_chart.melt(id_vars=colonna_utente, var_name='Tipo Evento', value_name='Conteggio')
         
-        # Calcolo del Totale Globale di tutti gli eventi filtrati (Tutti i commerciali insieme)
-        totale_globale_eventi = df_long['Conteggio'].sum()
-        
-        # Calcoliamo la percentuale sul totale complessivo del team
+        # Calcoliamo le percentuali globali per il secondo grafico
         if totale_globale_eventi > 0:
             df_long['Percentuale Globale'] = (df_long['Conteggio'] / totale_globale_eventi) * 100
         else:
@@ -124,7 +111,7 @@ def analisi_performance_utenti(df_events):
             x=colonna_utente,
             y='Conteggio',
             color='Tipo Evento',
-            barmode='relative', # Impilate una sull'altra
+            barmode='relative',
             color_discrete_map=color_mapping_eventi,
             title=f"Totale eventi gestiti per commerciale - Target: {scelta_anagrafica}",
             hover_data=['Tipo Evento']
@@ -146,7 +133,7 @@ def analisi_performance_utenti(df_events):
         st.plotly_chart(fig_volume, use_container_width=True)
         
         # ---------------------------------------------------------
-        # GRAFICO 2: PERCENTUALE SUL TOTALE COMPLESSIVO (BARRE IMPILATE O AFFIANCATE)
+        # GRAFICO 2: PERCENTUALE SUL TOTALE COMPLESSIVO (BARRE IMPILATE)
         # ---------------------------------------------------------
         st.subheader("2. Impatto del Singolo Commerciale sull'Attività Globale del Team")
         st.caption(f"Le percentuali sono calcolate sul totale di tutti i commerciali uniti (Totale eventi: {totale_globale_eventi})")
@@ -156,7 +143,7 @@ def analisi_performance_utenti(df_events):
             x=colonna_utente,
             y='Percentuale Globale',
             color='Tipo Evento',
-            barmode='relative', # Mantengo impilato così vedi la quota totale del commerciale sull'azienda
+            barmode='relative',
             color_discrete_map=color_mapping_eventi,
             title=f"Quota di contribuzione sul totale delle attività del team (%)",
             hover_data=['Tipo Evento']
@@ -176,6 +163,60 @@ def analisi_performance_utenti(df_events):
         )
         fig_percentuale.update_yaxes(showgrid=True, gridcolor='rgba(200,200,200,0.2)', ticksuffix="%")
         st.plotly_chart(fig_percentuale, use_container_width=True)
+        
+        # ---------------------------------------------------------
+        # TABELLA SPOSTATA IN FONDO CON CONTEGGI E QUOTE PERCENTUALI
+        # ---------------------------------------------------------
+        st.markdown("---")
+        st.subheader("📋 Registro Analitico e Quote di Distribuzione")
+        
+        # Creiamo la tabella delle percentuali reali
+        if totale_globale_eventi > 0:
+            pivot_percentuali = (pivot_base / totale_globale_eventi) * 100
+        else:
+            pivot_percentuali = pivot_base * 0.0
+            
+        # Rinominiamo le colonne delle percentuali per distinguerle dai conteggi numerici interi
+        pivot_percentuali = pivot_percentuali.rename(columns=lambda x: f"{x} (%)")
+        
+        # Uniamo la tabella dei conteggi e quella delle percentuali affiancandole
+        pivot_final = pd.concat([pivot_base, pivot_percentuali], axis=1)
+        
+        # Calcoliamo i Totali di riga sia assoluti che in percentuale globale
+        pivot_final['TOTALE ATTIVITÀ'] = pivot_base.sum(axis=1)
+        if totale_globale_eventi > 0:
+            pivot_final['TOTALE COMPLESSIVO (%)'] = (pivot_final['TOTALE ATTIVITÀ'] / totale_globale_eventi) * 100
+        else:
+            pivot_final['TOTALE COMPLESSIVO (%)'] = 0.0
+            
+        # Ordiniamo la tabella in base al commerciale più attivo
+        pivot_final = pivot_final.sort_values(by='TOTALE ATTIVITÀ', ascending=False)
+        
+        # Riordino estetico delle colonne: prima tutte le assolute, poi tutte le percentuali
+        colonne_assolute = list(pivot_base.columns) + ['TOTALE ATTIVITÀ']
+        colonne_percentuali = list(pivot_percentuali.columns) + ['TOTALE COMPLESSIVO (%)']
+        pivot_final = pivot_final[colonne_assolute + colonne_percentuali]
+        
+        st.write(f"**Tabella Riepilogativa delle Performance ({scelta_anagrafica}):**")
+        
+        # Prepariamo la configurazione dinamica delle colonne per mostrare il simbolo % alle colonne corrette
+        configurazione_colonne = {
+            "TOTALE ATTIVITÀ": st.column_config.NumberColumn("Totale Assoluto", format="%d"),
+            "TOTALE COMPLESSIVO (%)": st.column_config.NumberColumn("Quota Totale (%)", format="%.1f%%")
+        }
+        
+        # Applichiamo il formato percentuale dinamico a tutte le colonne delle singole attività in %
+        for col in pivot_percentuali.columns:
+            configurazione_colonne[col] = st.column_config.NumberColumn(col, format="%.1f%%")
+            
+        for col in pivot_base.columns:
+            configurazione_colonne[col] = st.column_config.NumberColumn(col, format="%d")
+
+        st.dataframe(
+            pivot_final, 
+            column_config=configurazione_colonne,
+            use_container_width=True
+        )
         
     else:
         st.error(f"Colonne richieste non trovate. Assicurati che nel file ci siano 'UTENTE', 'TIPO EVENTO' e 'TIPO ANAGRAFICA'.")

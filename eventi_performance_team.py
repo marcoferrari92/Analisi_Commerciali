@@ -118,7 +118,7 @@ def analisi_performance_utenti(df_events):
         # ---------------------------------------------------------
         # GRAFICO 1: VOLUME ASSOLUTO (BARRE IMPILATE)
         # ---------------------------------------------------------
-        st.subheader("1. Volume Assoluto di Attività Svolte")
+        st.subheader("1. Volume Assoluto di Attività Svolte dal Team")
         fig_volume = px.bar(
             df_long,
             x=colonna_utente,

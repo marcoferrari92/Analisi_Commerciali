@@ -26,7 +26,6 @@ def distribuzione_eventi(df_events):
         
         with col1:
             st.write("**Totale per Categoria:**")
-            # Mostriamo una versione pulita in tabella
             st.dataframe(filtered_counts.set_index('Anagrafica')[['CONTEGGIO']])
         
         with col3:
@@ -37,9 +36,8 @@ def distribuzione_eventi(df_events):
                 names='Anagrafica',
                 color='Anagrafica',
                 color_discrete_map={'Cliente': '#5dade2', 'Lead': '#58d68d', 'Prospect': '#ec7063'},
-                hole=0.3 # Trasforma in una elegante ciambella interattiva
+                hole=0.3
             )
-            # Ottimizzazione hover e layout
             fig_pie.update_traces(textposition='inside', textinfo='percent+label', hovertemplate="<b>%{label}</b><br>Eventi: %{value}<br>Quota: %{percent}")
             fig_pie.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=300, showlegend=True)
             st.plotly_chart(fig_pie, use_container_width=True)
@@ -78,7 +76,7 @@ def distribuzione_eventi(df_events):
             pivot_df = pivot_df.reindex(target_categories, fill_value=0)
             pivot_df.index = [idx.capitalize() for idx in pivot_df.index]
             
-            # Mappa Colori Custom (La tua palette per la modalità "Valori Assoluti")
+            # Mappa Colori Custom
             color_mapping_eventi = {
                 'VISITARE': '#ffff00',       
                 'VISITATO': '#ffcc00',       
@@ -99,45 +97,43 @@ def distribuzione_eventi(df_events):
             )
             
             if tipo_visualizzazione == "Percentuale di allocazione Attività (Affiancati per Evento)":
-                # Calcolo percentuali verticali (quota di X distribuita sui target)
+                # Calcolo percentuali verticali
                 pivot_perc = pivot_df.div(pivot_df.sum(axis=0), axis=1) * 100
                 
-                # Resettiamo l'indice per darlo in pasto a Plotly (formato lungo/long)
                 df_long = pivot_perc.T.reset_index()
                 df_long = df_long.melt(id_vars='TIPO EVENTO', var_name='Target Anagrafica', value_name='Percentuale')
                 
-                # Grafico BARRE AFFIANCATE con Plotly
                 fig_bar = px.bar(
                     df_long,
                     y='TIPO EVENTO',
                     x='Percentuale',
                     color='Target Anagrafica',
-                    barmode='group', # Mette le barre affiancate a gruppetti
+                    barmode='group',
                     orientation='h',
                     color_discrete_map={'Cliente': '#5dade2', 'Lead': '#58d68d', 'Prospect': '#ec7063'},
                     title="Ripartizione percentuale di ogni attività sui Target"
                 )
                 
-                # Formattazione Hover specifica per vedere il simbolo % preciso al passaggio del mouse
                 fig_bar.update_traces(
                     hovertemplate="<b>%{y}</b><br>Target: %{customdata[0]}<br>Quota: %{x:.1f}%<extra></extra>",
                     customdata=df_long[['Target Anagrafica']]
                 )
-                fig_bar.update_layout(xaxis_suffix="%", xaxis_title="Percentuale di allocazione (%)")
+                # CORREZIONE QUI: Usa update_layout con la struttura corretta di dizionario o update_xaxes
+                fig_bar.update_layout(xaxis_title="Percentuale di allocazione (%)")
+                fig_bar.update_xaxes(ticksuffix="%")
                 
             else:
-                # Modalità classica assoluta impilata (Anagrafica su asse Y)
+                # Modalità classica assoluta impilata
                 df_long = pivot_df.reset_index()
                 df_long = df_long.melt(id_vars='index', var_name='Tipo Evento', value_name='Conteggio')
                 df_long.columns = ['Tipo Anagrafica', 'Tipo Evento', 'Conteggio']
                 
-                # Grafico BARRE IMPILATE con Plotly
                 fig_bar = px.bar(
                     df_long,
                     y='Tipo Anagrafica',
                     x='Conteggio',
                     color='Tipo Evento',
-                    barmode='relative', # Impilate
+                    barmode='relative',
                     orientation='h',
                     color_discrete_map=color_mapping_eventi,
                     title="Volume Assoluto Attività svolte per Target"
@@ -150,8 +146,8 @@ def distribuzione_eventi(df_events):
             fig_bar.update_layout(
                 yaxis_title="",
                 legend_title="Legenda",
-                paper_bgcolor='rgba(0,0,0,0)', # Sfondo trasparente
-                plot_bgcolor='rgba(0,0,0,0)',  # Area grafico trasparente
+                paper_bgcolor='rgba(0,0,0,0)', 
+                plot_bgcolor='rgba(0,0,0,0)',  
                 height=450
             )
             fig_bar.update_xaxes(showgrid=True, gridcolor='rgba(200,200,200,0.2)')
@@ -160,7 +156,7 @@ def distribuzione_eventi(df_events):
             st.plotly_chart(fig_bar, use_container_width=True)
             
         else:
-            st.warning("Colonna 'TIPO EVENTO' non trovata. Impossibile mostrare il dettaglio delle attività.")
+            st.warning("Colonna 'TIPO EVENTO' non trouvée. Impossibile mostrare il dettaglio delle attività.")
             
     else:
         st.error(f"Colonna 'TIPO ANAGRAFICA' non trovata. Colonne presenti: {list(df_events.columns)}")

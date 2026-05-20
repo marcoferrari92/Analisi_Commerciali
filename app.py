@@ -9,7 +9,8 @@ import numpy as np
 
 st.set_page_config(layout="wide")
 
-from eventi_analisi import distribuzione_eventi, analisi_performance_utenti
+from eventi_panoramica import distribuzione_eventi
+from eventi_performance_team import analisi_performance_utenti
 
 @st.cache_data
 def carica_dati_eventi(file):

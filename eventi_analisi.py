@@ -126,7 +126,7 @@ def distribuzione_eventi(df_events):
                     barmode='group',
                     orientation='h',
                     color_discrete_map={'Cliente': '#5dade2', 'Lead': '#58d68d', 'Prospect': '#ec7063'},
-                    title="Ripartizione Attività per Anagrafica",
+                    title="Ripartizione Anagrafiche per Attività",
                     hover_data=['Target Anagrafica'] # Forziamo il passaggio della colonna corretta a customdata
                 )
                 

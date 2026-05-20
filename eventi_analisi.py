@@ -31,7 +31,7 @@ def distribuzione_eventi(df_events):
         col1, col2, col3 = st.columns([0.8, 0.1, 1.1]) # Allargata leggermente col1 per far spazio alla nuova colonna
         
         with col1:
-            st.write("**Totale per Categoria:**")
+            st.write("**Coinvolgimento per Tipologia Cliente:**")
             
             # Prepariamo il dataframe impostando 'Anagrafica' come indice e prendendo Conteggio e Quota
             df_da_mostrare = filtered_counts.set_index('Anagrafica')[['CONTEGGIO', 'QUOTA']]

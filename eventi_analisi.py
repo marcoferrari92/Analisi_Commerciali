@@ -72,9 +72,9 @@ def distribuzione_eventi(df_events):
                 'TELEFONATO': '#af7ac5',     # Viola / Rosa scuro (Trattino rimosso definitivamente)
                 
                 # Coppia Email (Azzurro / Blu)
-                'INVIARE EMAIL': '#e8f8f5',   # Acqua/Azzurro chiaro
-                'INVIATA MAIL': '#a3e4d7',    # Acqua medio
-                'INVIO E-MAIL SFC': '#48c9b0', # Verde acqua / Blu più intenso
+                'INVIARE EMAIL': '#66ff66',   # Acqua/Azzurro chiaro
+                'INVIATA MAIL': '#009900',    # Acqua medio
+                'INVIO E-MAIL SFC': '#003300', # Verde acqua / Blu più intenso
                 
                 # Altri eventi singoli
                 'PARTECIPAZIONE WEBINAR': '#3498db', # Blu

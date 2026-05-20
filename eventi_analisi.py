@@ -74,11 +74,11 @@ def distribuzione_eventi(df_events):
                 # Coppia Email (Azzurro / Blu)
                 'INVIARE EMAIL': '#66ff66',   # Acqua/Azzurro chiaro
                 'INVIATA MAIL': '#009900',    # Acqua medio
-                'INVIO E-MAIL SFC': '#003300', # Verde acqua / Blu più intenso
+                'INVIO E-MAIL SFC': '#009900', # Verde acqua / Blu più intenso
                 
                 # Altri eventi singoli
                 'PARTECIPAZIONE WEBINAR': '#3498db', # Blu
-                'SOLLECITARE OFFERTA COMMERCIALE': '#00ff00' # Verde
+                'SOLLECITARE OFFERTA COMMERCIALE': '#000000' # Verde
             }
             
             # Creiamo la lista dei colori nell'ordine ESATTO delle colonne della pivot

@@ -192,7 +192,7 @@ def analisi_performance_utenti(df_events):
         # TABELLA IN FONDO CON QUOTE PERCENTUALI
         # ---------------------------------------------------------
         st.markdown("---")
-        st.subheader("📋 Registro Analitico e Quote di Distribuzione")
+        st.subheader("📋 Registro Performance Team")
         
         if totale_globale_eventi > 0:
             pivot_percentuali = (pivot_base / totale_globale_eventi) * 100

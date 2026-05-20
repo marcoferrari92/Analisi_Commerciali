@@ -51,13 +51,14 @@ def distribuzione_eventi(df_events):
             df_temp['TIPO EVENTO'] = df_temp['TIPO EVENTO'].str.strip() 
             
             # ---------------------------------------------------------
-            # AGGIUNTA: Filtro Multiselect Attività (Pre-popolato con le tue 3 preferite)
+            # AGGIUNTA: Filtro Multiselect Attività
             # ---------------------------------------------------------
             elenco_attivita_disponibili = sorted(df_temp['TIPO EVENTO'].unique())
-            attivita_default = [att for att in ['TELEFONATO', 'VISITATO', 'INVIATA MAIL'] if att in elenco_attivita_disponibili']
+            # Riga corretta senza la virgoletta orfana alla fine:
+            attivita_default = [att for att in ['TELEFONATO', 'VISITATO', 'INVIATA MAIL'] if att in elenco_attivita_disponibili]
             
             attivita_selezionate = st.multiselect(
-                "Filtra la tipologia di eventi da analizzare nel grafico:",
+                "Filtra la tipologia di events da analizzare nel grafico:",
                 options=elenco_attivita_disponibili,
                 default=attivita_default
             )

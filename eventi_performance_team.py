@@ -5,8 +5,7 @@ import plotly.express as px
 def analisi_performance_utenti(df_events):
     """
     Analisi delle performance del team di utenti/commerciali.
-    Mostra due grafici (Volume impilato e Quota globale affiancata con mediane) 
-    e in fondo la tabella dettagliata con le quote.
+    Mostra due grafici e una tabella analitica finale con evidenziazione condizionale (Verde/Rosso) rispetto alle mediane.
     """
     colonna_utente = 'UTENTE'
     colonna_evento = 'TIPO EVENTO'
@@ -115,9 +114,9 @@ def analisi_performance_utenti(df_events):
             x=colonna_utente,
             y='Conteggio',
             color='Tipo Evento',
-            barmode='relative', # Resta impilato per mostrare la produttività totale
+            barmode='relative',
             color_discrete_map=color_mapping_eventi,
-            title=f"Totale eventi gestiti per commerciale - Target: {scelta_anagrafica}",
+            title=f"Totale events gestiti per commerciale - Target: {scelta_anagrafica}",
             hover_data=['Tipo Evento'],
             category_orders={colonna_utente: ordine_commerciali_decrescente}
         )
@@ -148,7 +147,7 @@ def analisi_performance_utenti(df_events):
             x=colonna_utente,
             y='Percentuale Globale',
             color='Tipo Evento',
-            barmode='group', # MODIFICATO: ora le barre sono affiancate a gruppetti
+            barmode='group',
             color_discrete_map=color_mapping_eventi,
             title=f"Quota di contribuzione sul totale delle attività del team (%)",
             hover_data=['Tipo Evento'],
@@ -159,21 +158,23 @@ def analisi_performance_utenti(df_events):
             hovertemplate="<b>Utente: %{x}</b><br>Attività: %{customdata[0]}<br>Quota sul Totale Team: %{y:.1f}%<extra></extra>"
         )
         
-        # MODIFICA: Aggiunta delle righe orizzontali per le mediane di ciascuna attività filtrata
+        # Estrazione e tracciamento delle mediane sul grafico
         df_mediane = df_long.groupby('Tipo Evento')['Percentuale Globale'].median().reset_index()
+        dict_mediane = {} # Ci servirà anche per la tabella sotto!
+        
         for _, row in df_mediane.iterrows():
             evento = row['Tipo Evento']
             mediana_val = row['Percentuale Globale']
+            dict_mediane[f"{evento} (%)"] = {mediana_val} # Mappiamo la colonna corrispondente della tabella
             colore_linea = color_mapping_eventi.get(evento, '#bdc3c7')
             
-            # Tracciamento della linea orizzontale
             fig_percentuale.add_hline(
                 y=mediana_val,
-                line_dash="dash",          # Linea tratteggiata
-                line_color=colore_linea,   # Colore coordinato all'attività
+                line_dash="dash",
+                line_color=colore_linea,
                 line_width=2,
                 annotation_text=f"Mediana {evento.capitalize()}: {mediana_val:.1f}%",
-                annotation_position="top right",
+                annotation_position="top left",
                 annotation_font_color=colore_linea
             )
         
@@ -183,13 +184,13 @@ def analisi_performance_utenti(df_events):
             legend_title="Tipo Evento",
             paper_bgcolor='rgba(0,0,0,0)', 
             plot_bgcolor='rgba(0,0,0,0)',
-            height=450 # Alzato leggermente per accomodare le linee di mediana senza sovrapposizioni
+            height=450
         )
         fig_percentuale.update_yaxes(showgrid=True, gridcolor='rgba(200,200,200,0.2)', ticksuffix="%")
         st.plotly_chart(fig_percentuale, use_container_width=True)
         
         # ---------------------------------------------------------
-        # TABELLA IN FONDO CON QUOTE PERCENTUALI
+        # TABELLA IN FONDO CON FORMATTAZIONE CONDIZIONALE VERDE/ROSSO
         # ---------------------------------------------------------
         st.markdown("---")
         st.subheader("📋 Registro Performance Team")
@@ -215,23 +216,52 @@ def analisi_performance_utenti(df_events):
         pivot_final = pivot_final[colonne_assolute + colonne_percentuali]
         
         st.write(f"**Tabella Riepilogativa delle Performance ({scelta_anagrafica}):**")
-        
-        configurazione_colonne = {
-            "TOTALE ATTIVITÀ": st.column_config.NumberColumn("Totale Assoluto", format="%d"),
-            "TOTALE COMPLESSIVO (%)": st.column_config.NumberColumn("Quota Totale (%)", format="%.1f%%")
-        }
-        
-        for col in pivot_percentuali.columns:
-            configurazione_colonne[col] = st.column_config.NumberColumn(col, format="%.1f%%")
-            
-        for col in pivot_base.columns:
-            configurazione_colonne[col] = st.column_config.NumberColumn(col, format="%d")
+        st.caption("Le celle in 🟢 indicano performance sopra la mediana del team per quell'attività, in 🔴 indicano performance inferiori.")
 
-        st.dataframe(
-            pivot_final, 
-            column_config=configurazione_colonne,
-            use_container_width=True
-        )
+        # ---------------------------------------------------------
+        # FUNZIONE DI STILE PER LE CELLE (LOGICA VERDE / ROSSO)
+        # ---------------------------------------------------------
+        # Calcoliamo la mediana anche per il Totale Complessivo (%) per colorare l'ultima colonna
+        mediana_totale_compl = pivot_final['TOTALE COMPLESSIVO (%)'].median()
+        
+        def colora_rispetto_mediana(colonna):
+            nome_colonna = colonna.name
+            
+            # Se è una colonna assoluta, non applichiamo nessun colore di sfondo sfumato
+            if nome_colonna in colonne_assolute:
+                return [''] * len(colonna)
+                
+            # Logica per l'ultima colonna della quota totale
+            if nome_colonna == 'TOTALE COMPLESSIVO (%)':
+                return [
+                    'background-color: rgba(46, 204, 113, 0.25); color: #1e8449;' if v >= mediana_totale_compl
+                    else 'background-color: rgba(231, 76, 60, 0.2); color: #b03a2e;' for v in colonna
+                ]
+            
+            # Logica per le colonne percentuali delle singole attività
+            if nome_colonna in pivot_percentuali.columns:
+                # Estraiamo il valore della mediana calcolato nel grafico 2
+                mediana_attivita = df_long[df_long['Tipo Evento'] == nome_colonna.replace(" (%)", "")]['Percentuale Globale'].median()
+                return [
+                    'background-color: rgba(46, 204, 113, 0.25); color: #1e8449;' if v >= mediana_attivita
+                    else 'background-color: rgba(231, 76, 60, 0.2); color: #b03a2e;' for v in colonna
+                ]
+            return [''] * len(colonna)
+
+        # Costruiamo il dizionario per la formattazione dei numeri (stringhe per i decimali e % )
+        formattazione_stringhe = {
+            "TOTALE ATTIVITÀ": "{:.0f}",
+            "TOTALE COMPLESSIVO (%)": "{:.1f}%"
+        }
+        for col in pivot_base.columns:
+            formattazione_stringhe[col] = "{:.0f}"
+        for col in pivot_percentuali.columns:
+            formattazione_stringhe[col] = "{:.1f}%"
+
+        # Applichiamo lo stile e renderizziamo la tabella
+        df_stilizzato = pivot_final.style.apply(colora_rispetto_mediana, axis=0).format(formattazione_stringhe)
+        
+        st.dataframe(df_stilizzato, use_container_width=True)
         
     else:
         st.error(f"Colonne richieste non trovate. Assicurati che nel file ci siano 'UTENTE', 'TIPO EVENTO' e 'TIPO ANAGRAFICA'.")

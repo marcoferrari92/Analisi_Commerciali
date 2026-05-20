@@ -5,7 +5,7 @@ import plotly.express as px
 def distribuzione_eventi(df_events):
     """
     Analisi della distribuzione eventi per tipo anagrafica e dettaglio tipo evento.
-    Sviluppato con grafici interattivi Plotly (funzione Hover attiva per percentuali e conteggi).
+    Sviluppato con grafici interattivi Plotly (funzione Hover corretta per percentuali e conteggi).
     """
     
     # Verifichiamo che la colonna principale esista
@@ -28,7 +28,7 @@ def distribuzione_eventi(df_events):
             filtered_counts['QUOTA'] = 0.0
         
         # Layout Streamlit: Colonne per la prima riga (Tabella + Torta Interattiva)
-        col1, col2, col3 = st.columns([0.8, 0.1, 1.1]) # Allargata leggermente col1 per far spazio alla nuova colonna
+        col1, col2, col3 = st.columns([0.8, 0.1, 1.1])
         
         with col1:
             st.write("**Coinvolgimento per Tipologia Anagrafica:**")
@@ -120,6 +120,7 @@ def distribuzione_eventi(df_events):
                 df_long = pivot_perc.T.reset_index()
                 df_long = df_long.melt(id_vars='TIPO EVENTO', var_name='Target Anagrafica', value_name='Percentuale')
                 
+                # Grafico BARRE AFFIANCATE con Plotly
                 fig_bar = px.bar(
                     df_long,
                     y='TIPO EVENTO',
@@ -131,11 +132,10 @@ def distribuzione_eventi(df_events):
                     title="Ripartizione percentuale di ogni attività sui Target"
                 )
                 
+                # RISOLTO: Configurazione hover stringendo il legame con le variabili di df_long
                 fig_bar.update_traces(
-                    hovertemplate="<b>%{y}</b><br>Target: %{customdata[0]}<br>Quota: %{x:.1f}%<extra></extra>",
-                    customdata=df_long[['Target Anagrafica']]
+                    hovertemplate="<b>Attività: %{y}</b><br>Target: %{legendgroup}<br>Quota di allocazione: %{x:.1f}%<extra></extra>"
                 )
-                # CORREZIONE QUI: Usa update_layout con la struttura corretta di dizionario o update_xaxes
                 fig_bar.update_layout(xaxis_title="Percentuale di allocazione (%)")
                 fig_bar.update_xaxes(ticksuffix="%")
                 
@@ -145,6 +145,7 @@ def distribuzione_eventi(df_events):
                 df_long = df_long.melt(id_vars='index', var_name='Tipo Evento', value_name='Conteggio')
                 df_long.columns = ['Tipo Anagrafica', 'Tipo Evento', 'Conteggio']
                 
+                # Grafico BARRE IMPILATE con Plotly
                 fig_bar = px.bar(
                     df_long,
                     y='Tipo Anagrafica',
@@ -156,7 +157,10 @@ def distribuzione_eventi(df_events):
                     title="Volume Assoluto Attività svolte per Target"
                 )
                 
-                fig_bar.update_traces(hovertemplate="<b>Target: %{y}</b><br>Attività: %{customdata[0]}<br>Quantità: %{x}<extra></extra>", customdata=df_long[['Tipo Evento']])
+                # RISOLTO: Mappatura pulita per il grafico a barre impilate
+                fig_bar.update_traces(
+                    hovertemplate="<b>Target Anagrafica: %{y}</b><br>Attività: %{legendgroup}<br>Quantità eventi: %{x}<extra></extra>"
+                )
                 fig_bar.update_layout(xaxis_title="Numero di Eventi")
             
             # Regolazioni di estetica comuni per Plotly

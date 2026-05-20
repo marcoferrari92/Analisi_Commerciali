@@ -184,31 +184,52 @@ def distribuzione_eventi(df_events):
 
 
 
+
+
 def analisi_performance_utenti(df_events):
     """
     Analisi delle performance del team di utenti/commerciali.
-    Mostra i volumi di attività gestiti da ciascun membro del team.
+    Mostra i volumi di attività gestiti da ciascun membro del team con filtro anagrafica.
     """
     colonna_utente = 'UTENTE'
     colonna_evento = 'TIPO EVENTO'
+    colonna_anagrafica = 'TIPO ANAGRAFICA'
     
     # Verifichiamo che le colonne necessarie esistano nel dataset
     if colonna_utente in df_events.columns and colonna_evento in df_events.columns:
         st.markdown("## 📊 Performance del Team Utenti")
         
-        # 1. PULIZIA DATI ALLA FONTE (Stessa logica usata per le anagrafiche)
+        # 1. PULIZIA DATI ALLA FONTE
         df_temp = df_events.copy()
         df_temp[colonna_evento] = df_temp[colonna_evento].astype(str).str.strip()
         df_temp[colonna_evento] = df_temp[colonna_evento].str.replace('TELEFONATO -', 'TELEFONATO', regex=False)
         df_temp[colonna_utente] = df_temp[colonna_utente].astype(str).str.strip()
+        
+        if colonna_anagrafica in df_temp.columns:
+            df_temp[colonna_anagrafica] = df_temp[colonna_anagrafica].astype(str).str.upper().str.strip()
         
         # Rimuoviamo i valori nulli o spuri
         df_temp = df_temp[~df_temp[colonna_evento].isin(['nan', 'None', '', 'NaN'])]
         df_temp = df_temp[~df_temp[colonna_utente].isin(['nan', 'None', '', 'NaN'])]
         
         # ---------------------------------------------------------
-        # FILTRI IN ALTO (Filtro rapido attività + Selezione Utenti)
+        # AGGIUNTA: Filtro di Selezione Target Anagrafica
         # ---------------------------------------------------------
+        scelta_anagrafica = st.selectbox(
+            "Seleziona il target di anagrafica da analizzare:",
+            ["Tutte le anagrafiche", "Clienti", "Lead", "Prospect"]
+        )
+        
+        # Applichiamo il filtro sul target prima di procedere con gli altri passaggi
+        if scelta_anagrafica == "Clienti":
+            df_temp = df_temp[df_temp[colonna_anagrafica] == 'CLIENTE']
+        elif scelta_anagrafica == "Lead":
+            df_temp = df_temp[df_temp[colonna_anagrafica] == 'LEAD']
+        elif scelta_anagrafica == "Prospect":
+            df_temp = df_temp[df_temp[colonna_anagrafica] == 'PROSPECT']
+        # ---------------------------------------------------------
+        
+        # FILTRI SECONDARI (Attività + Selezione Utenti)
         col_f1, col_f2 = st.columns(2)
         
         with col_f1:
@@ -247,17 +268,15 @@ def analisi_performance_utenti(df_events):
         pivot_utenti['TOTALE ATTIVITÀ'] = pivot_utenti.sum(axis=1)
         pivot_utenti = pivot_utenti.sort_values(by='TOTALE ATTIVITÀ', ascending=False)
         
-        st.write("**Riepilogo Attività per Utente:**")
+        st.write(f"**Riepilogo Attività per Utente ({scelta_anagrafica}):**")
         st.dataframe(pivot_utenti, use_container_width=True)
         
         # ---------------------------------------------------------
-        # GRAFICO INTERATTIVO PLOTLY (Barre Affiancate per Utente)
+        # GRAFICO INTERATTIVO PLOTLY
         # ---------------------------------------------------------
-        # Prepariamo il formato lungo per Plotly togliendo la colonna 'TOTALE ATTIVITÀ' dal grafico
         df_chart = pivot_utenti.drop(columns=['TOTALE ATTIVITÀ']).reset_index()
         df_long = df_chart.melt(id_vars=colonna_utente, var_name='Tipo Evento', value_name='Conteggio')
         
-        # Mappa colori custom coerente con quella usata nell'altra pagina
         color_mapping_eventi = {
             'VISITARE': '#ffff00',       
             'VISITATO': '#ffcc00',       
@@ -275,13 +294,12 @@ def analisi_performance_utenti(df_events):
             x=colonna_utente,
             y='Conteggio',
             color='Tipo Evento',
-            barmode='group', # Barre affiancate a gruppetti per ogni utente
+            barmode='group',
             color_discrete_map=color_mapping_eventi,
-            title="Confronto operativo tra i membri del team",
+            title=f"Confronto operativo del team - Target: {scelta_anagrafica}",
             hover_data=['Tipo Evento']
         )
         
-        # Hover interattivo bloccato e preciso!
         fig_utenti.update_traces(
             hovertemplate="<b>Utente: %{x}</b><br>Attività: %{customdata[0]}<br>Quantità: %{y}<extra></extra>"
         )
@@ -299,4 +317,4 @@ def analisi_performance_utenti(df_events):
         st.plotly_chart(fig_utenti, use_container_width=True)
         
     else:
-        st.error(f"Colonne richieste non trovate. Assicurati che nel file ci siano 'UTENTE' e 'TIPO EVENTO'.")
+        st.error(f"Colonne richieste non trovate. Assicurati che nel file ci siano 'UTENTE', 'TIPO EVENTO' e 'TIPO ANAGRAFICA'.")

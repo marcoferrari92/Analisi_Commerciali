@@ -167,8 +167,8 @@ def analisi_performance_utenti(df_events):
         # ---------------------------------------------------------
         # TABELLA SPOSTATA IN FONDO CON CONTEGGI E QUOTE PERCENTUALI
         # ---------------------------------------------------------
-        st.markdown("---")
-        st.subheader("📋 Registro Analitico e Quote di Distribuzione")
+        st.subheader("📋 Registro")
+        st.caption(f"Le percentuali sono calcolate sul totale di tutti i commerciali uniti (Totale eventi: {totale_globale_eventi})")
         
         # Creiamo la tabella delle percentuali reali
         if totale_globale_eventi > 0:

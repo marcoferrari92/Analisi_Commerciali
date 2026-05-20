@@ -1059,7 +1059,7 @@ if df_events is not None:
     # --- SEZIONE 2: RESOCONTO ---
     st.divider()
     st.subheader("Analisi Eventi")
-    with st.expander("⚖️ Volume e Tipologia Eventi"):
+    with st.expander("👁️ Panoramica Eventi"):
         distribuzione_eventi(df_events)
 
     

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 def distribuzione_eventi(df_events):
     """
     Analisi della distribuzione eventi per tipo anagrafica e dettaglio tipo evento.
-    Con opzione di visualizzazione in valori assoluti (impilati) o percentuali (affiancati).
+    In modalità percentuale mostra la quota di ogni attività (colonna) distribuita sui target.
     """
     
     # Verifichiamo che la colonna principale esista
@@ -53,15 +53,15 @@ def distribuzione_eventi(df_events):
             # Filtriamo il dataframe solo per le 3 categorie target per pulizia
             df_filtered_types = df_temp[df_temp['TIPO ANAGRAFICA'].isin(target_categories)]
             
-            # Creiamo la tabella pivot (Crosstab)
+            # Creiamo una tabella pivot (Crosstab)
             pivot_df = pd.crosstab(df_filtered_types['TIPO ANAGRAFICA'], df_filtered_types['TIPO EVENTO'])
             
             # Reindicizziamo le righe
             pivot_df = pivot_df.reindex(target_categories, fill_value=0)
             pivot_df.index = [idx.capitalize() for idx in pivot_df.index]
             
-            # DEFINIZIONE COLORI ACCOPPIATI (Tua Palette)
-            color_mapping = {
+            # DEFINIZIONE COLORI ACCOPPIATI (Tua mappa per valori assoluti)
+            color_mapping_eventi = {
                 'VISITARE': '#ffff00',       
                 'VISITATO': '#ffcc00',       
                 'TELEFONARE': '#ff66ff',     
@@ -78,36 +78,35 @@ def distribuzione_eventi(df_events):
             # ---------------------------------------------------------
             tipo_visualizzazione = st.radio(
                 "Seleziona la modalità di visualizzazione del grafico:",
-                ["Valori Assoluti (Impilati)", "Percentuale per Attività (Affiancati per Target)"],
+                ["Valori Assoluti (Impilati)", "Percentuale di allocazione Attività (Affiancati per Evento)"],
                 horizontal=True
             )
             
-            fig_bar, ax_bar = plt.subplots(figsize=(12, 7)) # Aumentato leggermente l'altezza per far spazio ai gruppetti
-            
-            if tipo_visualizzazione == "Percentuale per Attività (Affiancati per Target)":
-                # Calcoliamo le percentuali per riga
-                pivot_perc = pivot_df.div(pivot_df.sum(axis=1), axis=0) * 100
+            if tipo_visualizzazione == "Percentuale di allocazione Attività (Affiancati per Evento)":
+                # Calcoliamo le percentuali per colonna (ogni attività fa 100% in totale sui 3 target)
+                pivot_perc = pivot_df.div(pivot_df.sum(axis=0), axis=1) * 100
                 
-                # Trasponiamo (.T): ora le righe sono le attività e le colonne sono Cliente/Lead/Prospect
+                # Trasponiamo per avere le attività sull'asse Y e i gruppi anagrafica come barre affiancate
                 plot_data = pivot_perc.T
                 
-                # Per la modalità affiancata usiamo la palette originale della torta per identificare i target
-                colors_target = ['#5dade2', '#58d68d', '#ec7063'] # Cliente, Lead, Prospect
+                # Usiamo i colori coordinati con la torta iniziale per identificare i target (Cliente, Lead, Prospect)
+                colors_target = ['#5dade2', '#58d68d', '#ec7063']
                 
-                # Disegniamo il grafico con barre AFFIANCATE (stacked=False)
+                fig_bar, ax_bar = plt.subplots(figsize=(12, 8))
                 plot_data.plot(kind='barh', stacked=False, ax=ax_bar, color=colors_target, width=0.8)
                 
-                ax_bar.set_xlabel("Percentuale sul Totale Attività del Target (%)", fontsize=12)
+                ax_bar.set_xlabel("Quota di allocazione dell'attività (%)", fontsize=12)
                 ax_bar.set_ylabel("Tipo Evento", fontsize=12)
                 ax_bar.legend(title="Target Anagrafica", bbox_to_anchor=(1.05, 1), loc='upper left')
                 ax_bar.set_xlim(0, 100)
                 ax_bar.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{int(x)}%'))
                 
             else:
-                # Modalità classica assoluta impilata
+                # Modalità classica assoluta impilata (Mantiene l'anagrafica sull'asse Y)
                 plot_data = pivot_df
-                colors_list = [color_mapping.get(col, '#bdc3c7') for col in plot_data.columns]
+                colors_list = [color_mapping_eventi.get(col, '#bdc3c7') for col in plot_data.columns]
                 
+                fig_bar, ax_bar = plt.subplots(figsize=(10, 5))
                 plot_data.plot(kind='barh', stacked=True, ax=ax_bar, color=colors_list)
                 
                 ax_bar.set_xlabel("Numero di Eventi", fontsize=12)

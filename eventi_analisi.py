@@ -78,7 +78,7 @@ def distribuzione_eventi(df_events):
                 
                 # Altri eventi singoli
                 'PARTECIPAZIONE WEBINAR': '#3498db', # Blu
-                'SOLLECITARE OFFERTA COMMERCIALE': '#58d68d' # Verde
+                'SOLLECITARE OFFERTA COMMERCIALE': '#000000' # Verde
             }
             
             # Creiamo la lista dei colori nell'ordine ESATTO delle colonne della pivot

@@ -103,7 +103,7 @@ def analisi_performance_utenti(df_events):
             'SOLLECITARE OFFERTA COMMERCIALE': '#000000' 
         }
         
-        st.markdown("---")
+        #st.markdown("---")
         
         # ---------------------------------------------------------
         # GRAFICO 1: VOLUME ASSOLUTO (BARRE IMPILATE ORDINATE)

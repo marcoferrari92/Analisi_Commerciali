@@ -148,7 +148,7 @@ def analisi_performance_utenti(df_events):
         # ---------------------------------------------------------
         # GRAFICO 2: PERCENTUALE SUL TOTALE COMPLESSIVO (BARRE IMPILATE O AFFIANCATE)
         # ---------------------------------------------------------
-        st.subheader("Impatto del Singolo Commerciale sull'Attività Globale del Team")
+        st.subheader("2. Impatto del Singolo Commerciale sull'Attività Globale del Team")
         st.caption(f"Le percentuali sono calcolate sul totale di tutti i commerciali uniti (Totale eventi: {totale_globale_eventi})")
         
         fig_percentuale = px.bar(

@@ -203,7 +203,7 @@ def analisi_performance_utenti(df_events):
         # ---------------------------------------------------------
         # TABELLA IN FONDO CON FORMATTAZIONE CONDIZIONALE VERDE/ROSSO
         # ---------------------------------------------------------
-        st.markdown("---")
+        #st.markdown("---")
         st.subheader("📋 Registro Performance Team")
         
         if totale_globale_eventi > 0:

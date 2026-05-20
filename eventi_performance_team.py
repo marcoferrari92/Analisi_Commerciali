@@ -173,7 +173,7 @@ def analisi_performance_utenti(df_events):
                 line_color=colore_linea,   # Colore coordinato all'attività
                 line_width=2,
                 annotation_text=f"Mediana {evento.capitalize()}: {mediana_val:.1f}%",
-                annotation_position="top left",
+                annotation_position="top right",
                 annotation_font_color=colore_linea
             )
         

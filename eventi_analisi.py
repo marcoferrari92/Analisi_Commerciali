@@ -31,7 +31,7 @@ def distribuzione_eventi(df_events):
         col1, col2, col3 = st.columns([0.8, 0.1, 1.1]) # Allargata leggermente col1 per far spazio alla nuova colonna
         
         with col1:
-            st.write("**Coinvolgimento per Tipologia Cliente:**")
+            st.write("**Coinvolgimento per Tipologia Anagrafica:**")
             
             # Prepariamo il dataframe impostando 'Anagrafica' come indice e prendendo Conteggio e Quota
             df_da_mostrare = filtered_counts.set_index('Anagrafica')[['CONTEGGIO', 'QUOTA']]
@@ -62,8 +62,7 @@ def distribuzione_eventi(df_events):
             
         # --- SEZIONE: Dettaglio TIPO EVENTO ---
         if 'TIPO EVENTO' in df_events.columns:
-            st.markdown("---")
-            st.subheader("Dettaglio Tipologia di Evento per Anagrafica")
+            st.write("**Tipologia Eventi per Anagrafica**")
             
             # Pulizia dati iniziale e messa in sicurezza stringhe
             df_temp['TIPO EVENTO'] = df_temp['TIPO EVENTO'].astype(str).str.strip()

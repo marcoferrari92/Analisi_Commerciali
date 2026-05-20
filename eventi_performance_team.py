@@ -227,7 +227,7 @@ def analisi_performance_utenti(df_events):
         pivot_final = pivot_final[colonne_assolute + colonne_percentuali]
         
         st.write(f"**Tabella Riepilogativa delle Performance ({scelta_anagrafica}):**")
-        st.caption("Le celle evidenziate indicano se il commerciale è sopra (🟢) o sotto (🔴) la mediana del team calcolata per quella specifica colonna.")
+        st.caption("Le celle evidenziate indicano se il commerciale è sopra (🟢) o sotto (🔴) la mediana del team calcolata per quella specifica attività.")
         st.caption(f"Le percentuali di un'attività sono calcolate sul totale del team per quella attività.")
 
         # FUNZIONE DI STILE PER LE CELLE DELLA TABELLA (VERDE / ROSSO)

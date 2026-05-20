@@ -46,19 +46,25 @@ def distribuzione_eventi(df_events):
             st.markdown("---")
             st.subheader("Dettaglio Tipologia di Evento per Anagrafica")
             
-            # 1. PULIZIA DATI: Rimuoviamo il trattino da 'TELEFONATO -' e normalizziamo gli spazi
-            df_temp['TIPO EVENTO'] = df_temp['TIPO EVENTO'].astype(str).str.replace('TELEFONATO -', 'TELEFONATO', regex=False)
-            df_temp['TIPO EVENTO'] = df_temp['TIPO EVENTO'].str.strip() 
+            # 1. PULIZIA DATI ALLA FONTE: Rimuoviamo i valori nulli reali prima della conversione
+            df_temp = df_temp.dropna(subset=['TIPO EVENTO'])
+            
+            # Convertiamo tutto rigidamente in stringa pulita
+            df_temp['TIPO EVENTO'] = df_temp['TIPO EVENTO'].astype(str).str.strip()
+            
+            # Rimuoviamo il trattino da 'TELEFONATO -' e le eventuali stringhe 'nan' testuali repentine
+            df_temp['TIPO EVENTO'] = df_temp['TIPO EVENTO'].str.replace('TELEFONATO -', 'TELEFONATO', regex=False)
+            df_temp = df_temp[df_temp['TIPO EVENTO'] != 'nan']
             
             # ---------------------------------------------------------
-            # AGGIUNTA: Filtro Multiselect Attività
+            # AGGIUNTA: Filtro Multiselect Attività (Ora sicuro al 100% da TypeError)
             # ---------------------------------------------------------
-            elenco_attivita_disponibili = sorted(df_temp['TIPO EVENTO'].unique())
-            # Riga corretta senza la virgoletta orfana alla fine:
+            elenco_attivita_disponibili = sorted([str(x) for x in df_temp['TIPO EVENTO'].unique()])
+            
             attivita_default = [att for att in ['TELEFONATO', 'VISITATO', 'INVIATA MAIL'] if att in elenco_attivita_disponibili]
             
             attivita_selezionate = st.multiselect(
-                "Filtra la tipologia di events da analizzare nel grafico:",
+                "Filtra la tipologia di eventi da analizzare nel grafico:",
                 options=elenco_attivita_disponibili,
                 default=attivita_default
             )

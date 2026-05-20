@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 def distribuzione_eventi(df_events):
     """
     Analisi della distribuzione eventi per tipo anagrafica e dettaglio tipo evento.
-    Con opzione di visualizzazione in valori assoluti o percentuali.
+    Con opzione di visualizzazione in valori assoluti (impilati) o percentuali (affiancati).
     """
     
     # Verifichiamo che la colonna principale esista
@@ -60,73 +60,67 @@ def distribuzione_eventi(df_events):
             pivot_df = pivot_df.reindex(target_categories, fill_value=0)
             pivot_df.index = [idx.capitalize() for idx in pivot_df.index]
             
-            # ---------------------------------------------------------
-            # AGGIUNTA: Selezione Tipo di Visualizzazione
-            # ---------------------------------------------------------
-            tipo_visualizzazione = st.radio(
-                "Seleziona la modalità di visualizzazione del grafico:",
-                ["Valori Assoluti", "Percentuale (Comportamento Commerciale)"],
-                horizontal=True
-            )
-            
-            # Prepariamo i dati in base alla scelta dell'utente
-            if tipo_visualizzazione == "Percentuale (Comportamento Commerciale)":
-                # Dividiamo ogni riga per la sua somma e moltiplichiamo per 100
-                plot_data = pivot_df.div(pivot_df.sum(axis=1), axis=0) * 100
-                xlabel_text = "Percentuale sul Totale Attività (%)"
-            else:
-                plot_data = pivot_df
-                xlabel_text = "Numero di Eventi"
-            # ---------------------------------------------------------
-            
-            # DEFINIZIONE COLORI ACCOPPIATI (Mantenuta la tua palette)
+            # DEFINIZIONE COLORI ACCOPPIATI (Tua Palette)
             color_mapping = {
-                # Coppia Visite (Giallo)
                 'VISITARE': '#ffff00',       
                 'VISITATO': '#ffcc00',       
-                
-                # Coppia Telefonate (Rosa / Viola)
                 'TELEFONARE': '#ff66ff',     
                 'TELEFONATO': '#af7ac5',     
-                
-                # Coppia Email (Verde nel tuo snippet attuale)
                 'INVIARE EMAIL': '#66ff66',   
                 'INVIATA MAIL': '#009900',    
                 'INVIO E-MAIL SFC': '#009900', 
-                
-                # Altri eventi singoli
                 'PARTECIPAZIONE WEBINAR': '#3498db', 
                 'SOLLECITARE OFFERTA COMMERCIALE': '#000000' 
             }
             
-            # Creiamo la lista dei colori nell'ordine ESATTO delle colonne della pivot
-            colors_list = [color_mapping.get(col, '#bdc3c7') for col in plot_data.columns]
+            # ---------------------------------------------------------
+            # SELEZIONE TIPO DI VISUALIZZAZIONE
+            # ---------------------------------------------------------
+            tipo_visualizzazione = st.radio(
+                "Seleziona la modalità di visualizzazione del grafico:",
+                ["Valori Assoluti (Impilati)", "Percentuale per Attività (Affiancati per Target)"],
+                horizontal=True
+            )
             
-            # Disegniamo il grafico
-            fig_bar, ax_bar = plt.subplots(figsize=(10, 5))
+            fig_bar, ax_bar = plt.subplots(figsize=(12, 7)) # Aumentato leggermente l'altezza per far spazio ai gruppetti
             
-            # Usiamo plot_data che contiene o i valori assoluti o le percentuali
-            plot_data.plot(kind='barh', stacked=True, ax=ax_bar, color=colors_list)
-            
-            # Estetica del grafico
-            ax_bar.set_title("Distribuzione delle attività", fontsize=14, pad=15)
-            ax_bar.set_xlabel(xlabel_text, fontsize=12)
-            ax_bar.set_ylabel("Tipo Anagrafica", fontsize=12)
-            ax_bar.legend(title="Tipo Evento", bbox_to_anchor=(1.05, 1), loc='upper left')
-            
-            # Se la visualizzazione è in percentuale, impostiamo il limite dell'asse X a 100
-            if tipo_visualizzazione == "Percentuale (Comportamento Commerciale)":
+            if tipo_visualizzazione == "Percentuale per Attività (Affiancati per Target)":
+                # Calcoliamo le percentuali per riga
+                pivot_perc = pivot_df.div(pivot_df.sum(axis=1), axis=0) * 100
+                
+                # Trasponiamo (.T): ora le righe sono le attività e le colonne sono Cliente/Lead/Prospect
+                plot_data = pivot_perc.T
+                
+                # Per la modalità affiancata usiamo la palette originale della torta per identificare i target
+                colors_target = ['#5dade2', '#58d68d', '#ec7063'] # Cliente, Lead, Prospect
+                
+                # Disegniamo il grafico con barre AFFIANCATE (stacked=False)
+                plot_data.plot(kind='barh', stacked=False, ax=ax_bar, color=colors_target, width=0.8)
+                
+                ax_bar.set_xlabel("Percentuale sul Totale Attività del Target (%)", fontsize=12)
+                ax_bar.set_ylabel("Tipo Evento", fontsize=12)
+                ax_bar.legend(title="Target Anagrafica", bbox_to_anchor=(1.05, 1), loc='upper left')
                 ax_bar.set_xlim(0, 100)
-                # Aggiunge il simbolo % ai numeri dell'asse X
                 ax_bar.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f'{int(x)}%'))
+                
+            else:
+                # Modalità classica assoluta impilata
+                plot_data = pivot_df
+                colors_list = [color_mapping.get(col, '#bdc3c7') for col in plot_data.columns]
+                
+                plot_data.plot(kind='barh', stacked=True, ax=ax_bar, color=colors_list)
+                
+                ax_bar.set_xlabel("Numero di Eventi", fontsize=12)
+                ax_bar.set_ylabel("Tipo Anagrafica", fontsize=12)
+                ax_bar.legend(title="Tipo Evento", bbox_to_anchor=(1.05, 1), loc='upper left')
+            # ---------------------------------------------------------
             
-            # Pulizia bordi del grafico
+            # Estetica del grafico comune
+            ax_bar.set_title("Distribuzione delle attività", fontsize=14, pad=15)
             ax_bar.spines['top'].set_visible(False)
             ax_bar.spines['right'].set_visible(False)
+            fig_bar.patch.set_alpha(0)
             
-            fig_bar.patch.set_alpha(0) # Sfondo trasparente per Streamlit
-            
-            # Mostriamo il grafico a tutta larghezza
             st.pyplot(fig_bar)
             
         else:

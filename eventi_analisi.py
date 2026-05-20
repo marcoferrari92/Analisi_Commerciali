@@ -64,8 +64,8 @@ def distribuzione_eventi(df_events):
             # ---------------------------------------------------------
             color_mapping = {
                 # Coppia Visite (Giallo)
-                'VISITARE': '#fef9e7',       # Giallo molto chiaro
-                'VISITATO': '#f4d03f',       # Giallo scuro / dorato
+                'VISITARE': '#ffff00',       # Giallo molto chiaro
+                'VISITATO': '#ffcc00',       # Giallo scuro / dorato
                 
                 # Coppia Telefonate (Rosa / Viola)
                 'TELEFONARE': '#fdedec',     # Rosa chiaro

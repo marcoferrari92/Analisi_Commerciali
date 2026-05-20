@@ -5,7 +5,8 @@ import plotly.express as px
 def analisi_performance_utenti(df_events):
     """
     Analisi delle performance del team di utenti/commerciali.
-    Mostra due grafici ordinati dal maggiore al minore e la tabella dettagliata in fondo.
+    Mostra due grafici (Volume impilato e Quota globale affiancata con mediane) 
+    e in fondo la tabella dettagliata con le quote.
     """
     colonna_utente = 'UTENTE'
     colonna_evento = 'TIPO EVENTO'
@@ -114,11 +115,11 @@ def analisi_performance_utenti(df_events):
             x=colonna_utente,
             y='Conteggio',
             color='Tipo Evento',
-            barmode='relative',
+            barmode='relative', # Resta impilato per mostrare la produttività totale
             color_discrete_map=color_mapping_eventi,
             title=f"Totale eventi gestiti per commerciale - Target: {scelta_anagrafica}",
             hover_data=['Tipo Evento'],
-            category_orders={colonna_utente: ordine_commerciali_decrescente} # Mantiene l'ordine decrescente
+            category_orders={colonna_utente: ordine_commerciali_decrescente}
         )
         
         fig_volume.update_traces(
@@ -137,7 +138,7 @@ def analisi_performance_utenti(df_events):
         st.plotly_chart(fig_volume, use_container_width=True)
         
         # ---------------------------------------------------------
-        # GRAFICO 2: PERCENTUALE SUL TOTALE COMPLESSIVO (BARRE IMPILATE ORDINATE)
+        # GRAFICO 2: PERCENTUALE SUL TOTALE COMPLESSIVO (BARRE AFFIANCATE + MEDIANE)
         # ---------------------------------------------------------
         st.subheader("2. Impatto del Singolo Commerciale sull'Attività Globale del Team")
         st.caption(f"Le percentuali sono calcolate sul totale di tutti i commerciali uniti (Totale eventi: {totale_globale_eventi})")
@@ -147,16 +148,34 @@ def analisi_performance_utenti(df_events):
             x=colonna_utente,
             y='Percentuale Globale',
             color='Tipo Evento',
-            barmode='relative',
+            barmode='group', # MODIFICATO: ora le barre sono affiancate a gruppetti
             color_discrete_map=color_mapping_eventi,
             title=f"Quota di contribuzione sul totale delle attività del team (%)",
             hover_data=['Tipo Evento'],
-            category_orders={colonna_utente: ordine_commerciali_decrescente} # Mantiene l'ordine decrescente
+            category_orders={colonna_utente: ordine_commerciali_decrescente}
         )
         
         fig_percentuale.update_traces(
             hovertemplate="<b>Utente: %{x}</b><br>Attività: %{customdata[0]}<br>Quota sul Totale Team: %{y:.1f}%<extra></extra>"
         )
+        
+        # MODIFICA: Aggiunta delle righe orizzontali per le mediane di ciascuna attività filtrata
+        df_mediane = df_long.groupby('Tipo Evento')['Percentuale Globale'].median().reset_index()
+        for _, row in df_mediane.iterrows():
+            evento = row['Tipo Evento']
+            mediana_val = row['Percentuale Globale']
+            colore_linea = color_mapping_eventi.get(evento, '#bdc3c7')
+            
+            # Tracciamento della linea orizzontale
+            fig_percentuale.add_hline(
+                y=mediana_val,
+                line_dash="dash",          # Linea tratteggiata
+                line_color=colore_linea,   # Colore coordinato all'attività
+                line_width=2,
+                annotation_text=f"Mediana {evento.capitalize()}: {mediana_val:.1f}%",
+                annotation_position="top left",
+                annotation_font_color=colore_linea
+            )
         
         fig_percentuale.update_layout(
             xaxis_title="Membro del Team",
@@ -164,15 +183,16 @@ def analisi_performance_utenti(df_events):
             legend_title="Tipo Evento",
             paper_bgcolor='rgba(0,0,0,0)', 
             plot_bgcolor='rgba(0,0,0,0)',
-            height=400
+            height=450 # Alzato leggermente per accomodare le linee di mediana senza sovrapposizioni
         )
         fig_percentuale.update_yaxes(showgrid=True, gridcolor='rgba(200,200,200,0.2)', ticksuffix="%")
         st.plotly_chart(fig_percentuale, use_container_width=True)
         
         # ---------------------------------------------------------
-        # TABELLA SPOSTATA IN FONDO CON QUOTE PERCENTUALI
+        # TABELLA IN FONDO CON QUOTE PERCENTUALI
         # ---------------------------------------------------------
-        st.subheader("📋 Registro")
+        st.markdown("---")
+        st.subheader("📋 Registro Analitico e Quote di Distribuzione")
         
         if totale_globale_eventi > 0:
             pivot_percentuali = (pivot_base / totale_globale_eventi) * 100
@@ -188,7 +208,6 @@ def analisi_performance_utenti(df_events):
         else:
             pivot_final['TOTALE COMPLESSIVO (%)'] = 0.0
             
-        # Ordiniamo la tabella finale usando lo stesso indice dei grafici
         pivot_final = pivot_final.reindex(ordine_commerciali_decrescente)
         
         colonne_assolute = list(pivot_base.columns) + ['TOTALE ATTIVITÀ']

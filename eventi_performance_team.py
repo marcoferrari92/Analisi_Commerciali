@@ -149,7 +149,7 @@ def analisi_performance_utenti(df_events):
             color='Tipo Evento',
             barmode='group',
             color_discrete_map=color_mapping_eventi,
-            title=f"Quota di contribuzione sul totale delle attività del team (%)",
+            title=f"Quota sul totale delle attività del team - Target: {scelta_anagrafica}",
             hover_data=['Tipo Evento'],
             category_orders={colonna_utente: ordine_commerciali_decrescente}
         )

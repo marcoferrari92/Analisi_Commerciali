@@ -14,7 +14,7 @@ def analisi_performance_utenti(df_events):
     
     # Verifichiamo che le colonne necessarie esistano nel dataset
     if colonna_utente in df_events.columns and colonna_evento in df_events.columns:
-        st.markdown("## 📊 Performance del Team Utenti")
+        st.markdown("## Performance del Team")
         
         # 1. PULIZIA DATI ALLA FONTE
         df_temp = df_events.copy()
@@ -133,8 +133,8 @@ def analisi_performance_utenti(df_events):
             line_dash="dash",
             line_color="#2c3e50",  # Elegante blu scuro/antracite per differenziarsi dalle barre
             line_width=2.5,
-            annotation_text=f"Mediana Totale Team: {mediana_volume_totale:.1f}",
-            annotation_position="top left",
+            annotation_text=f"Mediana Team: {mediana_volume_totale:.1f}",
+            annotation_position="top right",
             annotation_font_color="#2c3e50",
             annotation_font_size=12
         )

@@ -68,7 +68,7 @@ def distribuzione_eventi(df_events):
                 'VISITATO': '#ffcc00',       # Giallo scuro / dorato
                 
                 # Coppia Telefonate (Rosa / Viola)
-                'TELEFONARE': '#fdedec',     # Rosa chiaro
+                'TELEFONARE': '#ff66ff',     # Rosa chiaro
                 'TELEFONATO': '#af7ac5',     # Viola / Rosa scuro (Trattino rimosso definitivamente)
                 
                 # Coppia Email (Azzurro / Blu)

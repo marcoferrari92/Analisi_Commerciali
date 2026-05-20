@@ -31,7 +31,7 @@ def distribuzione_eventi(df_events):
         col1, col2, col3 = st.columns([0.8, 0.1, 1.1])
         
         with col1:
-            st.write("**Coinvolgimento per Tipologia Anagrafica:**")
+            st.write("**Coinvolgimento per Tipologia Anagrafica**")
             st.write("")
             st.write("")
             df_da_mostrare = filtered_counts.set_index('Anagrafica')[['CONTEGGIO', 'QUOTA']]

@@ -18,7 +18,10 @@ def coinvolgimento_aziende(df_events):
     
     # Verifichiamo la presenza delle colonne minime necessarie
     if colonna_ragione_sociale in df_events.columns and colonna_utente in df_events.columns:
-        st.markdown("## 🏢 Analisi Coinvolgimento Aziende")
+        st.write("")
+        st.markdown("## Analisi Coinvolgimento Aziende")
+        st.write("")
+        st.write("")
         
         # Copia di sicurezza per non sporcare il dataframe originale
         df_temp = df_events.copy()
@@ -48,7 +51,7 @@ def coinvolgimento_aziende(df_events):
         # ---------------------------------------------------------
         # 1. PRIMA COSA: GRAFICO DEL COINVOLGIMENTO MEDIO PER AZIENDA
         # ---------------------------------------------------------
-        st.write("#### Numero di Attività Medie per Azienda di ogni Commerciale")
+        st.write("#### Numero Medio di Attività per Azienda - Anagrafica: {scelta_anagrafica}")
         
         # Calcoliamo per ogni utente il numero di attività totali e il numero di aziende uniche gestite
         df_metrics_utenti = df_temp.groupby(colonna_utente).agg(
@@ -107,7 +110,7 @@ def coinvolgimento_aziende(df_events):
         # ---------------------------------------------------------
         # 2. SOTTO IL BARCHART: MAPPA AD ALBERO (TREEMAP)
         # ---------------------------------------------------------
-        st.write(f"#### Top Aziende per Commerciale Prevalente ({scelta_anagrafica})")
+        st.write(f"#### Top Aziende per Commerciale - Anagrafica: {scelta_anagrafica}")
         
         # Troviamo per ogni azienda chi è il commerciale che ha fatto più attività
         df_top_comm = df_temp.groupby([colonna_ragione_sociale, colonna_utente]).size().reset_index(name='Conteggio')

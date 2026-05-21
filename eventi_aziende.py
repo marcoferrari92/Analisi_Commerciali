@@ -5,7 +5,7 @@ import plotly.express as px
 def coinvolgimento_aziende(df_events):
     """
     Analisi del coinvolgimento delle aziende lato eventi.
-    Include Treemap interattiva, Tabella Pivot di ripartizione e grafico della Mediana del Team.
+    Include Treemap interattiva, Tabella Pivot di ripartizione e grafico della Media Attività per Azienda.
     Permette il filtraggio dinamico per Tipo Anagrafica (Tutte, Clienti, Lead, Prospect).
     """
     colonna_utente = 'UTENTE'
@@ -21,7 +21,7 @@ def coinvolgimento_aziende(df_events):
         df_temp = df_events.copy()
         
         # ---------------------------------------------------------
-        # FILTRO: Selezione Target Anagrafica (Richiesta)
+        # FILTRO: Selezione Target Anagrafica
         # ---------------------------------------------------------
         scelta_anagrafica = st.selectbox(
             "Seleziona il target di anagrafica aziende da analizzare:",
@@ -119,25 +119,39 @@ def coinvolgimento_aziende(df_events):
         st.dataframe(df_finale_aziende, hide_index=True, use_container_width=True)
 
         # ---------------------------------------------------------
-        # 3. GRAFICO ORIZZONTALE: MEDIANA DEL TEAM
+        # MODIFICA 3. GRAFICO ORIZZONTALE: NUMERO ATTIVITÀ MEDIA PER AZIENDA
         # ---------------------------------------------------------
-        st.write("#### Produttività degli Utenti sul Target Selezionato")
+        st.write("#### Numero di Attività Medie per Azienda di ogni Commerciale")
         
-        stats_utenti = df_temp[colonna_utente].value_counts().reset_index()
-        stats_utenti.columns = [colonna_utente, 'Numero Attività']
-        stats_utenti = stats_utenti.sort_values(by='Numero Attività', ascending=True)
+        # Calcoliamo per ogni utente il numero di attività totali e il numero di aziende uniche gestite
+        df_metrics_utenti = df_temp.groupby(colonna_utente).agg(
+            Attivita_Totali=('TIPO EVENTO', 'count'),
+            Aziende_Uniche=(colonna_ragione_sociale, 'nunique')
+        ).reset_index()
+        
+        # Calcolo della media per azienda
+        df_metrics_utenti['Attività Medie'] = (df_metrics_utenti['Attivita_Totali'] / df_metrics_utenti['Aziende_Uniche']).round(1)
+        
+        # Ordiniamo dal minore al maggiore per Plotly (l'asse y cresce dal basso verso l'alto)
+        stats_utenti = df_metrics_utenti.sort_values(by='Attività Medie', ascending=True)
         
         if not stats_utenti.empty:
-            valore_mediana = stats_utenti['Numero Attività'].median()
+            valore_mediana = stats_utenti['Attività Medie'].median()
             
             fig_bar = px.bar(
                 stats_utenti, 
-                x='Numero Attività', 
+                x='Attività Medie', 
                 y=colonna_utente, 
                 orientation='h', 
-                text='Numero Attività',
-                color='Numero Attività', 
-                color_continuous_scale='Blues'
+                text='Attività Medie',
+                color='Attività Medie', 
+                color_continuous_scale='Blues',
+                # Customizziamo l'hover per mostrare anche i dati di partenza del calcolo
+                hover_data={'Attivita_Totali': True, 'Aziende_Uniche': True}
+            )
+            
+            fig_bar.update_traces(
+                hovertemplate="<b>Commerciale: %{y}</b><br>Media Attività/Azienda: %{x}<br>Azioni Totali: %{customdata[0]}<br>Aziende Gestite: %{customdata[1]}<extra></extra>"
             )
             
             fig_bar.add_vline(
@@ -145,12 +159,12 @@ def coinvolgimento_aziende(df_events):
                 line_dash="dash", 
                 line_color="red",
                 line_width=2,
-                annotation_text=f"Mediana: {valore_mediana:.1f}", 
+                annotation_text=f"Mediana Team: {valore_mediana:.1f}", 
                 annotation_position="top right"
             )
             
             fig_bar.update_layout(
-                xaxis_title="Numero di Attività Svolte",
+                xaxis_title="Media Attività per Azienda (N. Azioni / N. Aziende)",
                 yaxis_title="Commerciale",
                 showlegend=False,
                 height=400,
@@ -160,7 +174,7 @@ def coinvolgimento_aziende(df_events):
             fig_bar.update_xaxes(showgrid=True, gridcolor='rgba(200,200,200,0.2)')
             
             st.plotly_chart(fig_bar, use_container_width=True)
-            st.metric(f"Mediana del Team ({scelta_anagrafica})", f"{valore_mediana:.1f} attività")
+            st.metric(f"Mediana Attività/Azienda del Team ({scelta_anagrafica})", f"{valore_mediana:.1f} azioni")
         
         # ---------------------------------------------------------
         # 4. REGISTRO ANALITICO FINALE

@@ -103,7 +103,6 @@ def coinvolgimento_aziende(df_events):
             fig_bar.update_xaxes(showgrid=True, gridcolor='rgba(200,200,200,0.2)')
             
             st.plotly_chart(fig_bar, use_container_width=True)
-            st.metric(f"Mediana Attività/Azienda del Team ({scelta_anagrafica})", f"{valore_mediana:.1f} azioni")
         
         st.markdown("---")
 
@@ -111,6 +110,7 @@ def coinvolgimento_aziende(df_events):
         # 2. SOTTO IL BARCHART: MAPPA AD ALBERO (TREEMAP)
         # ---------------------------------------------------------
         st.write(f"#### Top Aziende per Commerciale - {scelta_anagrafica}")
+        st.caption("Top 50 aziende più coinvolte divise per il commerciale che più ha interagito con l'azienda")
         
         # Troviamo per ogni azienda chi è il commerciale che ha fatto più attività
         df_top_comm = df_temp.groupby([colonna_ragione_sociale, colonna_utente]).size().reset_index(name='Conteggio')

@@ -51,7 +51,7 @@ def coinvolgimento_aziende(df_events):
         # ---------------------------------------------------------
         # 1. PRIMA COSA: GRAFICO DEL COINVOLGIMENTO MEDIO PER AZIENDA
         # ---------------------------------------------------------
-        st.write(f"#### Numero Medio di Attività per Azienda - Anagrafica: {scelta_anagrafica}")
+        st.write(f"#### Numero Medio di Attività per Azienda - {scelta_anagrafica}")
         
         # Calcoliamo per ogni utente il numero di attività totali e il numero di aziende uniche gestite
         df_metrics_utenti = df_temp.groupby(colonna_utente).agg(
@@ -110,7 +110,7 @@ def coinvolgimento_aziende(df_events):
         # ---------------------------------------------------------
         # 2. SOTTO IL BARCHART: MAPPA AD ALBERO (TREEMAP)
         # ---------------------------------------------------------
-        st.write(f"#### Top Aziende per Commerciale - Anagrafica: {scelta_anagrafica}")
+        st.write(f"#### Top Aziende per Commerciale - {scelta_anagrafica}")
         
         # Troviamo per ogni azienda chi è il commerciale che ha fatto più attività
         df_top_comm = df_temp.groupby([colonna_ragione_sociale, colonna_utente]).size().reset_index(name='Conteggio')

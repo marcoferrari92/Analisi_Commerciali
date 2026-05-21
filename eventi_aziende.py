@@ -15,7 +15,10 @@ def coinvolgimento_aziende(df_events):
     
     # Verifichiamo la presenza delle colonne minime necessarie
     if colonna_ragione_sociale in df_events.columns and colonna_utente in df_events.columns:
-        st.markdown("## 🏢 Analisi Coinvolgimento Aziende")
+        st.write("")
+        st.markdown("## Analisi Coinvolgimento Aziende")
+        st.write("")
+        st.write("")
         
         # Copia di sicurezza per non sporcare il dataframe originale
         df_temp = df_events.copy()

@@ -189,15 +189,19 @@ def coinvolgimento_aziende(df_events):
 
         st.markdown("---")
 
-        # ---------------------------------------------------------
-        # 4. PER ULTIMO: IL REGISTRO CRONOLOGICO
-        # ---------------------------------------------------------
-        st.write(f"### Registro Complessivo Eventi ({len(df_temp)} record)")
-        col_view = ['UTENTE', 'DATA', 'ORA EVENTO', 'TIPO EVENTO', colonna_ragione_sociale, 'NOTE']
-        col_presenti = [c for c in col_view if c in df_temp.columns]
+        # --- TABELLA DETTAGLIATA (In fondo all'app principale) ---
+        st.write(f"### Dettaglio eventi ({len(df_events)} record)")
+        
+        col_view = ['UTENTE', 'DATA', 'ORA EVENTO', 'TIPO EVENTO', 'RAGIONE SOCIALE', 'NOTE']
+        col_presenti = [c for c in col_view if c in df_events.columns]
+        
+        # Applichiamo .style.format per mostrare solo il giorno/mese/anno senza ore e minuti
+        df_DATA_pulita = df_events[col_presenti].sort_values(by=['DATA', 'ORA EVENTO'], ascending=False)
         
         st.dataframe(
-            df_temp[col_presenti].sort_values(by=['DATA', 'ORA EVENTO'], ascending=[False, False]),
+            df_DATA_pulita.style.format({
+                'DATA': lambda x: pd.to_datetime(x).strftime('%d/%m/%Y') if pd.notnull(x) else "-"
+            }),
             use_container_width=True,
             hide_index=True
         )

@@ -46,6 +46,8 @@ def coinvolgimento_aziende(df_events):
         # ---------------------------------------------------------
         # 1. TREEMAP: TOP AZIENDE PER COMMERCIALE PREVALENTE
         # ---------------------------------------------------------
+        st.write("")
+        st.write("")
         st.write(f"#### Top Aziende per Commerciale ({scelta_anagrafica})")
         st.caption("Il grafico riporta la top 50 delle aziende più coinvolte, suddivise per il commerciale che più ha interagito con l'azienda.")
         

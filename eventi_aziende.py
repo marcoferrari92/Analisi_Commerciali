@@ -43,7 +43,8 @@ def coinvolgimento_aziende(df_events):
         # ---------------------------------------------------------
         # 1. TREEMAP: TOP AZIENDE PER COMMERCIALE PREVALENTE
         # ---------------------------------------------------------
-        st.write(f"#### Top Aziende per Commerciale Prevalente ({scelta_anagrafica})")
+        st.write(f"#### Top Aziende per Commerciale ({scelta_anagrafica})")
+        st.caption("Il grafico riporta la top 50 delle aziende più coinvolte, suddivise per il commerciale che più ha interagito con l'azienda.")
         
         # Troviamo per ogni azienda chi è il commerciale che ha fatto più attività
         df_top_comm = df_temp.groupby([colonna_ragione_sociale, colonna_utente]).size().reset_index(name='Conteggio')

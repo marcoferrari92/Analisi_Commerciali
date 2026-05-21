@@ -192,7 +192,7 @@ def coinvolgimento_aziende(df_events):
         # ---------------------------------------------------------
         # 4. PER ULTIMO: IL REGISTRO CRONOLOGICO
         # ---------------------------------------------------------
-        st.write(f"### Dettaglio eventi estratti ({len(df_temp)} record)")
+        st.write(f"### Registro Complessivo Eventi ({len(df_temp)} record)")
         col_view = ['UTENTE', 'DATA', 'ORA EVENTO', 'TIPO EVENTO', colonna_ragione_sociale, 'NOTE']
         col_presenti = [c for c in col_view if c in df_temp.columns]
         

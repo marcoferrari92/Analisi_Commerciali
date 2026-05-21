@@ -107,7 +107,7 @@ def coinvolgimento_aziende(df_events):
         st.markdown("---")
 
         # ---------------------------------------------------------
-        # 2. SOTTO IL BARCHART: MAPPA AD ALBERO (TREEMAP)
+        # 2. MAPPA AD ALBERO (TREEMAP)
         # ---------------------------------------------------------
         st.write(f"#### Top Aziende per Commerciale - {scelta_anagrafica}")
         st.caption("Top 50 aziende più coinvolte divise per il commerciale che più ha interagito con l'azienda")
@@ -161,8 +161,10 @@ def coinvolgimento_aziende(df_events):
             st.info("Dati insufficienti per generare la mappa ad albero.")
 
         # ---------------------------------------------------------
-        # 3. SOTTO IL TREE: TABELLA PIVOT CON IL DETTAGLIO ATTIVITÀ
+        # 3. TABELLA PIVOT CON IL DETTAGLIO ATTIVITÀ
         # ---------------------------------------------------------
+        st.write("")
+        st.write("")
         st.write("#### Dettaglio Attività per Azienda")
         
         pivot_aziende = df_temp.pivot_table(

@@ -11,6 +11,7 @@ st.set_page_config(layout="wide")
 
 from eventi_panoramica import distribuzione_eventi
 from eventi_performance_team import analisi_performance_utenti
+from eventi_aziende import coinvolgimento_aziende
 
 @st.cache_data
 def carica_dati_eventi(file):

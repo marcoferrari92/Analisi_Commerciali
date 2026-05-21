@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-def analisi_coinvolgimento_aziende(df_events):
+def coinvolgimento_aziende(df_events):
     """
     Analisi del coinvolgimento delle aziende lato eventi.
     Include Treemap interattiva, Tabella Pivot di ripartizione e grafico della Mediana del Team.

@@ -93,7 +93,7 @@ def coinvolgimento_aziende(df_events):
             )
             
             fig_bar.update_layout(
-                xaxis_title="Media Attività per Azienda (N. Azioni / N. Aziende)",
+                xaxis_title="Media Attività per Azienda (N. Attività / N. Aziende)",
                 yaxis_title="Commerciale",
                 showlegend=False,
                 height=400,

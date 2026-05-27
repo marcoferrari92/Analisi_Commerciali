@@ -5,6 +5,7 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import re
+import json
 import numpy as np
 
 st.set_page_config(layout="wide")
@@ -801,24 +802,37 @@ with col1:
             d_min_ev, d_max_ev = DATA_range(df_events)
             date_min, date_max = d_min_ev, d_max_ev
 
-# --- SEZIONE ORDINI ---
 with col2:
     st.write("#### Ordini")
-    uploaded_file_orders = st.file_uploader("Carica file ordini (formato CSV)", type="csv")
+    uploaded_file_orders = st.file_uploader("Carica file ordini (formato JSON)", type="json")
+    
     if uploaded_file_orders:
-        df_raw = carica_dati_ordini(uploaded_file_orders)
-        if df_raw is not None:
-            df_orders, df_errori = validazione_importi(df_raw)
-            if df_orders is not None:
-                st.write(f"✅ Validazione conclusa: {len(df_orders)} righe.")
-                d_min_ord, d_max_ord = DATA_range(df_orders)
-                
-                # Logica per unire i range di date se entrambi i file sono presenti
-                if date_min is None:
-                    date_min, date_max = d_min_ord, d_max_ord
-                else:
-                    date_min = min(date_min, d_min_ord)
-                    date_max = max(date_max, d_max_ord)
+        try:
+            # Leggiamo il file JSON
+            dati_json = json.load(uploaded_file_orders)
+            
+            # --- TOOL DI ISPEZIONE TEMPORANEO ---
+            st.info("🔍 Ispezione Struttura JSON")
+            if isinstance(dati_json, list):
+                st.write(f"Il JSON è una **Lista** contenente **{len(dati_json)}** elementi (es. record/documenti).")
+                if len(dati_json) > 0:
+                    st.write("### Chiavi del primo elemento del JSON:")
+                    st.json(list(dati_json[0].keys()))
+                    with st.expander("Vedi un esempio del primo record completo"):
+                        st.json(dati_json[0])
+            elif isinstance(dati_json, dict):
+                st.write("Il JSON è un **Dizionario Principale**.")
+                st.write("### Chiavi principali:")
+                st.json(list(dati_json.keys()))
+                with st.expander("Vedi l'intero JSON (o le prime chiavi)"):
+                    st.json(dati_json)
+            # --------------------------------------
+            
+            # Qui poi chiameremo la nuova funzione di caricamento dati (vedi sotto)
+            # df_raw = carica_dati_ordini_json(uploaded_file_orders) 
+            
+        except Exception as e:
+            st.error(f"Errore nella lettura del file JSON: {e}")
 
 
 # --- SEZIONE FILTRO PERIODO ---

@@ -802,66 +802,64 @@ with col1:
             d_min_ev, d_max_ev = DATA_range(df_events)
             date_min, date_max = d_min_ev, d_max_ev
 
-import json
-import pandas as pd
-import streamlit as st
 
-# ... (dentro il tuo MAIN APP, nella col2 degli Ordini)
 with col2:
     st.write("#### Ordini")
     uploaded_file_orders = st.file_uploader("Carica file ordini (formato JSON)", type="json")
     
     if uploaded_file_orders:
         try:
-            # 1. Leggiamo il file JSON grezzo
+            # 1. Carichiamo il file JSON
             dati_json = json.load(uploaded_file_orders)
             
-            # 2. Convertiamo la struttura in una tabella "Excel-like"
-            # Caso A: Il JSON è già una lista piatta di articoli/righe
-            if isinstance(dati_json, list) and len(dati_json) > 0 and not isinstance(dati_json[0], (list, dict)):
-                df_anteprima = pd.DataFrame(dati_json)
-                
-            # Caso B: Il JSON ha una struttura annidata (Documento -> Lista di Righe/Articoli)
-            elif isinstance(dati_json, list) and len(dati_json) > 0:
-                # Ispezioniamo il primo record per capire se c'è una lista interna (es. 'righe', 'articoli', 'items')
-                chiavi_del_record = dati_json[0].keys()
-                # Cerchiamo una chiave che contenga una lista (le righe del documento)
-                chiave_lista_interna = next((k for k in chiavi_del_record if isinstance(dati_json[0][k], list)), None)
+            # 2. ISOLIAMO SOLO I PRIMI 10 ELEMENTI PER EVITARE IL BLOCCO
+            st.warning("⚡ Modalità provvisoria: Ottimizzazione per file grandi attiva.")
+            
+            dati_ridotti = []
+            if isinstance(dati_json, list):
+                dati_ridotti = dati_json[:10]  # Prendiamo solo i primi 10 record
+                st.write(f"File totale: {len(dati_json)} elementi. Analisi limitata ai primi 10.")
+            elif isinstance(dati_json, dict):
+                # Se è un dizionario con una chiave principale che contiene la lista
+                chiave_principale = next((k for k, v in dati_json.items() if isinstance(v, list)), None)
+                if chiave_principale:
+                    dati_ridotti = dati_json[chiave_principale][:10]
+                    st.write(f"Trovata lista nella chiave '{chiave_principale}'. Analisi limitata ai primi 10 elementi.")
+                else:
+                    dati_ridotti = [dati_json] # Singolo dizionario nativo
+            
+            # 3. TRASFORMAZIONE IN TABELLA EXCEL (Solo dei 10 elementi)
+            if dati_ridotti:
+                # Controlliamo se c'è una sotto-lista annidata (es. le righe articoli dentro l'ordine)
+                chiavi_primo_record = dati_ridotti[0].keys() if isinstance(dati_ridotti[0], dict) else []
+                chiave_lista_interna = next((k for k in chiavi_primo_record if isinstance(dati_ridotti[0][k], list)), None)
                 
                 if chiave_lista_interna:
-                    # Estraiamo le altre chiavi del documento principale da replicare su ogni riga
-                    chiavi_meta = [k for k in chiavi_del_record if k != chiave_lista_interna]
-                    
-                    # Usiamo json_normalize per "spianare" il JSON in formato Excel
+                    # Se ci sono le righe articoli annidate, spaniamo la struttura
+                    chiavi_meta = [k for k in chiavi_primo_record if k != chiave_lista_interna]
                     df_anteprima = pd.json_normalize(
-                        dati_json, 
+                        dati_ridotti, 
                         record_path=chiave_lista_interna, 
                         meta=chiavi_meta,
                         errors='ignore'
                     )
                 else:
-                    # Se non ci sono liste annidate, lo convertiamo direttamente in tabella
-                    df_anteprima = pd.DataFrame(dati_json)
+                    # Se è un JSON piatto, lo convertiamo direttamente
+                    df_anteprima = pd.DataFrame(dati_ridotti)
+                
+                # --- VISUALIZZAZIONE TABELLA ---
+                st.success("📊 Ecco la tabella Excel delle prime 10 posizioni:")
+                
+                # Mostra l'elenco delle colonne per darti un riferimento pulito
+                st.write("**Colonne rilevate:**", list(df_anteprima.columns))
+                
+                # Renderizza il DataFrame Streamlit (mostrerà solo le prime righe generate dai 10 record)
+                st.dataframe(df_anteprima, use_container_width=True)
             else:
-                # Caso C: È un dizionario singolo
-                df_anteprima = pd.json_normalize(dati_json)
+                st.error("Non è stato possibile estrarre una lista di elementi dal JSON.")
 
-            # --- VISUALIZZAZIONE IN FORMATO TABELLA EXCEL ---
-            st.success(f"📊 JSON convertito con successo! Rilevate {df_anteprima.shape[0]} righe e {df_anteprima.shape[1]} colonne.")
-            
-            # Mostriamo le colonne disponibili come faresti su Excel
-            st.write("### Anteprima colonne rilevate nel JSON:")
-            st.write(list(df_anteprima.columns))
-            
-            # Mostriamo la tabella interattiva (Excel Style)
-            st.dataframe(df_anteprima, use_container_width=True)
-            
-            # Per far funzionare il resto della tua app, ora puoi passare questo df_anteprima 
-            # alla tua funzione di validazione (es. validazione_importi)
-            # df_orders, df_errori = validazione_importi(df_anteprima)
-            
         except Exception as e:
-            st.error(f"❌ Errore nella conversione tabulare del JSON: {e}")
+            st.error(f"❌ Errore durante il caricamento leggero: {e}")
 
 
 # --- SEZIONE FILTRO PERIODO ---

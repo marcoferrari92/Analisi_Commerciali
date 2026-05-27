@@ -803,63 +803,59 @@ with col1:
             date_min, date_max = d_min_ev, d_max_ev
 
 
+import json
+import streamlit as st
+
+# ... (dentro il tuo MAIN APP, nella col2 degli Ordini)
 with col2:
     st.write("#### Ordini")
     uploaded_file_orders = st.file_uploader("Carica file ordini (formato JSON)", type="json")
     
     if uploaded_file_orders:
         try:
-            # 1. Carichiamo il file JSON
+            # 1. Leggiamo il file JSON in modo puro
             dati_json = json.load(uploaded_file_orders)
             
-            # 2. ISOLIAMO SOLO I PRIMI 10 ELEMENTI PER EVITARE IL BLOCCO
-            st.warning("⚡ Modalità provvisoria: Ottimizzazione per file grandi attiva.")
+            st.info("📋 Elenco delle voci rilevate nel file JSON")
             
-            dati_ridotti = []
-            if isinstance(dati_json, list):
-                dati_ridotti = dati_json[:10]  # Prendiamo solo i primi 10 record
-                st.write(f"File totale: {len(dati_json)} elementi. Analisi limitata ai primi 10.")
+            # 2. Identifichiamo dove si trovano le voci (se in una lista o in un dizionario)
+            record_di_esempio = None
+            
+            if isinstance(dati_json, list) and len(dati_json) > 0:
+                record_di_esempio = dati_json[0]
             elif isinstance(dati_json, dict):
-                # Se è un dizionario con una chiave principale che contiene la lista
-                chiave_principale = next((k for k, v in dati_json.items() if isinstance(v, list)), None)
-                if chiave_principale:
-                    dati_ridotti = dati_json[chiave_principale][:10]
-                    st.write(f"Trovata lista nella chiave '{chiave_principale}'. Analisi limitata ai primi 10 elementi.")
+                # Se è un dizionario, vediamo se c'è una lista interna (es. 'data', 'orders', ecc.)
+                chiave_lista = next((k for k, v in dati_json.items() if isinstance(v, list)), None)
+                if chiave_lista and len(dati_json[chiave_lista]) > 0:
+                    st.write(f"I dati sono racchiusi dentro la voce principale: **'{chiave_lista}'**")
+                    record_di_esempio = dati_json[chiave_lista][0]
                 else:
-                    dati_ridotti = [dati_json] # Singolo dizionario nativo
-            
-            # 3. TRASFORMAZIONE IN TABELLA EXCEL (Solo dei 10 elementi)
-            if dati_ridotti:
-                # Controlliamo se c'è una sotto-lista annidata (es. le righe articoli dentro l'ordine)
-                chiavi_primo_record = dati_ridotti[0].keys() if isinstance(dati_ridotti[0], dict) else []
-                chiave_lista_interna = next((k for k in chiavi_primo_record if isinstance(dati_ridotti[0][k], list)), None)
+                    record_di_esempio = dati_json
+
+            # 3. Estraiamo e mostriamo le voci
+            if isinstance(record_di_esempio, dict):
+                voci_principali = list(record_di_esempio.keys())
                 
-                if chiave_lista_interna:
-                    # Se ci sono le righe articoli annidate, spaniamo la struttura
-                    chiavi_meta = [k for k in chiavi_primo_record if k != chiave_lista_interna]
-                    df_anteprima = pd.json_normalize(
-                        dati_ridotti, 
-                        record_path=chiave_lista_interna, 
-                        meta=chiavi_meta,
-                        errors='ignore'
-                    )
-                else:
-                    # Se è un JSON piatto, lo convertiamo direttamente
-                    df_anteprima = pd.DataFrame(dati_ridotti)
-                
-                # --- VISUALIZZAZIONE TABELLA ---
-                st.success("📊 Ecco la tabella Excel delle prime 10 posizioni:")
-                
-                # Mostra l'elenco delle colonne per darti un riferimento pulito
-                st.write("**Colonne rilevate:**", list(df_anteprima.columns))
-                
-                # Renderizza il DataFrame Streamlit (mostrerà solo le prime righe generate dai 10 record)
-                st.dataframe(df_anteprima, use_container_width=True)
+                st.write("### 🔑 Voci Principali (Livello 1):")
+                for voce in voci_principali:
+                    # Controlliamo se questa voce contiene a sua volta delle sotto-voci (es. le righe articoli)
+                    if isinstance(record_di_esempio[voce], list) and len(record_di_esempio[voce]) > 0 and isinstance(record_di_esempio[voce][0], dict):
+                        st.markdown(f"* 📂 **{voce}** *(Contiene una sotto-lista di articoli/righe)*")
+                        # Mostriamo le sotto-voci
+                        sotto_voci = list(record_di_esempio[voce][0].keys())
+                        for sv in sotto_voci:
+                            st.markdown(f"    * 📄 `{sv}`")
+                    elif isinstance(record_di_esempio[voce], dict):
+                        st.markdown(f"* 📂 **{voce}** *(Contiene sotto-voci)*")
+                        for sv in record_di_esempio[voce].keys():
+                            st.markdown(f"    * 📄 `{sv}`")
+                    else:
+                        st.markdown(f"* 📄 `{voce}`")
             else:
-                st.error("Non è stato possibile estrarre una lista di elementi dal JSON.")
+                st.error("La struttura del JSON non è standard (non è un dizionario o una lista di dizionari).")
 
         except Exception as e:
-            st.error(f"❌ Errore durante il caricamento leggero: {e}")
+            st.error(f"❌ Impossibile leggere le voci del JSON: {e}")
 
 
 # --- SEZIONE FILTRO PERIODO ---

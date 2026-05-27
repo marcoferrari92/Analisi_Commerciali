@@ -805,52 +805,6 @@ with col1:
 with col2:
     st.write("#### Ordini")
     uploaded_file_orders = st.file_uploader("Carica file ordini (formato JSON)", type="json")
-    
-    if uploaded_file_orders:
-        try:
-            # 1. Leggiamo il file JSON in modo puro
-            dati_json = json.load(uploaded_file_orders)
-            
-            st.info("📋 Elenco delle voci rilevate nel file JSON")
-            
-            # 2. Identifichiamo dove si trovano le voci (se in una lista o in un dizionario)
-            record_di_esempio = None
-            
-            if isinstance(dati_json, list) and len(dati_json) > 0:
-                record_di_esempio = dati_json[0]
-            elif isinstance(dati_json, dict):
-                # Se è un dizionario, vediamo se c'è una lista interna (es. 'data', 'orders', ecc.)
-                chiave_lista = next((k for k, v in dati_json.items() if isinstance(v, list)), None)
-                if chiave_lista and len(dati_json[chiave_lista]) > 0:
-                    st.write(f"I dati sono racchiusi dentro la voce principale: **'{chiave_lista}'**")
-                    record_di_esempio = dati_json[chiave_lista][0]
-                else:
-                    record_di_esempio = dati_json
-
-            # 3. Estraiamo e mostriamo le voci
-            if isinstance(record_di_esempio, dict):
-                voci_principali = list(record_di_esempio.keys())
-                
-                st.write("### 🔑 Voci Principali (Livello 1):")
-                for voce in voci_principali:
-                    # Controlliamo se questa voce contiene a sua volta delle sotto-voci (es. le righe articoli)
-                    if isinstance(record_di_esempio[voce], list) and len(record_di_esempio[voce]) > 0 and isinstance(record_di_esempio[voce][0], dict):
-                        st.markdown(f"* 📂 **{voce}** *(Contiene una sotto-lista di articoli/righe)*")
-                        # Mostriamo le sotto-voci
-                        sotto_voci = list(record_di_esempio[voce][0].keys())
-                        for sv in sotto_voci:
-                            st.markdown(f"    * 📄 `{sv}`")
-                    elif isinstance(record_di_esempio[voce], dict):
-                        st.markdown(f"* 📂 **{voce}** *(Contiene sotto-voci)*")
-                        for sv in record_di_esempio[voce].keys():
-                            st.markdown(f"    * 📄 `{sv}`")
-                    else:
-                        st.markdown(f"* 📄 `{voce}`")
-            else:
-                st.error("La struttura del JSON non è standard (non è un dizionario o una lista di dizionari).")
-
-        except Exception as e:
-            st.error(f"❌ Impossibile leggere le voci del JSON: {e}")
 
 
 # --- SEZIONE FILTRO PERIODO ---

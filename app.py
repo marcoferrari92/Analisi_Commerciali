@@ -802,37 +802,66 @@ with col1:
             d_min_ev, d_max_ev = DATA_range(df_events)
             date_min, date_max = d_min_ev, d_max_ev
 
+import json
+import pandas as pd
+import streamlit as st
+
+# ... (dentro il tuo MAIN APP, nella col2 degli Ordini)
 with col2:
     st.write("#### Ordini")
     uploaded_file_orders = st.file_uploader("Carica file ordini (formato JSON)", type="json")
     
     if uploaded_file_orders:
         try:
-            # Leggiamo il file JSON
+            # 1. Leggiamo il file JSON grezzo
             dati_json = json.load(uploaded_file_orders)
             
-            # --- TOOL DI ISPEZIONE TEMPORANEO ---
-            st.info("🔍 Ispezione Struttura JSON")
-            if isinstance(dati_json, list):
-                st.write(f"Il JSON è una **Lista** contenente **{len(dati_json)}** elementi (es. record/documenti).")
-                if len(dati_json) > 0:
-                    st.write("### Chiavi del primo elemento del JSON:")
-                    st.json(list(dati_json[0].keys()))
-                    with st.expander("Vedi un esempio del primo record completo"):
-                        st.json(dati_json[0])
-            elif isinstance(dati_json, dict):
-                st.write("Il JSON è un **Dizionario Principale**.")
-                st.write("### Chiavi principali:")
-                st.json(list(dati_json.keys()))
-                with st.expander("Vedi l'intero JSON (o le prime chiavi)"):
-                    st.json(dati_json)
-            # --------------------------------------
+            # 2. Convertiamo la struttura in una tabella "Excel-like"
+            # Caso A: Il JSON è già una lista piatta di articoli/righe
+            if isinstance(dati_json, list) and len(dati_json) > 0 and not isinstance(dati_json[0], (list, dict)):
+                df_anteprima = pd.DataFrame(dati_json)
+                
+            # Caso B: Il JSON ha una struttura annidata (Documento -> Lista di Righe/Articoli)
+            elif isinstance(dati_json, list) and len(dati_json) > 0:
+                # Ispezioniamo il primo record per capire se c'è una lista interna (es. 'righe', 'articoli', 'items')
+                chiavi_del_record = dati_json[0].keys()
+                # Cerchiamo una chiave che contenga una lista (le righe del documento)
+                chiave_lista_interna = next((k for k in chiavi_del_record if isinstance(dati_json[0][k], list)), None)
+                
+                if chiave_lista_interna:
+                    # Estraiamo le altre chiavi del documento principale da replicare su ogni riga
+                    chiavi_meta = [k for k in chiavi_del_record if k != chiave_lista_interna]
+                    
+                    # Usiamo json_normalize per "spianare" il JSON in formato Excel
+                    df_anteprima = pd.json_normalize(
+                        dati_json, 
+                        record_path=chiave_lista_interna, 
+                        meta=chiavi_meta,
+                        errors='ignore'
+                    )
+                else:
+                    # Se non ci sono liste annidate, lo convertiamo direttamente in tabella
+                    df_anteprima = pd.DataFrame(dati_json)
+            else:
+                # Caso C: È un dizionario singolo
+                df_anteprima = pd.json_normalize(dati_json)
+
+            # --- VISUALIZZAZIONE IN FORMATO TABELLA EXCEL ---
+            st.success(f"📊 JSON convertito con successo! Rilevate {df_anteprima.shape[0]} righe e {df_anteprima.shape[1]} colonne.")
             
-            # Qui poi chiameremo la nuova funzione di caricamento dati (vedi sotto)
-            # df_raw = carica_dati_ordini_json(uploaded_file_orders) 
+            # Mostriamo le colonne disponibili come faresti su Excel
+            st.write("### Anteprima colonne rilevate nel JSON:")
+            st.write(list(df_anteprima.columns))
+            
+            # Mostriamo la tabella interattiva (Excel Style)
+            st.dataframe(df_anteprima, use_container_width=True)
+            
+            # Per far funzionare il resto della tua app, ora puoi passare questo df_anteprima 
+            # alla tua funzione di validazione (es. validazione_importi)
+            # df_orders, df_errori = validazione_importi(df_anteprima)
             
         except Exception as e:
-            st.error(f"Errore nella lettura del file JSON: {e}")
+            st.error(f"❌ Errore nella conversione tabulare del JSON: {e}")
 
 
 # --- SEZIONE FILTRO PERIODO ---

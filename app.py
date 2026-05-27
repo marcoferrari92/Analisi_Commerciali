@@ -802,11 +802,6 @@ with col1:
             d_min_ev, d_max_ev = DATA_range(df_events)
             date_min, date_max = d_min_ev, d_max_ev
 
-
-import json
-import streamlit as st
-
-# ... (dentro il tuo MAIN APP, nella col2 degli Ordini)
 with col2:
     st.write("#### Ordini")
     uploaded_file_orders = st.file_uploader("Carica file ordini (formato JSON)", type="json")

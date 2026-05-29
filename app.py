@@ -361,6 +361,7 @@ if df_events is not None:
     st.write("")
     st.subheader("Analisi Eventi")
     st.write("")
+    st.write("")
     with st.expander("👁️ Panoramica Eventi"):
         distribuzione_eventi(df_events)
 

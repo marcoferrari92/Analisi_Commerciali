@@ -14,6 +14,7 @@ from eventi_panoramica import distribuzione_eventi
 from eventi_performance_team import analisi_performance_utenti
 from eventi_aziende import coinvolgimento_aziende
 from eventi_loading import carica_eventi
+from ordini_loading import carica_ordini
 
         
 
@@ -698,7 +699,7 @@ date_max = None
 # CARICAMENTO FILE 
 # *****************
 
-# 1. Inizializzazione variabili all'inizio dello script per evitare NameError
+# Inizializzazione variabili all'inizio dello script per evitare NameError
 df_events = None
 df_orders = None
 date_min = None
@@ -707,12 +708,11 @@ date_max = None
 st.subheader("Caricamento File")
 col1, col2, col3 = st.columns(3)
 
-# --- SEZIONE EVENTI ---
 with col1:
     st.write("#### Eventi")
     uploaded_file_events = st.file_uploader("Carica file eventi (formato CSV)", type="csv")
     if uploaded_file_events:
-        df_events = carica_eventi(uploaded_file_events) # Usa la funzione normalizzata creata prima
+        df_events = carica_eventi(uploaded_file_events) 
         if df_events is not None:
             d_min_ev, d_max_ev = DATA_range(df_events)
             date_min, date_max = d_min_ev, d_max_ev
@@ -720,6 +720,11 @@ with col1:
 with col2:
     st.write("#### Ordini")
     uploaded_file_orders = st.file_uploader("Carica file ordini (formato JSON)", type="json")
+    if uploaded_file_orders:
+        df_orders = carica_ordini(uploaded_file_orders) 
+        if df_orders is not None:
+            d_min_or, d_max_or = DATA_range(df_orders)
+            date_min, date_max = d_min_or, d_max_or
 
 
 # --- SEZIONE FILTRO PERIODO ---

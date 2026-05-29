@@ -551,48 +551,48 @@ if df_orders is not None:
         with st.expander("🏆 Analisi Conversione Preventivi per Commerciale"):
                 st.write("")
                 with st.popover("ℹ️ Guida all'Analisi"):
-                    st.info("""
-                    #### Classificazione (STATO)
-                    Il sistema classifica ogni preventivo come segue:
-                
-                    *   🟢 **AGGIUDICATO (CHIUSO)**: Il preventivo è stato convertito in un **Ordine**. 
-                    *   🟢 **AGGIUDICATO (APERTO)**: Il preventivo è stato convertito in un **Ordine Aperto**.
-                    *   🔵 **IN ATTESA**: Il preventivo si trova ancora all'interno della finestra di conversione.
-                    *   🟠 **IN SCADENZA**: Ordine vicino alla fine della finestra di conversione.
-                    *   🔴 **PERSO**: Non è stato trovato alcun ordine collegato **e** il tempo trascorso ha superato la finestra impostata.
-                    
-                    ---
-            
-                    #### Dettagli Conversione (INFO)
-                    Analisi della qualità della vendita confrontando articoli e quantità tra preventivo e ordine:
-                
-                    *   ✅ **INTEGRALE**: Tutti gli articoli preventivati sono stati ordinati nelle quantità esatte.
-                    *   ⚠️ **INCOMPLETO**: Uno o più articoli presenti nel preventivo non sono stati inclusi nell'ordine finale.
-                    *   📉 **RIDOTTO**: Tutti gli articoli presenti, ma almeno uno ha una quantità inferiore rispetto al preventivo.
-                    *   🚀 **EXTRA**: L'ordine ha un volume economico maggiore o contiene più pezzi/articoli rispetto al preventivo (Upsell).
-                    *   📦 **MULTI-TRANCHE**: Il preventivo è stato convertito attraverso due o più ordini separati.
-                
-                    **Combinazioni Comuni:**
-                    *   🧩 **INCOMPLETO + RIDOTTO**: Il cliente ha rimosso alcuni articoli e, per quelli rimasti, ha anche abbassato le quantità.
-                    *   🧩 **INCOMPLETO + EXTRA**: Mancano alcuni articoli originali, ma l'ordine ha un valore totale (€) maggiore (es. un articolo rimasto è stato venduto in quantità massiccia o a prezzo maggiorato).
-                    *   🧩 **RIDOTTO + EXTRA**: Le quantità di alcuni articoli sono scese, ma il valore totale (€) è comunque superiore al preventivo (es. aggiunta di articoli extra).
-                    *   🧩 **EXTRA + MULTI-TRANCHE**: Il preventivo è stato evaso con più ordini che, sommati, superano il valore o le quantità preventivate.
-                    *   🧩 **RIDOTTO + MULTI-TRANCHE**: La fornitura sta avvenendo a scaglioni e, al momento, le quantità totali sono ancora inferiori al preventivato.
-                
-                    ---
-                    #### Metriche
-                    *   **Durata**: 
+                        st.info("""
+                        #### Classificazione (STATO)
+                        Il sistema classifica ogni preventivo come segue:
+                        
+                        *   🟢 **AGGIUDICATO (CHIUSO)**: Il preventivo è stato convertito in un **Ordine**. 
+                        *   🟢 **AGGIUDICATO (APERTO)**: Il preventivo è stato convertito in un **Ordine Aperto**.
+                        *   🔵 **IN ATTESA**: Il preventivo si trova ancora all'interno della finestra di conversione.
+                        *   🟠 **IN SCADENZA**: Ordine vicino alla fine della finestra di conversione.
+                        *   🔴 **PERSO**: Non è stato trovato alcun ordine collegato **e** il tempo trascorso ha superato la finestra impostata.
+                        
+                        ---
+                        
+                        #### Dettagli Conversione (INFO)
+                        Analisi della qualità della vendita confrontando articoli e quantità tra preventivo e ordine:
+                        
+                        *   ✅ **INTEGRALE**: Tutti gli articoli preventivati sono stati ordinati nelle quantità esatte.
+                        *   ⚠️ **INCOMPLETO**: Uno o più articoli presenti nel preventivo non sono stati inclusi nell'ordine finale.
+                        *   📉 **RIDOTTO**: Tutti gli articoli presenti, ma almeno uno ha una quantità inferiore rispetto al preventivo.
+                        *   🚀 **EXTRA**: L'ordine ha un volume economico maggiore o contiene più pezzi/articoli rispetto al preventivo (Upsell).
+                        *   📦 **MULTI-TRANCHE**: Il preventivo è stato convertito attraverso due o più ordini separati.
+                        
+                        **Combinazioni Comuni:**
+                        *   🧩 **INCOMPLETO + RIDOTTO**: Il cliente ha rimosso alcuni articoli e, per quelli rimasti, ha anche abbassato le quantità.
+                        *   🧩 **INCOMPLETO + EXTRA**: Mancano alcuni articoli originali, ma l'ordine ha un valore totale (€) maggiore (es. un articolo rimasto è stato venduto in quantità massiccia o a prezzo maggiorato).
+                        *   🧩 **RIDOTTO + EXTRA**: Le quantità di alcuni articoli sono scese, ma il valore totale (€) è comunque superiore al preventivo (es. aggiunta di articoli extra).
+                        *   🧩 **EXTRA + MULTI-TRANCHE**: Il preventivo è stato evaso con più ordini che, sommati, superano il valore o le quantità preventivate.
+                        *   🧩 **RIDOTTO + MULTI-TRANCHE**: La fornitura sta avvenendo a scaglioni e, al momento, le quantità totali sono ancora inferiori al preventivato.
+                        
+                        ---
+                        #### Metriche
+                        *   **Durata**: 
                         *   Per gli AGGIUDICATI, indica i giorni reali tra preventivo e ordine 
                             (nel caso di ordine in più tranche, considera per la data e la durata l'ultimo ordine trovato).
                         *   Per gli ALTRI STATI, indica i giorni passati dalla creazione ad oggi.
-                    *   **Q.tà Prev. / Q.tà Ord.**: Somma totale degli articoli nei documenti (articoli x num. pezzi). Utile per vedere se l'ordine ha coperto tutto il preventivato.
-                    *   **Conversione**: Un preventivo è AGGIUDICATO se almeno un ID di un articolo del preventivo è stato ritrovato in un Ordine, 
+                        *   **Q.tà Prev. / Q.tà Ord.**: Somma totale degli articoli nei documenti (articoli x num. pezzi). Utile per vedere se l'ordine ha coperto tutto il preventivato.
+                        *   **Conversione**: Un preventivo è AGGIUDICATO se almeno un ID di un articolo del preventivo è stato ritrovato in un Ordine, 
                                        anche se oltre la finestra di validità dei preventivi. 
-                    """)
+                        """)
                 st.write("")
                 st.write("")
-            if df_report is not None:
-                df_performance = analizza_performance_commerciali(df_report)
+                if df_report is not None:
+                        df_performance = analizza_performance_commerciali(df_report)
     else:
         st.warning("⚠️ Nessun dato valido da analizzare dopo la pulizia del file JSON.")
         

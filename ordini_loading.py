@@ -15,10 +15,12 @@ def carica_ordini(file):
         for id_doc, doc in dati_json.items():
             info_principali = {
                 'ID DOCUMENTO': doc.get('id_documenti'),
+                'ID DOCUMENTO PADRE': doc.get('id_documento_padre'),
                 'DATA': doc.get('data'),
                 'CODICE GESTIONALE UTENTE': doc.get('id_utenti'),
                 'CLIENTE': doc.get('ragione_sociale'),
-                'TIPOLOGIA DOC.': doc.get('tipo_documento')
+                'TIPOLOGIA DOC.': doc.get('tipo_documento'),
+                'TITOLO': doc.get('titolo') # Evita KeyError nel boxplot customdata
             }
             
             # Estrazione delle righe degli articoli all'interno del documento

@@ -149,11 +149,11 @@ def analisi_performance_utenti(df_events):
 
         # Determiniamo le posizioni delle etichette a sinistra per evitare sovrapposizioni
         if mediana_volume_totale_reale >= media_volume_totale_reale:
-            pos_mediana = "top left"
-            pos_media = "bottom left"
+            pos_mediana = "top right"
+            pos_media = "bottom right"
         else:
-            pos_mediana = "bottom left"
-            pos_media = "top left"
+            pos_mediana = "bottom right"
+            pos_media = "top right"
 
         # LINEA 1: MEDIANA SUL TOTALE (Tratteggio scuro)
         fig_volume.add_hline(

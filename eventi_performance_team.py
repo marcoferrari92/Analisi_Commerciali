@@ -153,7 +153,7 @@ def analisi_performance_utenti(df_events):
             line_color="#c0392b",  # Rosso mattone / Scuro
             line_width=2.5,
             annotation_text=f"Media Totale: {media_volume_totale_reale:.1f}",
-            annotation_position="top left", # Posizionata a sinistra per non sovrapporsi al testo della mediana
+            annotation_position="bottom right", # Posizionata a sinistra per non sovrapporsi al testo della mediana
             annotation_font_color="#c0392b",
             annotation_font_size=11
         )

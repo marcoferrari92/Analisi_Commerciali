@@ -15,6 +15,7 @@ from eventi_performance_team import analisi_performance_utenti
 from eventi_aziende import coinvolgimento_aziende
 from eventi_loading import carica_eventi
 from ordini_loading import carica_ordini
+from ordini_importi import validazione_importi
 
         
 

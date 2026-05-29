@@ -17,6 +17,7 @@ from eventi_loading import carica_eventi
 from ordini_loading import carica_ordini
 from ordini_importi import validazione_importi
 from ordini_panaromica import mostra_panoramica_ordini
+from ordini_conversioni import 
 
         
 

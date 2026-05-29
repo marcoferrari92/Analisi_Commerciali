@@ -30,8 +30,7 @@ def validazione_importi(df):
     # Calcolo totale della riga corrente
     df['TOTALE_RIGA'] = df['PREZZO_pulito'] * df['QT_pulito']
 
-    # Ora raggruppiamo IMMEDIATAMENTE per ID DOCUMENTO per avere i totali reali del documento
-    # Questa aggregazione evita qualsiasi KeyError successivo nel flusso del programma
+    # Raggruppiamo immediatamente per ID DOCUMENTO
     df_doc = df.groupby('ID DOCUMENTO').agg({
         'ID DOCUMENTO PADRE': 'first',
         'DATA': 'first',
@@ -45,9 +44,12 @@ def validazione_importi(df):
 
     df_doc.rename(columns={'QT_pulito': 'QT', 'TOTALE_RIGA': 'TOTALE'}, inplace=True)
 
-    # Validazione del Tipo Documento (Gestione Case Insensitive del JSON)
+    # --- OTTIMIZZAZIONE: Standardizziamo la colonna in MAIUSCOLO per tutto il resto dell'app ---
+    df_doc['TIPOLOGIA DOC.'] = df_doc['TIPOLOGIA DOC.'].astype(str).str.upper().str.strip()
+
+    # Validazione del Tipo Documento
     tipi_ammessi = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
-    mask_tipo_errato = ~df_doc['TIPOLOGIA DOC.'].astype(str).str.upper().isin(tipi_ammessi)
+    mask_tipo_errato = ~df_doc['TIPOLOGIA DOC.'].isin(tipi_ammessi)
 
     # Maschera errori sul totale documento
     mask_errori = (df_doc['TOTALE'] <= 0) | (df_doc['TOTALE'].isna()) | mask_tipo_errato

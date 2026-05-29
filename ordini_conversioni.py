@@ -49,10 +49,10 @@ def analisi_conversione_preventivi(df, finestra, giorni_scadenza=7):
 
     # --- 3. DEFINIZIONE STATO E LOGICA "INFO" ---
     def definisci_stato_documento(group):
-        ordini_collegati = group.dropna(subset=['ID DOCUMENTO_ord'])
         
-        valore_prev_totale = group['TOTALE_prev'].first()
-        qta_prev_totale = group['QT_prev'].first()
+        ordini_collegati     = group.dropna(subset=['ID DOCUMENTO_ord'])
+        valore_prev_totale   = group['TOTALE_prev'].iloc[0]
+        qta_prev_totale      = group['QT_prev'].iloc[0]
 
         if not ordini_collegati.empty:
             id_ordini_collegati = ordini_collegati['ID DOCUMENTO_ord'].unique()

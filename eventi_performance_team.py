@@ -146,7 +146,15 @@ def analisi_performance_utenti(df_events):
                 yshift=10, # Sposta il testo di 10 pixel verso l'alto rispetto alla cima della barra
                 font=dict(color="#2c3e50", size=12)
             )
-        
+
+        # Determiniamo le posizioni delle etichette a sinistra per evitare sovrapposizioni
+        if mediana_volume_totale_reale >= media_volume_totale_reale:
+            pos_mediana = "top left"
+            pos_media = "bottom left"
+        else:
+            pos_mediana = "bottom left"
+            pos_media = "top left"
+
         # LINEA 1: MEDIANA SUL TOTALE (Tratteggio scuro)
         fig_volume.add_hline(
             y=mediana_volume_totale_reale,
@@ -154,11 +162,11 @@ def analisi_performance_utenti(df_events):
             line_color="#2c3e50",
             line_width=2.5,
             annotation_text=f"Mediana Totale: {mediana_volume_totale_reale:.1f}",
-            annotation_position="top right",
+            annotation_position=pos_mediana, # Posizione dinamica a sinistra
             annotation_font_color="#2c3e50",
             annotation_font_size=11
         )
-        
+
         # LINEA 2: MEDIA SUL TOTALE (Tratteggio fine puntinato)
         fig_volume.add_hline(
             y=media_volume_totale_reale,
@@ -166,7 +174,7 @@ def analisi_performance_utenti(df_events):
             line_color="#c0392b",
             line_width=2.5,
             annotation_text=f"Media Totale: {media_volume_totale_reale:.1f}",
-            annotation_position="bottom right",
+            annotation_position=pos_media, # Posizione dinamica a sinistra
             annotation_font_color="#c0392b",
             annotation_font_size=11
         )

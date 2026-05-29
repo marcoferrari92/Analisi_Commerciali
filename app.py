@@ -690,197 +690,151 @@ st.write("")
 
 if df_orders is not None: 
     
-    # ************
-    #   PANORAMICA
-    # ************
-
-    st.write("")
+    # 1. CHIAMATA ALLA FUNZIONE ESTERNA SPOSTATA
+    # df_orders_pulito restituisce record già unici per 'ID DOCUMENTO' e con la colonna 'TOTALE' inclusa
+    df_orders_pulito, df_orders_errori = validazione_importi(df_orders)
     
-    # 1. COMPATTAZIONE PER ID DOCUMENTO
-    # Creaiamo un DATAframe suddiviso per l'ID dei documenti.
-    # Per ogni ID avremo la tipologia di documento (PREVENTIVO, ORDINE APERTO, ORDINE)
-    # e il TOTALE (€) degli articoli per quel documento.
-    
-    df_documenti_univoci = df_orders.groupby('ID DOCUMENTO').agg({
-        'TIPOLOGIA DOC.': 'first',
-        'TOTALE': 'sum'
-    }).reset_index()
-
-    
-    # 2. QUANTITÀ
-    # Num. documenti = numero ID esistenti per ogni tipologia
-    
-    conteggio_qty = df_documenti_univoci['TIPOLOGIA DOC.'].value_counts().reset_index()
-    conteggio_qty.columns = ['TIPOLOGIA DOC.', 'Conteggio'] 
-
-    
-    # 3. VOLUMI
-    # Sommamiamo sui totali di ogni documento per ogni tipologia
-    conteggio_vol = df_documenti_univoci.groupby('TIPOLOGIA DOC.')['TOTALE'].sum().reset_index()
-
-    
-    with st.expander("📊 Panoramica Quantità e Volumi"):
+    if df_orders_pulito is not None and not df_orders_pulito.empty:
         
-        if not conteggio_qty.empty and not conteggio_vol.empty:
-            col_sinistra, col_destra = st.columns(2)
+        # 2. PANORAMICA QUANTITÀ E VOLUMI (Sostituisce il vecchio groupby riga 704)
+        # Usiamo direttamente df_orders_pulito perché è già un DataFrame di DOCUMENTI UNIVOCI
+        conteggio_qty = df_orders_pulito['TIPOLOGIA DOC.'].value_counts().reset_index()
+        conteggio_qty.columns = ['TIPOLOGIA DOC.', 'Conteggio'] 
 
-            with col_sinistra:
-                render_grafico_torta(
-                    DATA=conteggio_qty, 
-                    values_col='Conteggio', 
-                    names_col='TIPOLOGIA DOC.', 
-                    titolo="N. Documenti Univoci",
-                    tipo="numerico"
-                )
+        conteggio_vol = df_orders_pulito.groupby('TIPOLOGIA DOC.')['TOTALE'].sum().reset_index()
+
+        with st.expander("📊 Panoramica Quantità e Volumi"):
             
-            with col_destra:
-                render_grafico_torta(
-                    DATA=conteggio_vol, 
-                    values_col='TOTALE', 
-                    names_col='TIPOLOGIA DOC.', 
-                    titolo="Valore Economico TOTALE",
-                    tipo="soldi"
-                )
-        
-        # 4. METRICHE
-        
-        # Mediana e Media sui documenti
-        mediane = df_documenti_univoci.groupby('TIPOLOGIA DOC.')['TOTALE'].median().reset_index()
-        mediane.columns = ['TIPOLOGIA DOC.', 'Mediana (€)']
-        df_riepilogo = pd.merge(conteggio_qty, conteggio_vol, on='TIPOLOGIA DOC.')
-        df_riepilogo = pd.merge(df_riepilogo, mediane, on='TIPOLOGIA DOC.')
-        
-        # Percentuali
-        tot_qty = df_riepilogo['Conteggio'].sum()
-        tot_vol = df_riepilogo['TOTALE'].sum()
-        df_riepilogo['% Qty'] = (df_riepilogo['Conteggio'] / tot_qty * 100).round(1).astype(str) + '%'
-        df_riepilogo['% Vol'] = (df_riepilogo['TOTALE'] / tot_vol * 100).round(1).astype(str) + '%'
-        
-        # Prezzo Medio per ORDINE Completo
-        df_riepilogo['Media (€)'] = (df_riepilogo['TOTALE'] / df_riepilogo['Conteggio'])
-        
-        # Ordinamento e formattazione nomi (TUTTO MAIUSCOLO per le colonne)
-        ORDINE_fisso = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
-        df_riepilogo['TIPOLOGIA DOC.'] = pd.Categorical(df_riepilogo['TIPOLOGIA DOC.'], categories=ORDINE_fisso, ordered=True)
-        df_riepilogo = df_riepilogo.sort_values('TIPOLOGIA DOC.')
-        
-        colonne_finali = [
-            'TIPOLOGIA DOC.', 'Conteggio', '% Qty', 
-            'TOTALE', '% Vol', 'Media (€)', 'Mediana (€)'
-        ]
+            if not conteggio_qty.empty and not conteggio_vol.empty:
+                col_sinistra, col_destra = st.columns(2)
 
-        st.write("")
-        st.dataframe(
-            df_riepilogo[colonne_finali].style.format({
-                'TOTALE': '€ {:,.2f}',
-                'Media (€)': '€ {:,.2f}',
-                'Mediana (€)': '€ {:,.2f}'
-            }),
-            use_container_width=True,
-            hide_index=True
-        )
-        st.caption("Nota: I dati sopra riportati sono raggruppati per **ID DOCUMENTO**. Il valore 'TOTALE' è la somma degli importi di tutte le righe del documento.")
-        
-        # Istogramma e BoxPlot della distribuzione articoli
-        st.divider()
-        st.write("#### Distribuzione Ordini e Preventivi")
-        st.info("""
-        **Come leggere questo grafico:**
-        * **Istogramma:** Indica le fasce di prezzo dove si concentrano i tuoi volumi.
-        * **Box Plot:** La linea centrale è la **Mediana**. I punti isolati sono gli **Outliers** (⚠️ ordini eccezionalmente grandi -> verificare).
-        """)
-        plot_distribuzione_ordini(df_orders)
-        
-       
-    # **********************************
-    #  CONVERSIONE PREVENTIVI - GLOBALE
-    # **********************************
-
-    st.write("")
-    with st.expander("🎯 Analisi Conversione Preventivi Globale"):
-        st.write("")
-        with st.popover("ℹ️ Guida all'Analisi"):
-            st.info("""
-            #### Classificazione (STATO)
-            Il sistema classifica ogni preventivo come segue:
-        
-            *   🟢 **AGGIUDICATO (CHIUSO)**: Il preventivo è stato convertito in un **Ordine**. 
-            *   🟢 **AGGIUDICATO (APERTO)**: Il preventivo è stato convertito in un **Ordine Aperto**.
-            *   🔵 **IN ATTESA**: Il preventivo si trova ancora all'interno della finestra di conversione.
-            *   🟠 **IN SCADENZA**: Ordine vicino alla fine della finestra di conversione.
-            *   🔴 **PERSO**: Non è stato trovato alcun ordine collegato **e** il tempo trascorso ha superato la finestra impostata.
+                with col_sinistra:
+                    render_grafico_torta(
+                        DATA=conteggio_qty, 
+                        values_col='Conteggio', 
+                        names_col='TIPOLOGIA DOC.', 
+                        titolo="N. Documenti Univoci",
+                        tipo="numerico"
+                    )
+                
+                with col_destra:
+                    render_grafico_torta(
+                        DATA=conteggio_vol, 
+                        values_col='TOTALE', 
+                        names_col='TIPOLOGIA DOC.', 
+                        titolo="Valore Economico TOTALE",
+                        tipo="soldi"
+                    )
             
-            ---
-    
-            #### Dettagli Conversione (INFO)
-            Analisi della qualità della vendita confrontando articoli e quantità tra preventivo e ordine:
-        
-            *   ✅ **INTEGRALE**: Tutti gli articoli preventivati sono stati ordinati nelle quantità esatte.
-            *   ⚠️ **INCOMPLETO**: Uno o più articoli presenti nel preventivo non sono stati inclusi nell'ordine finale.
-            *   📉 **RIDOTTO**: Tutti gli articoli presenti, ma almeno uno ha una quantità inferiore rispetto al preventivo.
-            *   🚀 **EXTRA**: L'ordine ha un volume economico maggiore o contiene più pezzi/articoli rispetto al preventivo (Upsell).
-            *   📦 **MULTI-TRANCHE**: Il preventivo è stato convertito attraverso due o più ordini separati.
-        
-            **Combinazioni Comuni:**
-            *   🧩 **INCOMPLETO + RIDOTTO**: Il cliente ha rimosso alcuni articoli e, per quelli rimasti, ha anche abbassato le quantità.
-            *   🧩 **INCOMPLETO + EXTRA**: Mancano alcuni articoli originali, ma l'ordine ha un valore totale (€) maggiore (es. un articolo rimasto è stato venduto in quantità massiccia o a prezzo maggiorato).
-            *   🧩 **RIDOTTO + EXTRA**: Le quantità di alcuni articoli sono scese, ma il valore totale (€) è comunque superiore al preventivo (es. aggiunta di articoli extra).
-            *   🧩 **EXTRA + MULTI-TRANCHE**: Il preventivo è stato evaso con più ordini che, sommati, superano il valore o le quantità preventivate.
-            *   🧩 **RIDOTTO + MULTI-TRANCHE**: La fornitura sta avvenendo a scaglioni e, al momento, le quantità totali sono ancora inferiori al preventivato.
-        
-            ---
-            #### Metriche
-            *   **Durata**: 
-                *   Per gli AGGIUDICATI, indica i giorni reali tra preventivo e ordine 
-                    (nel caso di ordine in più tranche, considera per la data e la durata l'ultimo ordine trovato).
-                *   Per gli ALTRI STATI, indica i giorni passati dalla creazione ad oggi.
-            *   **Q.tà Prev. / Q.tà Ord.**: Somma totale degli articoli nei documenti (articoli x num. pezzi). Utile per vedere se l'ordine ha coperto tutto il preventivato.
-            *   **Conversione**: Un preventivo è AGGIUDICATO se almeno un ID di un articolo del preventivo è stato ritrovato in un Ordine, 
-                               anche se oltre la finestra di validità dei preventivi. 
-            """)
-        st.write("")
-        st.write("")
+            # 3. METRICHE (Media, Mediana, Percentuali)
+            mediane = df_orders_pulito.groupby('TIPOLOGIA DOC.')['TOTALE'].median().reset_index()
+            mediane.columns = ['TIPOLOGIA DOC.', 'Mediana (€)']
+            
+            df_riepilogo = pd.merge(conteggio_qty, conteggio_vol, on='TIPOLOGIA DOC.')
+            df_riepilogo = pd.merge(df_riepilogo, mediane, on='TIPOLOGIA DOC.')
+            
+            tot_qty = df_riepilogo['Conteggio'].sum()
+            tot_vol = df_riepilogo['TOTALE'].sum()
+            df_riepilogo['% Qty'] = (df_riepilogo['Conteggio'] / tot_qty * 100).round(1).astype(str) + '%'
+            df_riepilogo['% Vol'] = (df_riepilogo['TOTALE'] / tot_vol * 100).round(1).astype(str) + '%'
+            
+            df_riepilogo['Media (€)'] = (df_riepilogo['TOTALE'] / df_riepilogo['Conteggio'])
+            
+            ORDINE_fisso = ["PREVENTIVO", "ORDINE APERTO", "ORDINE"]
+            df_riepilogo['TIPOLOGIA DOC.'] = pd.Categorical(df_riepilogo['TIPOLOGIA DOC.'], categories=ORDINE_fisso, ordered=True)
+            df_riepilogo = df_riepilogo.sort_values('TIPOLOGIA DOC.')
+            
+            colonne_finali = ['TIPOLOGIA DOC.', 'Conteggio', '% Qty', 'TOTALE', '% Vol', 'Media (€)', 'Mediana (€)']
 
-        # --- CALCOLO MASSIMO DINAMICO ---
-        # Se period è una tupla con due date (inizio e fine)
-        if isinstance(period, tuple) and len(period) == 2:
-            delta_giorni = (period[1] - period[0]).days
-            # Evitiamo che il max_value sia 0 se le date coincidono
-            max_slider = max(1, delta_giorni)
-        else:
-            max_slider = 180 # Valore di fallback
-        # --------------------------------
-        
-        # Creiamo due colonne per i parametri
-        c1, c2, c3, c4, c5 = st.columns([0.2, 1, 0.3, 1, 0.2])
-        
-        with c2:
-            finestra = st.slider(
-                "Validità preventivi (giorni):", 
-                min_value=1, max_value=max_slider, value=30, 
-                help="Giorni massimi per convertire un PREVENTIVO in ORDINE."
+            st.write("")
+            st.dataframe(
+                df_riepilogo[colonne_finali].style.format({
+                    'TOTALE': '€ {:,.2f}',
+                    'Media (€)': '€ {:,.2f}',
+                    'Mediana (€)': '€ {:,.2f}'
+                }),
+                use_container_width=True,
+                hide_index=True
             )
-        
-        with c4:
-            scadenza = st.number_input(
-                "Pre-avviso 'In Scadenza' (giorni):", 
-                min_value=1, max_value=30, value=7,
-                help="Giorni prima della scadenza per attivare l'avviso GIALLO."
-            )
-        
-        # Chiamata alla funzione aggiornata
+            st.caption("Nota: I dati sopra riportati sono raggruppati per **ID DOCUMENTO**.")
+            
+            # 4. GRAFICI DI DISTRIBUZIONE
+            st.divider()
+            st.write("#### Distribuzione Ordini e Preventivi")
+            plot_distribuzione_ordini(df_orders_pulito)
+            
+        # **********************************
+        #   CONVERSIONE PREVENTIVI - GLOBALE
+        # **********************************
         st.write("")
+        with st.expander("🎯 Analisi Conversione Preventivi Globale"):
+            if isinstance(period, tuple) and len(period) == 2:
+                max_slider = max(1, (period[1] - period[0]).days)
+            else:
+                max_slider = 180
+                
+            c1, c2, c3, c4, c5 = st.columns([0.2, 1, 0.3, 1, 0.2])
+            with c2:
+                finestra = st.slider("Validità preventivi (giorni):", min_value=1, max_value=max_slider, value=30)
+            with c4:
+                scadenza = st.number_input("Pre-avviso 'In Scadenza' (giorni):", min_value=1, max_value=30, value=7)
+            
+            st.write("")
+            # Passiamo df_orders_pulito che è già perfetto per l'analisi
+            df_report = analisi_conversione_preventivi(df_orders_pulito, finestra, scadenza)
+
+        # ******************************************
+        #   CONVERSIONE PREVENTIVI - PER COMMERCIALE
+        # ******************************************
         st.write("")
-        df_report = analisi_conversione_preventivi(df_orders, finestra, scadenza)
-
-
-    # ******************************************
-    #  CONVERSIONE PREVENTIVI - PER COMMERCIALE
-    # ******************************************
-
-    st.write("")
-    with st.expander("🏆 Analisi Conversione Preventivi per Commerciale"):
-        df_performance = analizza_performance_commerciali(df_report)
+        with st.expander("🏆 Analisi Conversione Preventivi per Commerciale"):
+                st.write("")
+                with st.popover("ℹ️ Guida all'Analisi"):
+                    st.info("""
+                    #### Classificazione (STATO)
+                    Il sistema classifica ogni preventivo come segue:
+                
+                    *   🟢 **AGGIUDICATO (CHIUSO)**: Il preventivo è stato convertito in un **Ordine**. 
+                    *   🟢 **AGGIUDICATO (APERTO)**: Il preventivo è stato convertito in un **Ordine Aperto**.
+                    *   🔵 **IN ATTESA**: Il preventivo si trova ancora all'interno della finestra di conversione.
+                    *   🟠 **IN SCADENZA**: Ordine vicino alla fine della finestra di conversione.
+                    *   🔴 **PERSO**: Non è stato trovato alcun ordine collegato **e** il tempo trascorso ha superato la finestra impostata.
+                    
+                    ---
+            
+                    #### Dettagli Conversione (INFO)
+                    Analisi della qualità della vendita confrontando articoli e quantità tra preventivo e ordine:
+                
+                    *   ✅ **INTEGRALE**: Tutti gli articoli preventivati sono stati ordinati nelle quantità esatte.
+                    *   ⚠️ **INCOMPLETO**: Uno o più articoli presenti nel preventivo non sono stati inclusi nell'ordine finale.
+                    *   📉 **RIDOTTO**: Tutti gli articoli presenti, ma almeno uno ha una quantità inferiore rispetto al preventivo.
+                    *   🚀 **EXTRA**: L'ordine ha un volume economico maggiore o contiene più pezzi/articoli rispetto al preventivo (Upsell).
+                    *   📦 **MULTI-TRANCHE**: Il preventivo è stato convertito attraverso due o più ordini separati.
+                
+                    **Combinazioni Comuni:**
+                    *   🧩 **INCOMPLETO + RIDOTTO**: Il cliente ha rimosso alcuni articoli e, per quelli rimasti, ha anche abbassato le quantità.
+                    *   🧩 **INCOMPLETO + EXTRA**: Mancano alcuni articoli originali, ma l'ordine ha un valore totale (€) maggiore (es. un articolo rimasto è stato venduto in quantità massiccia o a prezzo maggiorato).
+                    *   🧩 **RIDOTTO + EXTRA**: Le quantità di alcuni articoli sono scese, ma il valore totale (€) è comunque superiore al preventivo (es. aggiunta di articoli extra).
+                    *   🧩 **EXTRA + MULTI-TRANCHE**: Il preventivo è stato evaso con più ordini che, sommati, superano il valore o le quantità preventivate.
+                    *   🧩 **RIDOTTO + MULTI-TRANCHE**: La fornitura sta avvenendo a scaglioni e, al momento, le quantità totali sono ancora inferiori al preventivato.
+                
+                    ---
+                    #### Metriche
+                    *   **Durata**: 
+                        *   Per gli AGGIUDICATI, indica i giorni reali tra preventivo e ordine 
+                            (nel caso di ordine in più tranche, considera per la data e la durata l'ultimo ordine trovato).
+                        *   Per gli ALTRI STATI, indica i giorni passati dalla creazione ad oggi.
+                    *   **Q.tà Prev. / Q.tà Ord.**: Somma totale degli articoli nei documenti (articoli x num. pezzi). Utile per vedere se l'ordine ha coperto tutto il preventivato.
+                    *   **Conversione**: Un preventivo è AGGIUDICATO se almeno un ID di un articolo del preventivo è stato ritrovato in un Ordine, 
+                                       anche se oltre la finestra di validità dei preventivi. 
+                    """)
+                st.write("")
+                st.write("")
+            if df_report is not None:
+                df_performance = analizza_performance_commerciali(df_report)
+    else:
+        st.warning("⚠️ Nessun dato valido da analizzare dopo la pulizia del file JSON.")
+        
     
 
 

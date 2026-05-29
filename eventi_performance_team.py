@@ -158,8 +158,8 @@ def analisi_performance_utenti(df_events):
         # LINEA 1: MEDIANA SUL TOTALE (Tratteggio scuro)
         fig_volume.add_hline(
             y=mediana_volume_totale_reale,
-            line_dash="dot",
-            line_color="#2c3e50",
+            line_dash="dash",
+            line_color="black",
             line_width=2.5,
             annotation_text=f"Mediana Totale: {mediana_volume_totale_reale:.1f}",
             annotation_position=pos_mediana, # Posizione dinamica a sinistra
@@ -170,8 +170,8 @@ def analisi_performance_utenti(df_events):
         # LINEA 2: MEDIA SUL TOTALE (Tratteggio fine puntinato)
         fig_volume.add_hline(
             y=media_volume_totale_reale,
-            line_dash="dot",
-            line_color="#c0392b",
+            line_dash="dash",
+            line_color="black",
             line_width=2.5,
             annotation_text=f"Media Totale: {media_volume_totale_reale:.1f}",
             annotation_position=pos_media, # Posizione dinamica a sinistra

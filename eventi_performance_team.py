@@ -170,12 +170,12 @@ def analisi_performance_utenti(df_events):
         # LINEA 2: MEDIA SUL TOTALE (Tratteggio fine puntinato)
         fig_volume.add_hline(
             y=media_volume_totale_reale,
-            line_dash="dash",
+            line_dash="dot",
             line_color="black",
             line_width=2.5,
             annotation_text=f"Media Totale: {media_volume_totale_reale:.1f}",
             annotation_position=pos_media, # Posizione dinamica a sinistra
-            annotation_font_color="#c0392b",
+            annotation_font_color="black",
             annotation_font_size=11
         )
         

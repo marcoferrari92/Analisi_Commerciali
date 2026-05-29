@@ -107,11 +107,11 @@ def analisi_performance_utenti(df_events):
         st.markdown("---")
         
         # ---------------------------------------------------------
-        # GRAFICO 1: VOLUME ASSOLUTO (BARRE IMPILATE ORDINATE + MEDIANA + MEDIA SUL TOTALE)
+        # GRAFICO 1: VOLUME ASSOLUTO (BARRE IMPILATE ORDINATE + TOTALI SOPRA LE BARRE + MEDIANA + MEDIA)
         # ---------------------------------------------------------
         st.subheader("1. Volume Assoluto di Attività Svolte dal Team")
         
-        # 1. Estraiamo la serie dei totali reali per singolo utente (la somma delle altezze delle barre)
+        # 1. Estraiamo la serie dei totali reali per singolo utente
         totali_reali_utenti = pivot_base.sum(axis=1)
         
         # 2. Calcoliamo la Mediana e la Media reali sul totale aggregato
@@ -134,11 +134,24 @@ def analisi_performance_utenti(df_events):
             customdata=df_long[['Tipo Evento']]
         )
         
+        # NUOVA AGGIUNTA: Generiamo le etichette con il totale sopra ogni barra
+        # Cicliamo sull'ordine dei commerciali per posizionare il testo esattamente sopra la colonna corretta
+        for utente in ordine_commerciali_decrescente:
+            totale_utente = totali_reali_utenti[utente]
+            fig_volume.add_annotation(
+                x=utente,
+                y=totale_utente,
+                text=f"<b>{totale_utente:.0f}</b>", # Testo in grassetto
+                showarrow=False,
+                yshift=10, # Sposta il testo di 10 pixel verso l'alto rispetto alla cima della barra
+                font=dict(color="#2c3e50", size=12)
+            )
+        
         # LINEA 1: MEDIANA SUL TOTALE (Tratteggio scuro)
         fig_volume.add_hline(
             y=mediana_volume_totale_reale,
             line_dash="dash",
-            line_color="#2c3e50",  # Antracite / Blu scuro
+            line_color="#2c3e50",
             line_width=2.5,
             annotation_text=f"Mediana Totale: {mediana_volume_totale_reale:.1f}",
             annotation_position="top right",
@@ -146,21 +159,26 @@ def analisi_performance_utenti(df_events):
             annotation_font_size=11
         )
         
-        # LINEA 2: MEDIA SUL TOTALE (Tratteggio fine / Puntinato rosso)
+        # LINEA 2: MEDIA SUL TOTALE (Tratteggio fine puntinato)
         fig_volume.add_hline(
             y=media_volume_totale_reale,
             line_dash="dot",
-            line_color="#c0392b",  # Rosso mattone / Scuro
+            line_color="#c0392b",
             line_width=2.5,
             annotation_text=f"Media Totale: {media_volume_totale_reale:.1f}",
-            annotation_position="bottom right", # Posizionata a sinistra per non sovrapporsi al testo della mediana
+            annotation_position="bottom right",
             annotation_font_color="#c0392b",
             annotation_font_size=11
         )
         
+        # Configurazione finale del layout (aumentiamo leggermente il range dell'asse Y per dare respiro ai testi in cima)
+        massimo_valore = totali_reali_utenti.max()
+        range_y = [0, massimo_valore * 1.15] if massimo_valore > 0 else [0, 10]
+        
         fig_volume.update_layout(
             xaxis_title="Membro del Team",
             yaxis_title="Numero di Attività",
+            yaxis=dict(range=range_y), # Applica il range ottimizzato per non tagliare le etichette in alto
             legend_title="Tipo Evento",
             paper_bgcolor='rgba(0,0,0,0)', 
             plot_bgcolor='rgba(0,0,0,0)',

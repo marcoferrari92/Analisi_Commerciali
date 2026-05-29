@@ -1,7 +1,8 @@
 
 
+
 @st.cache_data
-def carica_dati_eventi(file):
+def carica_eventi(file):
     try:
         # 1. Lettura file con gestione separatore
         df = pd.read_csv(file, sep=';', encoding='utf-8-sig')

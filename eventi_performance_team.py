@@ -158,7 +158,7 @@ def analisi_performance_utenti(df_events):
         # LINEA 1: MEDIANA SUL TOTALE (Tratteggio scuro)
         fig_volume.add_hline(
             y=mediana_volume_totale_reale,
-            line_dash="dash",
+            line_dash="dot",
             line_color="#2c3e50",
             line_width=2.5,
             annotation_text=f"Mediana Totale: {mediana_volume_totale_reale:.1f}",

@@ -107,9 +107,17 @@ def analisi_performance_utenti(df_events):
         st.markdown("---")
         
         # ---------------------------------------------------------
-        # GRAFICO 1: VOLUME ASSOLUTO (BARRE IMPILATE ORDINATE + LINEA MEDIANA)
+        # GRAFICO 1: VOLUME ASSOLUTO (BARRE IMPILATE ORDINATE + MEDIANA + MEDIA SUL TOTALE)
         # ---------------------------------------------------------
         st.subheader("1. Volume Assoluto di Attività Svolte dal Team")
+        
+        # 1. Estraiamo la serie dei totali reali per singolo utente (la somma delle altezze delle barre)
+        totali_reali_utenti = pivot_base.sum(axis=1)
+        
+        # 2. Calcoliamo la Mediana e la Media reali sul totale aggregato
+        mediana_volume_totale_reale = float(totali_reali_utenti.median())
+        media_volume_totale_reale = float(totali_reali_utenti.mean())
+        
         fig_volume = px.bar(
             df_long,
             x=colonna_utente,
@@ -118,25 +126,36 @@ def analisi_performance_utenti(df_events):
             barmode='relative',
             color_discrete_map=color_mapping_eventi,
             title=f"Totale eventi gestiti per commerciale - Target: {scelta_anagrafica}",
-            hover_data=['Tipo Evento'],
             category_orders={colonna_utente: ordine_commerciali_decrescente}
         )
         
         fig_volume.update_traces(
-            hovertemplate="<b>Utente: %{x}</b><br>Attività: %{customdata[0]}<br>Quantità: %{y}<extra></extra>"
+            hovertemplate="<b>Utente: %{x}</b><br>Attività: %{customdata[0]}<br>Quantità: %{y}<extra></extra>",
+            customdata=df_long[['Tipo Evento']]
         )
         
-        # NUOVA AGGIUNTA: Calcolo e inserimento della linea di Mediana del volume totale per utente
-        mediana_volume_totale = totale_per_utente.median()
+        # LINEA 1: MEDIANA SUL TOTALE (Tratteggio scuro)
         fig_volume.add_hline(
-            y=mediana_volume_totale,
+            y=mediana_volume_totale_reale,
             line_dash="dash",
-            line_color="#2c3e50",  # Elegante blu scuro/antracite per differenziarsi dalle barre
+            line_color="#2c3e50",  # Antracite / Blu scuro
             line_width=2.5,
-            annotation_text=f"Mediana Team: {mediana_volume_totale:.1f}",
+            annotation_text=f"Mediana Totale: {mediana_volume_totale_reale:.1f}",
             annotation_position="top right",
             annotation_font_color="#2c3e50",
-            annotation_font_size=12
+            annotation_font_size=11
+        )
+        
+        # LINEA 2: MEDIA SUL TOTALE (Tratteggio fine / Puntinato rosso)
+        fig_volume.add_hline(
+            y=media_volume_totale_reale,
+            line_dash="dot",
+            line_color="#c0392b",  # Rosso mattone / Scuro
+            line_width=2.5,
+            annotation_text=f"Media Totale: {media_volume_totale_reale:.1f}",
+            annotation_position="top left", # Posizionata a sinistra per non sovrapporsi al testo della mediana
+            annotation_font_color="#c0392b",
+            annotation_font_size=11
         )
         
         fig_volume.update_layout(

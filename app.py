@@ -16,7 +16,7 @@ from eventi_aziende import coinvolgimento_aziende
 from eventi_loading import carica_eventi
 from ordini_loading import carica_ordini
 from ordini_importi import validazione_importi
-from ordini_panoramica import mostra_panoramica_ordini
+from ordini_panaromica import mostra_panoramica_ordini
 
         
 

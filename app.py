@@ -375,7 +375,15 @@ if df_events is not None:
         # Estraiamo le campagne uniche escludendo valori vuoti o 'NAN'
         campagne_uniche = df_events['CAMPAGNA'].unique()
         campagne_pulite = [c for c in campagne_uniche if c not in ['NAN', 'NONE', '', 'NAT']]
-        campagne_pulite.sort()
+            
+        # 1. Isoliamo solo i valori reali, eliminando NaN, None e stringhe vuote
+        campagne_pulite = [
+            str(c).strip() for c in campagne_pulite 
+            if pd.notna(c) and str(c).strip().upper() not in ['NAN', 'NONE', '']
+        ]
+        
+        # 2. Rimuoviamo i duplicati (grazie a set) e ordiniamo in modo sicuro
+        campagne_pulite = sorted(list(set(campagne_pulite)))
         
         # Creiamo la lista delle opzioni per il filtro inserendo "Tutte le campagne" all'inizio
         opzioni_campagna = ["TUTTE LE CAMPAGNE"] + campagne_pulite

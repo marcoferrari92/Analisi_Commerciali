@@ -22,7 +22,6 @@ def carica_eventi(file):
         df.columns = [c.upper() for c in df.columns]
 
         # 4. Controllo colonne obbligatorie (Tutte tranne CAMPAGNA)
-        # Queste sono le colonne del tuo file eventi.csv dopo la trasformazione in maiuscolo
         colonne_necessarie = [
             'TIPO ANAGRAFICA', 'ID CLIENTI', 'RAGIONE SOCIALE', 
             'DATA', 'ORA EVENTO', 'TIPO EVENTO', 'UTENTE', 'NOTE'
@@ -35,16 +34,32 @@ def carica_eventi(file):
             st.info(f"Colonne mancanti: {mancanti}")
             return None
 
-        # 5. Gestione specifica della DATA
+        # 5. Gestione specifica della DATA e mostruizzazione errori
+        # Salviamo le date originali come testo per poterle mostrare in caso di errore
+        date_originali = df['DATA'].astype(str)
+        
+        # Tentiamo la conversione
         df['DATA'] = pd.to_datetime(df['DATA'], dayfirst=True, errors='coerce')
-        righe_nulle = df['DATA'].isna().sum()
-        df = df.dropna(subset=['DATA'])
+        
+        # Creiamo una maschera per trovare dove la conversione è fallita (o era già vuota)
+        righe_non_valide_mask = df['DATA'].isna()
+        righe_nulle = righe_non_valide_mask.sum()
         
         if righe_nulle > 0:
+            # Isoliamo le righe corrotte
+            df_errori = df[righe_non_valide_mask].copy()
+            # Ripristiniamo la data originale (stringa) solo per il report visivo
+            df_errori['DATA'] = date_originali[righe_non_valide_mask]
+            
+            # Mostriamo l'avviso e la tabella espandibile su Streamlit
             st.warning(f"⚠️ Rimosse {righe_nulle} righe con DATA non valida o vuota.")
+            with st.expander("🔍 Clicca qui per vedere le righe scartate"):
+                st.dataframe(df_errori, use_container_width=True)
+            
+            # Procediamo a ripulire il DataFrame principale dalle righe non valide
+            df = df.dropna(subset=['DATA'])
 
         # 6. Pulizia testi (Maiuscolo e rimozione spazi)
-        # Rendiamo tutto maiuscolo per evitare discrepanze nei filtri (es. 'telefonata' vs 'TELEFONATA')
         colonne_testo = ['UTENTE', 'TIPO EVENTO', 'TIPO ANAGRAFICA', 'RAGIONE SOCIALE']
         for col in colonne_testo:
             if col in df.columns:

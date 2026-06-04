@@ -352,14 +352,60 @@ if df_orders is not None:
     
 
 
-
+# ***********************************************************************
+#                             ANALISI EVENTI
+# ***********************************************************************
 
 if df_events is not None:
     
-    # PANORAMICA EVENTI ---
+
     st.divider()
     st.write("")
     st.subheader("Analisi Eventi")
+
+
+    # FILTRO CAMPAGNE MARKETING
+
+    # Controlliamo se la colonna CAMPAGNA esiste nel DataFrame
+    if 'CAMPAGNA' in df_events.columns:
+
+        # Pulizia preliminare della colonna per evitare duplicati causati da spazi o minuscole
+        df_events['CAMPAGNA'] = df_events['CAMPAGNA'].astype(str).str.strip().str.upper()
+        
+        # Estraiamo le campagne uniche escludendo valori vuoti o 'NAN'
+        campagne_uniche = df_events['CAMPAGNA'].unique()
+        campagne_pulite = [c for c in campagne_uniche if c not in ['NAN', 'NONE', '', 'NAT']]
+        campagne_pulite.sort()
+        
+        # Creiamo la lista delle opzioni per il filtro inserendo "Tutte le campagne" all'inizio
+        opzioni_campagna = ["TUTTE LE CAMPAGNE"] + campagne_pulite
+        
+        # Render del selettore
+        st.write("")
+        campagna_selezionata = st.selectbox(
+            "🎯 **Filtra l'analisi per Campagna Marketing:**",
+            options=opzioni_campagna,
+            index=0  # Di default mostra "Tutte le campagne"
+        )
+        
+        # Applichiamo il filtro al DataFrame solo se l'utente non ha scelto "Tutte le campagne"
+        if campagna_selezionata != "TUTTE LE CAMPAGNE":
+            df_events = df_events[df_events['CAMPAGNA'] == campagna_selezionata]
+            
+            # Controllo di sicurezza se il filtro svuota il dataframe
+            if df_events.empty:
+                st.warning("⚠️ Nessun dato disponibile per la campagna selezionata.")
+                st.stop()
+    else:
+        st.info("ℹ️ Colonna 'CAMPAGNA' non trovata nel file. L'analisi mostrerà tutti i dati disponibili.")
+
+
+    # PULIZIA STRINGHE
+    df_events['TIPO EVENTO'] = df_events['TIPO EVENTO'].astype(str).str.strip()
+    df_events['TIPO EVENTO'] = df_events['TIPO EVENTO'].str.replace('TELEFONATO -', 'TELEFONATO', regex=False)
+    df_events = df_events[~df_events['TIPO EVENTO'].isin(['nan', 'None', '', 'NaN'])]
+
+    # PANORAMICA EVENTI
     st.write("")
     st.write("")
     with st.expander("👁️ Panoramica Eventi"):

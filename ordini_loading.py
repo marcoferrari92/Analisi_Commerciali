@@ -4,76 +4,45 @@ import json
 
 @st.cache_data
 def carica_ordini(file):
-    try:
-        # 1. Lettura del file JSON
-        # Carica il file come dizionario Python
-        dati_json = json.load(file)
+    # 1. Caricamento JSON
+    dati_json = json.load(file)
+    righe_esplose = []
+
+    # 2. Esplosione integrale
+    for id_doc, doc in dati_json.items():
+        # Info testata (escludiamo 'righe')
+        info_doc = {k: v for k, v in doc.items() if k != 'righe'}
         
-        righe_appiattite = []
-        
-        # 2. Parsing e appiattimento della struttura annidata
-        for id_doc, doc in dati_json.items():
-            info_principali = {
-                'ID DOCUMENTO': doc.get('id_documenti'),
-                'ID DOCUMENTO PADRE': doc.get('id_documento_padre'),
-                'DATA': doc.get('data'),
-                'CODICE GESTIONALE UTENTE': doc.get('id_utenti'),
-                'CLIENTE': doc.get('ragione_sociale'),
-                'TIPOLOGIA DOC.': doc.get('tipo_documento'),
-                'TITOLO': doc.get('titolo') # Evita KeyError nel boxplot customdata
-            }
-            
-            # Estrazione delle righe degli articoli all'interno del documento
-            righe_doc = doc.get('righe', {})
-            if isinstance(righe_doc, dict) and righe_doc:
-                for id_riga, riga in righe_doc.items():
-                    # Unisce i dati del documento con quelli della singola riga
-                    dati_riga = info_principali.copy()
-                    dati_riga.update({
-                        'CODICE ARTICOLO': riga.get('codice'),
-                        'PREZZO': riga.get('prezzo'),
-                        'QT': riga.get('quantita')
-                    })
-                    righe_appiattite.append(dati_riga)
-            else:
-                # Se un documento non ha righe inserisce comunque le info principali
-                dati_riga = info_principali.copy()
-                dati_riga.update({
-                    'CODICE ARTICOLO': None,
-                    'PREZZO': None,
-                    'QT': None
-                })
-                righe_appiattite.append(dati_riga)
+        # Righe
+        righe = doc.get('righe', {})
+        if isinstance(righe, dict) and righe:
+            for id_riga, riga in righe.items():
+                riga_flat = info_doc.copy()
+                
+                # Mappiamo le chiavi del JSON
+                for k, v in riga.items():
+                    # Se trovi 'quantita', chiamala 'QT'
+                    if k == 'quantita':
+                        riga_flat['QT'] = v
+                    else:
+                        riga_flat[k] = v
+                        
+                righe_esplose.append(riga_flat)
+        else:
+            righe_esplose.append(info_doc)
 
-        # Creazione del DataFrame
-        df = pd.DataFrame(righe_appiattite)
+    # 3. Creazione DataFrame
+    df = pd.DataFrame(righe_esplose)
+    
+    # 4. Forzatura MAIUSCOLE su tutte le colonne
+    df.columns = [str(c).upper() for c in df.columns]
+    
+    # 5. Fix Data (obbligatorio per non crashare i filtri di app.py)
+    if 'DATA' in df.columns:
+        df['DATA'] = pd.to_datetime(df['DATA'], dayfirst=True, errors='coerce').fillna(pd.Timestamp('2026-01-01'))
 
-        # 3. Controllo colonne obbligatorie (adattato alla nuova logica)
-        colonne_necessarie = ['DATA', 'ID DOCUMENTO', 'CODICE GESTIONALE UTENTE', 'CLIENTE', 'TIPOLOGIA DOC.', 'CODICE ARTICOLO', 'PREZZO', 'QT']
-        mancanti = [c for c in colonne_necessarie if c not in df.columns]
-        if mancanti:
-            st.error(f"Mancano colonne fondamentali nella conversione: {mancanti}")
-            return None
+    # 6. Stampa tabella
+    with st.expander("Visualizza Tabella Dati", expanded=False):
+        st.dataframe(df, use_container_width=True)
 
-        # 4. Gestione specifica della DATA
-        # Il formato nel JSON è "GG/MM/AAAA" (es. 20/05/2026), pd.to_datetime con dayfirst=True lo gestisce correttamente
-        df['DATA'] = pd.to_datetime(df['DATA'], dayfirst=True, errors='coerce')
-        righe_nulle = df['DATA'].isna().sum()
-        df = df.dropna(subset=['DATA'])
-        
-        if righe_nulle > 0:
-            st.warning(f"⚠️ Rimosse {righe_nulle} righe con DATA non valida.")
-
-        # 5. Pulizia e conversione opzionale dei dati numerici (Prezzo e Quantità nel JSON sono stringhe con la virgola)
-        if 'PREZZO' in df.columns:
-            df['PREZZO'] = df['PREZZO'].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
-            df['PREZZO'] = pd.to_numeric(df['PREZZO'], errors='coerce')
-            
-        if 'QT' in df.columns:
-            df['QT'] = pd.to_numeric(df['QT'], errors='coerce')
-
-        return df
-
-    except Exception as e:
-        st.error(f"Errore critico caricamento JSON: {e}")
-        return None
+    return df

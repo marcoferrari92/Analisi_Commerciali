@@ -13,12 +13,13 @@ st.set_page_config(layout="wide")
 from eventi_panoramica import distribuzione_eventi
 from eventi_performance_team import analisi_performance_utenti
 from eventi_aziende import coinvolgimento_aziende
+from eventi_campagne import analisi_performance_campagne
 from eventi_loading import carica_eventi
 from ordini_loading import carica_ordini
-from ordini_importi import validazione_importi
+from ordini_pulizia_df import calcola_totale_riga
 from ordini_panaromica import mostra_panoramica_ordini
 from ordini_conversioni import analisi_conversione_preventivi
-
+from ordini_riordino import elabora_gestionale
         
 
 
@@ -304,6 +305,22 @@ st.write("")
 
 if df_orders is not None: 
     
+    # Toggle per l'IVA
+    mostra_iva = st.toggle("Includi IVA nel totale", value=False)
+
+    # Stampa tabella dentro un expander
+    #with st.expander("Visualizza dati grezzi", expanded=False):
+    #    st.dataframe(df_orders, use_container_width=True)
+    
+    # Calcolo
+    df_orders = calcola_totale_riga(df_orders, includi_iva=mostra_iva)
+    
+    #with st.expander("Visualizza dati puliti", expanded=False):
+    #    st.dataframe(df_orders, use_container_width=True)
+    #    st.write(df_orders.dtypes)
+
+    elabora_gestionale(df_orders)
+    
     # 1. CHIAMATA ALLA FUNZIONE DI VALIDAZIONE (ESTERNA)
     # df_orders_pulito restituisce record già unici per 'ID DOCUMENTO' con la colonna 'TOTALE' inclusa
     df_orders_pulito, df_orders_errori = validazione_importi(df_orders)
@@ -375,15 +392,7 @@ if df_events is not None:
         # Estraiamo le campagne uniche escludendo valori vuoti o 'NAN'
         campagne_uniche = df_events['CAMPAGNA'].unique()
         campagne_pulite = [c for c in campagne_uniche if c not in ['NAN', 'NONE', '', 'NAT']]
-            
-        # 1. Isoliamo solo i valori reali, eliminando NaN, None e stringhe vuote
-        campagne_pulite = [
-            str(c).strip() for c in campagne_pulite 
-            if pd.notna(c) and str(c).strip().upper() not in ['NAN', 'NONE', '']
-        ]
-        
-        # 2. Rimuoviamo i duplicati (grazie a set) e ordiniamo in modo sicuro
-        campagne_pulite = sorted(list(set(campagne_pulite)))
+        campagne_pulite.sort()
         
         # Creiamo la lista delle opzioni per il filtro inserendo "Tutte le campagne" all'inizio
         opzioni_campagna = ["TUTTE LE CAMPAGNE"] + campagne_pulite
@@ -432,4 +441,10 @@ if df_events is not None:
     st.write("")
     with st.expander("🏢 Analisi Coinvolgimento Aziende"):
         coinvolgimento_aziende(df_events)
+
+    # --- SEZIONE CAMPAGNE ---
+    st.write("")
+    st.write("")
+    with st.expander("📢 Analisi Campagne"):
+        analisi_performance_campagne(df_events)
         

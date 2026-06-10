@@ -30,21 +30,21 @@ def coinvolgimento_aziende(df_events):
         st.write(f"#### Filtro anagrafiche")
         st.write("")
         st.write("")
-        scelta_anagrafica = st.selectbox(
+        scelta_anagrafica_aziende = st.selectbox(
             "Seleziona il target di anagrafica aziende da analizzare:",
             ["Tutte le anagrafiche", "Clienti", "Lead", "Prospect"],
-            key="aziende_filtro_anagrafica"
+            key="aziende_filtro_anagrafiche"
         )
         
-        if scelta_anagrafica == "Clienti":
+        if scelta_anagrafica_aziende  == "Clienti":
             df_temp = df_temp[df_temp[colonna_anagrafica] == 'CLIENTE']
-        elif scelta_anagrafica == "Lead":
+        elif scelta_anagrafica_aziende  == "Lead":
             df_temp = df_temp[df_temp[colonna_anagrafica] == 'LEAD']
-        elif scelta_anagrafica == "Prospect":
+        elif scelta_anagrafica_aziende  == "Prospect":
             df_temp = df_temp[df_temp[colonna_anagrafica] == 'PROSPECT']
             
         if df_temp.empty:
-            st.warning(f"Nessun dato disponibile per la categoria selezionata: {scelta_anagrafica}")
+            st.warning(f"Nessun dato disponibile per la categoria selezionata: {scelta_anagrafica_aziende}")
             return
 
         
@@ -55,7 +55,7 @@ def coinvolgimento_aziende(df_events):
         st.divider()
         st.write("")
         st.write("")
-        st.write(f"#### 1. Numero Medio di Attività per Azienda - {scelta_anagrafica}")
+        st.write(f"#### 1. Numero Medio di Attività per Azienda - {scelta_anagrafica_aziende}")
         
         df_metrics_utenti = df_temp.groupby(colonna_utente).agg(
             Attivita_Totali=('TIPO EVENTO', 'count'),
@@ -133,7 +133,7 @@ def coinvolgimento_aziende(df_events):
             
         st.write("")
         
-        st.warning(scelta_anagrafica)
+        st.warning(scelta_anagrafica_aziende)
 
         # --- LOGICA GENERALIZZATA PER LE ATTIVITÀ DEL RADAR (CORRETTO df_temp) ---
         # Sostituito df_filtered con df_temp per correggere il NameError

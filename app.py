@@ -13,7 +13,6 @@ st.set_page_config(layout="wide")
 from eventi_panoramica import distribuzione_eventi
 from eventi_performance_team import analisi_performance_utenti
 from eventi_aziende import coinvolgimento_aziende
-from eventi_campagne import analisi_performance_campagne
 from eventi_loading import carica_eventi
 from ordini_loading import carica_ordini
 from ordini_pulizia_df import calcola_totale_riga
@@ -409,9 +408,5 @@ if df_events is not None:
     with st.expander("🏢 Analisi Coinvolgimento Aziende"):
         coinvolgimento_aziende(df_events)
 
-    # --- SEZIONE CAMPAGNE ---
-    st.write("")
-    st.write("")
-    with st.expander("📢 Analisi Campagne"):
-        analisi_performance_campagne(df_events)
+    
         

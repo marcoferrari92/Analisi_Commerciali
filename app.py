@@ -388,25 +388,7 @@ if df_events is not None:
     df_events['TIPO EVENTO'] = df_events['TIPO EVENTO'].str.replace('TELEFONATO -', 'TELEFONATO', regex=False)
     df_events = df_events[~df_events['TIPO EVENTO'].isin(['nan', 'None', '', 'NaN'])]
 
-    # PANORAMICA EVENTI
-    st.write("")
-    st.write("")
-    with st.expander("👁️ Panoramica Eventi"):
-        distribuzione_eventi(df_events)
-
-
-    # PERFORMANCE TEAM ---
-    st.write("")
-    st.write("")
-    with st.expander("⚡️ Performance Team"):
-        analisi_performance_utenti(df_events)
-
     
-    # --- SEZIONE AZIENDE PIÙ COINVOLTE ---
-    st.write("")
-    st.write("")
-    with st.expander("🏢 Analisi Coinvolgimento Aziende"):
-        coinvolgimento_aziende(df_events)
 
     
         

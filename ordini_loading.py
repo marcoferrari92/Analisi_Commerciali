@@ -42,7 +42,7 @@ def carica_ordini(file):
         df['DATA'] = pd.to_datetime(df['DATA'], dayfirst=True, errors='coerce').fillna(pd.Timestamp('2026-01-01'))
 
     # 6. Stampa tabella
-    with st.expander("Visualizza Tabella Dati", expanded=False):
-        st.dataframe(df, use_container_width=True)
+    #with st.expander("Visualizza Tabella Dati", expanded=False):
+    #    st.dataframe(df, use_container_width=True)
 
     return df

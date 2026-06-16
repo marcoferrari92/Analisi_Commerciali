@@ -286,8 +286,8 @@ if date_min is not None and date_max is not None:
         if df_events is not None:
             df_events = DATA_filtering(period, df_events)
         
-        if df_orders is not None:
-            df_orders = DATA_filtering(period, df_orders)
+        #if df_orders is not None:
+            #df_orders = DATA_filtering(period, df_orders)
     else:
         st.warning("Completa la selezione del periodo (Data inizio e Data fine).")
 else:
@@ -312,56 +312,23 @@ if df_orders is not None:
     #with st.expander("Visualizza dati grezzi", expanded=False):
     #    st.dataframe(df_orders, use_container_width=True)
     
-    # Calcolo
+    # Calcolo importo totali documenti
     df_orders = calcola_totale_riga(df_orders, includi_iva=mostra_iva)
     
-    #with st.expander("Visualizza dati puliti", expanded=False):
-    #    st.dataframe(df_orders, use_container_width=True)
-    #    st.write(df_orders.dtypes)
-
-    elabora_gestionale(df_orders)
+    #elabora_gestionale(df_orders)
+    df_ordini, df_aperti = elabora_gestionale(df_orders, period[0], period[1])
     
-    # 1. CHIAMATA ALLA FUNZIONE DI VALIDAZIONE (ESTERNA)
-    # df_orders_pulito restituisce record già unici per 'ID DOCUMENTO' con la colonna 'TOTALE' inclusa
-    df_orders_pulito, df_orders_errori = validazione_importi(df_orders)
+   
     
-    if df_orders_pulito is not None and not df_orders_pulito.empty:
+    if df_ordini is not None and not df_ordini.empty:
         
         # ********************************
         #  PANORAMICA ORDINI E PREVENTIVI
         # ********************************
         st.write("")
-        mostra_panoramica_ordini(df_orders_pulito)
+        mostra_panoramica_ordini(df_ordini, df_aperti)
             
-        # **********************************
-        #  CONVERSIONE PREVENTIVI - GLOBALE
-        # **********************************
-        st.write("")
-        st.write("")
-        with st.expander("🎯 Analisi Conversione Preventivi Globale"):
-            if isinstance(period, tuple) and len(period) == 2:
-                max_slider = max(1, (period[1] - period[0]).days)
-            else:
-                max_slider = 180
-                
-            c1, c2, c3, c4, c5 = st.columns([0.2, 1, 0.3, 1, 0.2])
-            with c2:
-                finestra = st.slider("Validità preventivi (giorni):", min_value=1, max_value=max_slider, value=30)
-            with c4:
-                scadenza = st.number_input("Pre-avviso 'In Scadenza' (giorni):", min_value=1, max_value=30, value=7)
-            
-            st.write("")
-            df_report = analisi_conversione_preventivi(df_orders_pulito, finestra, scadenza)
-
-            
-        # ******************************************
-        #  CONVERSIONE PREVENTIVI - PER COMMERCIALE
-        # ******************************************
-        st.write("")
-        st.write("")
-        with st.expander("🏆 Analisi Conversione Preventivi per Commerciale"):
-                if df_report is not None:
-                        df_performance = analizza_performance_commerciali(df_report)
+       
                         
     else:
         st.warning("⚠️ Nessun dato valido da analizzare dopo la pulizia del file JSON.")

@@ -30,30 +30,6 @@ def elabora_gestionale(df_input, data_inizio, data_fine):
     if df.empty:
         st.warning("Nessun dato nel periodo selezionato.")
         return None
-    
-    # --- NUOVO FILTRO UTENTE ---
-    # Assumiamo che la colonna si chiami 'UTENTE' (o 'ID_AGENTI'). 
-    # Adattalo al nome corretto che hai nel CSV/Database.
-    colonna_utente = 'UTENTE' 
-    
-    if colonna_utente in df.columns:
-        # Recupera la lista degli utenti univoci
-        # Usiamo list() per assicurarci che sia una lista semplice
-        lista_utenti = sorted(df[colonna_utente].dropna().unique().astype(str))
-        
-        # Aggiungiamo un'opzione "Tutti" per non filtrare
-        opzioni = ["TUTTI"] + lista_utenti
-        
-        # st.selectbox al posto di st.multiselect
-        utente_selezionato = st.selectbox(
-            "Seleziona Utente/Agente:", 
-            options=opzioni,
-            index=0 # Default su "TUTTI"
-        )
-        
-        # Filtra solo se è stato selezionato un utente specifico
-        if utente_selezionato != "TUTTI":
-            df = df[df[colonna_utente] == utente_selezionato]
 
     # Ora puoi continuare con le tue trasformazioni in totale sicurezza
     df['TIPO_DOCUMENTO'] = df['TIPO_DOCUMENTO'].astype(str).str.strip().str.upper()
@@ -252,69 +228,66 @@ def elabora_gestionale(df_input, data_inizio, data_fine):
         mappa_sconti_chpr[id_padre_reale] = mappa_sconti_chpr.get(id_padre_reale, 0.0) + valore_storno
 
 
-    # RIABILITAZIONE ORFANI
-    
     # 1. Recupero degli orfani (già identificati come 'ORFANO')
-    # orfani = df[df['status'] == 'ORFANO']
-    # if not orfani.empty:
+    orfani = df[df['status'] == 'ORFANO']
+    if not orfani.empty:
+        ids_padri_mancanti = orfani['ID_DOCUMENTO_PADRE'].unique().tolist()
         
+        # Recupera TUTTO ciò che è collegato a quei padri nel database totale
+        mask_recupero = (
+            df_input['ID_DOCUMENTI'].isin(ids_padri_mancanti) | 
+            df_input['ID_DOCUMENTO_PADRE'].isin(ids_padri_mancanti)
+        )
+        df_recuperato = df_input[mask_recupero].copy()
         
-    #     # Recupera TUTTO ciò che è collegato a quei padri nel database totale
-    #     ids_padri_mancanti  = orfani['ID_DOCUMENTO_PADRE'].unique().tolist()
-    #     mask_recupero       = (df_input['ID_DOCUMENTI'].isin(ids_padri_mancanti) | df_input['ID_DOCUMENTO_PADRE'].isin(ids_padri_mancanti) )
-    #     df_recuperato       = df_input[mask_recupero].copy()
-    #     st.write(ids_padri_mancanti)
-    #     st.write(df_recuperato.head(1000))
+        # 1. Recupero degli orfani
+        df = pd.concat([df, df_recuperato]).drop_duplicates(subset=['ID_DOCUMENTI'])
         
-    #     # 1. Recupero degli orfani
-    #     df = pd.concat([df, df_recuperato]).drop_duplicates(subset=['ID_DOCUMENTI'])
-        
-    #     # --- AGGIUNTA FONDAMENTALE PER SANARE I DATI ---
-    #     # Forza la colonna a essere numerica (0 per i vuoti) prima di passare alla get_path
-    #     df['ID_DOCUMENTO_PADRE'] = pd.to_numeric(df['ID_DOCUMENTO_PADRE'], errors='coerce').fillna(0).astype(int)
-    #     df['ID_DOCUMENTI'] = pd.to_numeric(df['ID_DOCUMENTI'], errors='coerce').fillna(0).astype(int)
-    #     # ------------------------------------------------
+        # --- AGGIUNTA FONDAMENTALE PER SANARE I DATI ---
+        # Forza la colonna a essere numerica (0 per i vuoti) prima di passare alla get_path
+        df['ID_DOCUMENTO_PADRE'] = pd.to_numeric(df['ID_DOCUMENTO_PADRE'], errors='coerce').fillna(0).astype(int)
+        df['ID_DOCUMENTI'] = pd.to_numeric(df['ID_DOCUMENTI'], errors='coerce').fillna(0).astype(int)
+        # ------------------------------------------------
 
-    #     # 2. Ora ricalcola le mappe...
-    #     mappa_padri = df.set_index('ID_DOCUMENTI')['ID_DOCUMENTO_PADRE'].to_dict()
-    #     mappa_tipi = df.set_index('ID_DOCUMENTI')['TIPO_DOCUMENTO'].to_dict()
-    #     figli_dict = df.groupby('ID_DOCUMENTO_PADRE')['ID_DOCUMENTI'].apply(list).to_dict()
+        # 2. Ora ricalcola le mappe...
+        mappa_padri = df.set_index('ID_DOCUMENTI')['ID_DOCUMENTO_PADRE'].to_dict()
+        mappa_tipi = df.set_index('ID_DOCUMENTI')['TIPO_DOCUMENTO'].to_dict()
+        figli_dict = df.groupby('ID_DOCUMENTO_PADRE')['ID_DOCUMENTI'].apply(list).to_dict()
         
-    #     # 4. RICALCOLO DI TUTTO
-    #     # correttamente anche per gli ex-orfani.
-    #     #df['REVISIONATO'] = df.apply(calcola_revisione, axis=1)
+        # 4. RICALCOLO DI TUTTO
+        # correttamente anche per gli ex-orfani.
+        #df['REVISIONATO'] = df.apply(calcola_revisione, axis=1)
         
         
-    #     # Riassegna gli stati (per eliminare l'etichetta 'ORFANO' ora che il padre è presente)
-    #     df['status'] = df.apply(determina_status, axis=1)
+        # Riassegna gli stati (per eliminare l'etichetta 'ORFANO' ora che il padre è presente)
+        df['status'] = df.apply(determina_status, axis=1)
 
-    #     # 1. Ricalcola il PATH per TUTTI (inclusi i nuovi padri recuperati)
-    #     # Azzeriamo il path_map per forzare il ricalcolo completo
+        # 1. Ricalcola il PATH per TUTTI (inclusi i nuovi padri recuperati)
+        # Azzeriamo il path_map per forzare il ricalcolo completo
+        path_map = {}
         
-    #     path_map = {}
+        # Riordiniamo il df prima di generare il path (fondamentale!)
+        df = df.sort_values(by=['RAGIONE_SOCIALE', 'ID_DOCUMENTO_PADRE', 'ID_DOCUMENTI'])
         
-    #     # Riordiniamo il df prima di generare il path (fondamentale!)
-    #     df = df.sort_values(by=['RAGIONE_SOCIALE', 'ID_DOCUMENTO_PADRE', 'ID_DOCUMENTI'])
-        
-    #     def get_path(row):
-    #         id_doc = int(row['ID_DOCUMENTI'])
-    #         padre = int(row['ID_DOCUMENTO_PADRE'])
-    #         # Se è un capostipite, il path inizia col cliente
-    #         if padre == 0 or padre not in df['ID_DOCUMENTI'].values:
-    #             path = f"{row['RAGIONE_SOCIALE']}_{id_doc:010d}"
-    #         else:
-    #             # Recuperiamo il path del padre appena generato nel loop
-    #             path_padre = path_map.get(padre, f"{row['RAGIONE_SOCIALE']}_{padre:010d}")
-    #             path = f"{path_padre}.{id_doc:010d}"
-    #         path_map[id_doc] = path
-    #         return path
+        def get_path(row):
+            id_doc = int(row['ID_DOCUMENTI'])
+            padre = int(row['ID_DOCUMENTO_PADRE'])
+            # Se è un capostipite, il path inizia col cliente
+            if padre == 0 or padre not in df['ID_DOCUMENTI'].values:
+                path = f"{row['RAGIONE_SOCIALE']}_{id_doc:010d}"
+            else:
+                # Recuperiamo il path del padre appena generato nel loop
+                path_padre = path_map.get(padre, f"{row['RAGIONE_SOCIALE']}_{padre:010d}")
+                path = f"{path_padre}.{id_doc:010d}"
+            path_map[id_doc] = path
+            return path
 
-    #     # Aggiorna la colonna SORT_PATH
-    #     df['SORT_PATH'] = [get_path(row) for _, row in df.iterrows()]
+        # Aggiorna la colonna SORT_PATH
+        df['SORT_PATH'] = [get_path(row) for _, row in df.iterrows()]
         
-    #     # Ordine finale basato sul path "Cliente_Padre.Figlio"
-    #     df = df.sort_values(by=['SORT_PATH'])
-        
+        # Ordine finale basato sul path "Cliente_Padre.Figlio"
+        df = df.sort_values(by=['SORT_PATH'])
+
 
     # --- 5. ORDINAMENTO SEQUENZIALE LOGICO (Priorità: Ragione Sociale) ---
     
@@ -448,11 +421,12 @@ def elabora_gestionale(df_input, data_inizio, data_fine):
             else:
                 # Gestione IN ATTESA (Alternanza Giallo)
                 if status == 'IN ATTESA':
-                    bg_color = 'background-color: #ffff99; color: #000000; font-weight: bold;' if is_pari else 'background-color: #e6e673; color: #856404; font-weight: bold;'
+                    bg_color = 'background-color: #ffff99; color: #0000; font-weight: bold;' if is_pari else 'background-color: #e6e673; color: #856404; font-weight: bold;'
                 
                 elif status == 'SCADUTO': 
                     # Rosso pastello chiaro (pari) vs Rosso pastello scuro (dispari)
                     bg_color = 'background-color: #ff9999; color: #000000; font-weight: bold;' if is_pari else 'background-color: #ff6666; color: #800000; font-weight: bold;'
+                
 
                 # Logica standard (Tua originale)
                 elif is_pari:
@@ -477,32 +451,32 @@ def elabora_gestionale(df_input, data_inizio, data_fine):
 
     # --- 11. FILTRO TAB E APPLICAZIONE ---
     
-    # Assicuriamoci di lavorare su copie pulite
-    temp_df = df_visualizzazione.copy()
-    temp_data = pd.to_datetime(temp_df['DATA'])
+    # Assicuriamoci che la data sia in datetime per il calcolo
+    # Calcolo temporaneo su una copia per i giorni (senza modificare la colonna DATA di df_visualizzazione)
+    temp_data = pd.to_datetime(df_visualizzazione['DATA'])
     oggi = pd.Timestamp.now().normalize()
-    temp_df['GIORNI_TRASCORSI'] = (oggi - temp_data).dt.days
+    df_visualizzazione['GIORNI_TRASCORSI'] = (oggi - temp_data).dt.days
 
-    # 1. Identifichiamo i preventivi in attesa (STANDARD + status IN ATTESA)
-    mask_in_attesa = (temp_df['FAMIGLIA'] == 'STANDARD') & (temp_df['STATUS'] == 'IN ATTESA')
+    # Suddivisione dati base
+    df_ordini_tutti = df_visualizzazione[df_visualizzazione['FAMIGLIA'] == 'STANDARD'].copy()
     
-    # 2. Suddividiamo usando le maschere booleane
-    # I PERSÌ sono quelli con giorni >= soglia
-    df_persi = temp_df[mask_in_attesa & (temp_df['GIORNI_TRASCORSI'] >= soglia_scadenza)].copy()
+    # Preventivi in Attesa (Standard)
+    df_in_attesa_tutti = df_ordini_tutti[df_ordini_tutti['STATUS'] == 'IN ATTESA'].copy()
+    
+    # Split dinamico basato sullo slider
+    # Quelli "in attesa" rimangono quelli sotto la soglia
+    df_in_attesa = df_in_attesa_tutti[df_in_attesa_tutti['GIORNI_TRASCORSI'] < soglia_scadenza].copy()
+    # Quelli "persi/scaduti" sono quelli sopra la soglia (assegniamo status SCADUTO per la colorazione)
+    df_persi = df_in_attesa_tutti[df_in_attesa_tutti['GIORNI_TRASCORSI'] >= soglia_scadenza].copy()
     df_persi['STATUS'] = 'SCADUTO' 
     
-    # Gli IN ATTESA sono quelli con giorni < soglia
-    # Esempio per df_in_attesa
-    df_in_attesa = temp_df[mask_in_attesa & (temp_df['GIORNI_TRASCORSI'] < soglia_scadenza)].copy()
+    # Ordini normali (tutto ciò che è standard e NON è in attesa)
+    df_ordini_attivi = df_ordini_tutti[df_ordini_tutti['STATUS'] != 'IN ATTESA'].copy()
     
-    # 3. Ordini ATTIVI (Tutto ciò che è standard ma NON in attesa)
-    df_ordini_attivi = temp_df[(temp_df['FAMIGLIA'] == 'STANDARD') & (temp_df['STATUS'] != 'IN ATTESA')].copy()
-    
-    # 4. Ordini APERTI
-    df_ordini_aperti = temp_df[temp_df['FAMIGLIA'] == 'APERTO'].copy()
+    # Ordini Aperti
+    df_ordini_aperti = df_visualizzazione[df_visualizzazione['FAMIGLIA'] == 'APERTO'].copy()
 
-
-    # Creazione Styler (con le variabili ora correttamente isolate)
+    # Creazione Styler
     styler_persi = df_persi.style.apply(colora_filiera_avanzato, axis=None).format(styler_format, na_rep="")
     styler_attesa = df_in_attesa.style.apply(colora_filiera_avanzato, axis=None).format(styler_format, na_rep="")
     styler_ordini = df_ordini_attivi.style.apply(colora_filiera_avanzato, axis=None).format(styler_format, na_rep="")
@@ -526,8 +500,6 @@ def elabora_gestionale(df_input, data_inizio, data_fine):
         "⚠️ CHPR DIAGNOSI"
     ])
     
-    st.write("")
-    st.write("")
     with tab1:
         st.dataframe(styler_persi, use_container_width=True, hide_index=True, column_order=colonne_da_mostrare)
     with tab2:
@@ -582,47 +554,3 @@ def elabora_gestionale(df_input, data_inizio, data_fine):
             )
         else:
             st.info("💡 Nessuna decurtazione rilevata.")
-
-
-    import io
-
-    # --- 13. ESPORTAZIONE EXCEL (DF_PULITO COMPLETO) ---
-
-    # 1. Filtriamo il df_pulito per escludere gli Ordini Aperti come richiesto
-    # (Assicurandoci di convertire la colonna FAMIGLIA in stringa per sicurezza)
-    df_export = df_pulito[df_pulito['FAMIGLIA'].astype(str) != 'APERTO'].copy()
-
-    # 2. Funzione per creare il file in memoria
-    def to_excel(df):
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Export_Completo')
-        return output.getvalue()
-
-    # 3. Bottone di download
-    st.download_button(
-        label="Scarica file Excel completo (.xlsx)",
-        data=to_excel(df_export),
-        file_name='export_gestionale_completo.xlsx',
-        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-
-    # --- AGGIORNAMENTO DI STATO PER IL RITORNO ---
-    # Calcoliamo i giorni trascorsi anche su df_pulito (se non lo abbiamo fatto)
-    if 'DATA' in df_pulito.columns:
-        oggi = pd.Timestamp.now().normalize()
-        # Assicuriamoci che sia datetime
-        date_pulite = pd.to_datetime(df_pulito['DATA']).dt.normalize()
-        giorni_trascorsi = (oggi - date_pulite).dt.days
-        
-        # Identifichiamo dove lo status era 'IN ATTESA' e superiamo la soglia
-        mask_scaduti = (df_pulito['STATUS'] == 'IN ATTESA') & (giorni_trascorsi >= soglia_scadenza)
-        
-        # Aggiorniamo lo status direttamente in df_pulito
-        df_pulito.loc[mask_scaduti, 'STATUS'] = 'SCADUTO'
-
-        df_ordini = df_pulito[df_pulito['FAMIGLIA'].astype(str) != 'APERTO'].copy()
-        df_aperti = df_pulito[df_pulito['FAMIGLIA'].astype(str) == 'APERTO'].copy()
-
-    # Ritorna il dataframe elaborato e aggiornato
-    return df_ordini, df_aperti

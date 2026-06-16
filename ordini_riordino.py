@@ -232,7 +232,7 @@ def elabora_gestionale(df_input, data_inizio, data_fine):
         if tipo == 'PREVENTIVO':
             famiglia_tutta = df[df['ID_FAMIGLIA'] == id_fam]
             # Cerchiamo ordini reali nella famiglia
-            ha_ordini = famiglia_tutta[famiglia_tutta['TIPO_DOCUMENTO'].isin(['ORDINE', 'ORDINE APERTO'])].any().any()
+            ha_ordini = famiglia_tutta['TIPO_DOCUMENTO'].isin(['ORDINE', 'ORDINE APERTO']).any()
             
             if not ha_ordini:
                 return 'IN ATTESA'

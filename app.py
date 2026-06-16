@@ -390,5 +390,23 @@ if df_events is not None:
 
     
 
+    # PANORAMICA EVENTI
+    st.write("")
+    st.write("")
+    with st.expander("👁️ Panoramica Eventi"):
+        distribuzione_eventi(df_events)
+
+
+    # PERFORMANCE TEAM ---
+    st.write("")
+    st.write("")
+    with st.expander("⚡️ Performance Team"):
+        analisi_performance_utenti(df_events)
+
     
+    # --- SEZIONE AZIENDE PIÙ COINVOLTE ---
+    st.write("")
+    st.write("")
+    with st.expander("🏢 Analisi Coinvolgimento Aziende"):
+        coinvolgimento_aziende(df_events)
         

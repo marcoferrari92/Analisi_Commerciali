@@ -181,6 +181,7 @@ def elabora_gestionale(df_input, data_inizio, data_fine):
 
     # 1. Identifica le famiglie che soddisfano la condizione "APERTO"
     # Cerchiamo gli ID_FAMIGLIA che hanno almeno un documento aperto o figlio di aperto
+    st.write("Columns found in df:", df.columns.tolist())
     df['TIPO_DOCUMENTO'] = df['TIPO_DOCUMENTO'].astype(str).str.upper()
     df['TIPO_DOCUMENTO_PADRE'] = df['TIPO_DOCUMENTO_PADRE'].astype(str).str.upper()
     condizione_aperto = (df['TIPO_DOCUMENTO'] == 'ORDINE APERTO') | (df['TIPO_DOCUMENTO_PADRE'] == 'ORDINE APERTO')

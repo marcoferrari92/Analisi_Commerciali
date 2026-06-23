@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import re
@@ -181,7 +182,6 @@ def elabora_gestionale(df_input, data_inizio, data_fine):
 
     # 1. Identifica le famiglie che soddisfano la condizione "APERTO"
     # Cerchiamo gli ID_FAMIGLIA che hanno almeno un documento aperto o figlio di aperto
-    #st.write("Columns found in df:", df.columns.tolist())
     df['TIPO_DOCUMENTO'] = df['TIPO_DOCUMENTO'].astype(str).str.upper()
     df['TIPO_DOCUMENTO_PADRE'] = df['TIPO_DOCUMENTO_PADRE'].astype(str).str.upper()
     condizione_aperto = (df['TIPO_DOCUMENTO'] == 'ORDINE APERTO') | (df['TIPO_DOCUMENTO_PADRE'] == 'ORDINE APERTO')
@@ -589,15 +589,16 @@ def elabora_gestionale(df_input, data_inizio, data_fine):
 
     # --- 13. ESPORTAZIONE EXCEL (DF_PULITO COMPLETO) ---
 
-    # 1. Filtriamo il df_pulito per escludere gli Ordini Aperti come richiesto
-    # (Assicurandoci di convertire la colonna FAMIGLIA in stringa per sicurezza)
-    df_export = df_pulito[df_pulito['FAMIGLIA'].astype(str) != 'APERTO'].copy()
+    # --- 13. ESPORTAZIONE EXCEL (COMPLETO DI ORDINI E APERTI) ---
+
+    # 1. Utilizziamo direttamente df_pulito senza escludere 'APERTO'
+    df_export = df_pulito.copy()
 
     # 2. Funzione per creare il file in memoria
     def to_excel(df):
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Export_Completo')
+            df.to_excel(writer, index=False, sheet_name='Dati_Elaborati')
         return output.getvalue()
 
     # 3. Bottone di download

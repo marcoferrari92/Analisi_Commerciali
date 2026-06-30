@@ -315,7 +315,7 @@ if df_orders is not None:
     df_orders = calcola_totale_riga(df_orders, includi_iva=mostra_iva)
     
     #elabora_gestionale(df_orders)
-    df_ordini, df_aperti = elabora_gestionale(df_orders, period[0], period[1])
+    df_ordini, df_aperti, df_consultivare = elabora_gestionale(df_orders, period[0], period[1])
     
    
     
@@ -388,8 +388,6 @@ if df_events is not None:
     df_events['TIPO EVENTO'] = df_events['TIPO EVENTO'].str.replace('TELEFONATO -', 'TELEFONATO', regex=False)
     df_events = df_events[~df_events['TIPO EVENTO'].isin(['nan', 'None', '', 'NaN'])]
 
-    
-
     # PANORAMICA EVENTI
     st.write("")
     st.write("")
@@ -409,4 +407,6 @@ if df_events is not None:
     st.write("")
     with st.expander("🏢 Analisi Coinvolgimento Aziende"):
         coinvolgimento_aziende(df_events)
+
+    
         

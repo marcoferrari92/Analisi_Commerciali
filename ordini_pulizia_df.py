@@ -15,23 +15,28 @@ def converti_valore(val):
         return 0.0
 
 def calcola_totale_riga(df, includi_iva=False):
-    """
-    Usa converti_valore per pulire i dati, calcola TOTALE_RIGA 
-    e gestisce l'IVA.
-    """
     df = df.copy()
     
-    # 1. Pulizia usando la tua funzione converti_valore
-    for col in ['QT', 'PREZZO']:
-        if col in df.columns:
-            df[col] = df[col].apply(converti_valore)
+    # 1. Pulizia standard
+    colonne_numeriche = ['QT', 'PREZZO', 'SCONTO_IMPORTO']
+    for col in colonne_numeriche:
+        df[col] = df[col].apply(converti_valore) if col in df.columns else 0.0
     
-    # 2. Calcolo totale base
-    df['TOTALE_RIGA'] = df['QT'] * df['PREZZO']
+    # 2. Calcoliamo il valore netto della riga (senza sommare nulla)
+    # Se è una riga normale: (QT * PREZZO) - SCONTO_IMPORTO
+    # Se è una riga di sconto (RIGA_SCONTO_TOTALE == 'SI'):
+    # allora il valore della riga DEVE essere il PREZZO negativo.
     
-    # 3. Switch IVA
+    df['TOTALE_RIGA'] = (df['QT'] * df['PREZZO']) - df['SCONTO_IMPORTO']
+    
+    mask_sconto = df['RIGA_SCONTO_TOTALE'].astype(str).str.upper() == 'SI'
+    
+    # Sovrascriviamo il valore delle righe di sconto
+    # Qui forziamo il valore a essere il negativo del prezzo indicato nella riga di sconto
+    df.loc[mask_sconto, 'TOTALE_RIGA'] = -1 * df.loc[mask_sconto, 'PREZZO'].abs()
+    
+    # 3. Gestione IVA
     if includi_iva and 'CODICE_IVA' in df.columns:
-        # Pulisce anche l'IVA nel caso non sia un numero pulito
         iva_perc = df['CODICE_IVA'].apply(converti_valore) / 100
         df['TOTALE_RIGA'] = df['TOTALE_RIGA'] * (1 + iva_perc)
             

@@ -351,16 +351,22 @@ if df_events is not None:
 
     # Controlliamo se la colonna CAMPAGNA esiste nel DataFrame
     if 'CAMPAGNA' in df_events.columns:
-
-        # Pulizia preliminare della colonna per evitare duplicati causati da spazi o minuscole
-        df_events['CAMPAGNA'] = df_events['CAMPAGNA'].astype(str).str.strip().str.upper()
+        # 1. Convertiamo in stringa e gestiamo i valori mancanti forzandoli a stringa vuota
+        df_events['CAMPAGNA'] = df_events['CAMPAGNA'].fillna('').astype(str).str.strip().str.upper()
         
-        # Estraiamo le campagne uniche escludendo valori vuoti o 'NAN'
+        # 2. Estraiamo i valori unici, escludendo quelli "vuoti" significativi
         campagne_uniche = df_events['CAMPAGNA'].unique()
-        campagne_pulite = [c for c in campagne_uniche if c not in ['NAN', 'NONE', '', 'NAT']]
+        
+        # 3. Pulizia usando una logica sicura
+        # Escludiamo valori che dopo la pulizia risultano vuoti o equivalenti a NULL/NaN
+        campagne_pulite = [
+            c for c in campagne_uniche 
+            if c and c not in ['NAN', 'NONE', 'NAT', 'NULL', '']
+        ]
+        
+        # 4. Ordinamento sicuro
         campagne_pulite.sort()
         
-        # Creiamo la lista delle opzioni per il filtro inserendo "Tutte le campagne" all'inizio
         opzioni_campagna = ["TUTTE LE CAMPAGNE"] + campagne_pulite
         
         # Render del selettore

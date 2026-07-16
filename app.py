@@ -315,17 +315,18 @@ if df_orders is not None:
     df_orders = calcola_totale_riga(df_orders, includi_iva=mostra_iva)
     
     #elabora_gestionale(df_orders)
-    df_ordini, df_aperti, df_consultivare = elabora_gestionale(df_orders, period[0], period[1])
-    
+    #df_ordini, df_aperti, df_pulito = elabora_gestionale(df_orders, period[0], period[1])
+    df_pulito = elabora_gestionale(df_orders, period[0], period[1])
    
     
-    if df_ordini is not None and not df_ordini.empty:
+    if df_pulito is not None and not df_pulito.empty:
         
         # ********************************
         #  PANORAMICA ORDINI E PREVENTIVI
         # ********************************
         st.write("")
-        mostra_panoramica_ordini(df_ordini, df_aperti)
+        #mostra_panoramica_ordini(df_ordini, df_aperti)
+        mostra_panoramica_ordini(df_pulito, data_inizio=period[0], data_fine=period[1])
             
        
                         

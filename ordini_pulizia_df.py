@@ -27,7 +27,8 @@ def calcola_totale_riga(df, includi_iva=False):
     # Se è una riga di sconto (RIGA_SCONTO_TOTALE == 'SI'):
     # allora il valore della riga DEVE essere il PREZZO negativo.
     
-    df['TOTALE_RIGA'] = (df['QT'] * df['PREZZO']) - df['SCONTO_IMPORTO']
+    df['TOTALE_RIGA'] = (df['QT'] * df['PREZZO']) -(df['QT'] * df['SCONTO_IMPORTO'])
+    #df['TOTALE_RIGA'] = (df['QT'] * df['PREZZO'])
     
     mask_sconto = df['RIGA_SCONTO_TOTALE'].astype(str).str.upper() == 'SI'
     

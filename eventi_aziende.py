@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import xarray
 
 def coinvolgimento_aziende(df_events):
     """
@@ -28,20 +29,24 @@ def coinvolgimento_aziende(df_events):
         # FILTRO: Selezione Target Anagrafica
         # ---------------------------------------------------------
         st.write(f"#### Filtro anagrafiche")
-        st.write("")
-        st.write("")
+        
+        # AGGIORNAMENTO: Aggiunta "Lead e Prospect" nella lista
         scelta_anagrafica_aziende = st.selectbox(
             "Seleziona il target di anagrafica aziende da analizzare:",
-            ["Tutte le anagrafiche", "Clienti", "Lead", "Prospect"],
+            ["Tutte le anagrafiche", "Clienti", "Lead", "Prospect", "Lead e Prospect"],
             key="aziende_filtro_anagrafiche"
         )
         
-        if scelta_anagrafica_aziende  == "Clienti":
+        # AGGIORNAMENTO: Logica per gestire la doppia categoria
+        if scelta_anagrafica_aziende == "Clienti":
             df_temp = df_temp[df_temp[colonna_anagrafica] == 'CLIENTE']
-        elif scelta_anagrafica_aziende  == "Lead":
+        elif scelta_anagrafica_aziende == "Lead":
             df_temp = df_temp[df_temp[colonna_anagrafica] == 'LEAD']
-        elif scelta_anagrafica_aziende  == "Prospect":
+        elif scelta_anagrafica_aziende == "Prospect":
             df_temp = df_temp[df_temp[colonna_anagrafica] == 'PROSPECT']
+        elif scelta_anagrafica_aziende == "Lead e Prospect":
+            # Filtro per includere entrambi
+            df_temp = df_temp[df_temp[colonna_anagrafica].isin(['LEAD', 'PROSPECT'])]
             
         if df_temp.empty:
             st.warning(f"Nessun dato disponibile per la categoria selezionata: {scelta_anagrafica_aziende}")

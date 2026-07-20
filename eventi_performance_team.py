@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import xarray
 
 def analisi_performance_utenti(df_events):
 
@@ -41,18 +42,23 @@ def analisi_performance_utenti(df_events):
         st.session_state.commerciali_salvati = elenco_utenti_totale
 
     with col1:
+        # AGGIORNAMENTO: Aggiunta "Lead e Prospect" alla lista
         scelta_anagrafica = st.selectbox(
             "Seleziona il target di anagrafica da analizzare:",
-            ["Tutte le anagrafiche", "Clienti", "Lead", "Prospect"],
+            ["Tutte le anagrafiche", "Clienti", "Lead", "Prospect", "Lead e Prospect"],
             key="sel_anagrafica_utenti"
         )
         
+        # AGGIORNAMENTO: Logica per gestire la doppia categoria
         if scelta_anagrafica == "Clienti":
             df_temp = df_temp[df_temp[colonna_anagrafica] == 'CLIENTE']
         elif scelta_anagrafica == "Lead":
             df_temp = df_temp[df_temp[colonna_anagrafica] == 'LEAD']
         elif scelta_anagrafica == "Prospect":
             df_temp = df_temp[df_temp[colonna_anagrafica] == 'PROSPECT']
+        elif scelta_anagrafica == "Lead e Prospect":
+            # Filtro che include entrambi
+            df_temp = df_temp[df_temp[colonna_anagrafica].isin(['LEAD', 'PROSPECT'])]
         
         mostra_solo_principali = st.checkbox(
             "Solo attività principali (Telefonato, Visitato, Inviata e-mail)", 
